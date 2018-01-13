@@ -251,7 +251,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		else
 			set_register(HL, static_cast<std::int16_t> (get_register_16(HL) - 1));	// HL-
 		break;
-		break;
 
 		// LD X, (HL)
 	case 0x46: case 0x4E: case 0x56: case 0x5E: case 0x66: case 0x6E: case 0x7E:
