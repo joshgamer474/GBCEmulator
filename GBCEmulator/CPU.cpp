@@ -9,6 +9,7 @@ CPU::CPU()
 
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
+	interrupts_enabled = false;
 }
 
 CPU::~CPU()
@@ -206,6 +207,8 @@ void CPU::getInstruction()
 
 bool CPU::runInstruction(std::int8_t instruc)
 {
+	std::int8_t a8, d8, r8, parenA8, flagType;
+	std::int16_t a16, d16, addr, hlVal;
 
 	int regPattern1, regPattern2;
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
@@ -307,7 +310,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xEA:
 
 		registers[PC]++;
-		std::int16_t a16 = getNextTwoBytes();
+		a16 = getNextTwoBytes();
 		LD(a16, get_register_8(A));
 		break;
 
@@ -315,7 +318,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xFA:
 
 		registers[PC]++;
-		std::int16_t a16 = getNextTwoBytes();
+		a16 = getNextTwoBytes();
 		LD_INDIRECT_A16(A, a16);
 		break;
 
@@ -323,7 +326,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x01: case 0x11: case 0x21: case 0x31:
 
 		registers[PC]++;
-		std::int16_t d16 = getNextTwoBytes();
+		d16 = getNextTwoBytes();
 
 		if (instruc == 0x31)
 			LD((CPU::REGISTERS) SP, d16);
@@ -334,7 +337,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 		// LD SP, HL
 	case 0xF9:
-		
+
 		registers[PC]++;
 		LD(SP, HL);
 		break;
@@ -343,7 +346,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x08:
 
 		registers[PC]++;
-		std::int16_t a16 = getNextTwoBytes();
+		a16 = getNextTwoBytes();
 		LD(a16, get_register_16(SP));
 		break;
 
@@ -352,8 +355,8 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xF0:
 
 		registers[PC]++;
-		std::int8_t a8 = getByteFromMemory(PC);
-		std::int8_t parenA8 = getByteFromMemory(static_cast<std::int16_t> (0xFF00 + a8));
+		a8 = getByteFromMemory(PC);
+		parenA8 = getByteFromMemory(static_cast<std::int16_t> (0xFF00 + a8));
 		LDH(A, parenA8);
 		break;
 
@@ -361,7 +364,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xE0:
 
 		registers[PC]++;
-		std::int8_t a8 = getByteFromMemory(PC);
+		a8 = getByteFromMemory(PC);
 		LDH_INDIRECT(static_cast<std::int16_t> (0xFF00 + a8), get_register_8(A));
 		break;
 
@@ -369,7 +372,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xF8:
 
 		registers[PC]++;
-		std::int8_t r8 = getByteFromMemory(PC);
+		r8 = getByteFromMemory(PC);
 		LD_HL_SPPLUSR8(HL, r8);
 		break;
 
@@ -415,7 +418,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xE8:
 
 		registers[PC]++;
-		std::int8_t r8 = getByteFromMemory(get_register_16(PC));
+		r8 = getByteFromMemory(get_register_16(PC));
 		registers[PC]++;
 		ADD_SP_R8(SP, r8);
 		break;
@@ -697,7 +700,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xC2: case 0xC3: case 0xCA: case 0xD2: case 0xDA:
 
 		registers[PC]++;
-		std::int16_t addr = getNextTwoBytes();
+		addr = getNextTwoBytes();
 		if (instruc == 0xC3)
 			JP(CPU::FLAGTYPES::NONE, addr);						// JP a16
 		else
@@ -715,7 +718,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0xE9:
 
 		registers[PC]++;
-		std::int16_t hlVal = 0x0000;
+		hlVal = 0x0000;
 		hlVal |= getByteFromMemory(HL);
 		JP_INDIRECT(hlVal);
 		break;
@@ -728,7 +731,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x18: case 0x20: case 0x28: case 0x30: case 0x38:
 
 		registers[PC]++;
-		std::int8_t r8 = getByteFromMemory(CPU::REGISTERS::PC);
+		r8 = getByteFromMemory(CPU::REGISTERS::PC);
 		registers[PC]++;
 		if (instruc == 0xC3)
 			JR(CPU::FLAGTYPES::NONE, r8);						// JP r8
@@ -736,12 +739,70 @@ bool CPU::runInstruction(std::int8_t instruc)
 		{
 			std::int8_t flagType = ((instruc & 0xF0) >> 4) - 0x02;	// 0, 1
 			if ((instruc & 0x0F) == 0x08)
-				JP((CPU::FLAGTYPES) (flagType + 2), addr);		// JP [Z, C], r8
+				JR((CPU::FLAGTYPES) (flagType + 2), r8);		// JP [Z, C], r8
 			else
-				JP((CPU::FLAGTYPES) flagType, addr);			// JP [NZ, NC], r8
+				JR((CPU::FLAGTYPES) flagType, r8);			// JP [NZ, NC], r8
 
 		}
 		break;
+
+
+
+		/*
+			RET
+		*/
+
+		// RET		RET [NZ, NC, Z, C]
+	case 0xC0: case 0xC8: case 0xC9: case 0xD0: case 0xD8:
+
+		registers[PC]++;
+		if (instruc == 0xC9)
+			RET(CPU::FLAGTYPES::NONE);
+		else
+		{
+			std::int8_t flagType = ((instruc & 0xF0) >> 4) - 0x0C;	// 0, 1
+			if ((instruc & 0x0F) == 0x08)
+				RET((CPU::FLAGTYPES) (flagType + 2));		// JP [Z, C], r8
+			else
+				RET((CPU::FLAGTYPES) flagType);				// JP [NZ, NC], r8
+		}
+
+		break;
+
+
+		// RETI
+	case 0xD9:
+
+		registers[PC]++;
+		RETI();
+		break;
+
+
+
+
+		/*
+			Interrupts
+		*/
+	case 0xF3:
+		
+		registers[PC]++;
+		disable_interrupts();
+		break;
+
+	case 0xFB:
+
+		registers[PC]++;
+		enable_interrupts();
+		break;
+
+
+
+
+
+
+
+
+
 
 	}// end switch()
 
@@ -925,13 +986,13 @@ void CPU::LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if (spVal & 0x0100 == 0 && result & 0x0100 > 0)
+	if ((spVal & 0x0100) == 0 && (result & 0x0100) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (spVal & 0x8000 == 0 && result & 0x8000 > 0)
+	if ((spVal & 0x8000) == 0 && (result & 0x8000) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -966,13 +1027,13 @@ void CPU::ADD(CPU::REGISTERS reg, std::int8_t d8, bool indirect=false)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if (r & 0x0010 == 0 && result & 0x0010 > 0)
+	if ((r & 0x0010) == 0 && (result & 0x0010) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (r & 0x0080 == 0 && result & 0x0080 > 0)
+	if ((r & 0x0080) == 0 && (result & 0x0080) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1012,13 +1073,13 @@ void CPU::ADD_HL(CPU::REGISTERS reg)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if (hlVal & 0x0100 == 0 && result & 0x0100 > 0)
+	if ((hlVal & 0x0100) == 0 && (result & 0x0100) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (hlVal & 0x8000 == 0 && result & 0x8000 > 0)
+	if ((hlVal & 0x8000) == 0 && (result & 0x8000) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1042,13 +1103,13 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if (spVal & 0x0100 == 0 && result & 0x0100 > 0)
+	if ((spVal & 0x0100) == 0 && (result & 0x0100) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (spVal & 0x8000 == 0 && result & 0x8000 > 0)
+	if ((spVal & 0x8000) == 0 && (result & 0x8000) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1083,13 +1144,13 @@ void CPU::SUB(std::int8_t d8, bool indirect=false)
 	set_flag_subtract();
 
 	// Check flag half carry
-	if (regAValue & 0x0010 == 0 && result & 0x0010 > 0)
+	if ((regAValue & 0x0010) == 0 && (result & 0x0010) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (regAValue & 0x0080 == 0 && result & 0x0080 > 0)
+	if ((regAValue & 0x0080) == 0 && (result & 0x0080) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1230,13 +1291,13 @@ void CPU::CP(std::int8_t d8, bool indirect=false)
 	set_flag_subtract();
 
 	// Check flag half carry
-	if (regAValue & 0x0010 == 0 && result & 0x0010 > 0)
+	if ((regAValue & 0x0010) == 0 && (result & 0x0010) > 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (regAValue & 0x0080 == 0 && result & 0x0080 > 0)
+	if ((regAValue & 0x0080) == 0 && (result & 0x0080) > 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1279,7 +1340,7 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 
 
 		// Check flag half carry
-		if (regValue & 0x0010 == 0 && result & 0x0010 > 0)
+		if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
 			set_flag_half_carry();
 		else
 			clear_flag_half_carry();
@@ -1323,7 +1384,7 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 
 		// Check flag half carry
-		if (regValue & 0x0010 == 0 && result & 0x0010 > 0)
+		if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
 			set_flag_half_carry();
 		else
 			clear_flag_half_carry();
@@ -1439,4 +1500,90 @@ void CPU::JR(CPU::FLAGTYPES flagType, std::int8_t val)
 	{
 		ticks += 8;
 	}
+}
+
+
+/*
+	RET and RETI
+*/
+
+// RET		RET [NZ, NC, Z, C]
+void CPU::RET(CPU::FLAGTYPES flagType)
+{
+	bool flagWasTrue = false;
+
+	switch (flagType)
+	{
+	case CPU::FLAGTYPES::NZ:
+		if (!get_flag_zero())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::NC:
+		if (!get_flag_carry())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::Z:
+		if (get_flag_zero())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::C:
+		if (get_flag_carry())
+			flagWasTrue = true;
+		break;
+
+	default:
+		flagWasTrue = true;
+	}
+
+
+	// Add to ticks
+	if (flagWasTrue)
+	{
+		std::int16_t spVal = 0;
+		spVal |= getByteFromMemory(get_register_16(SP));
+		set_register(SP, static_cast<std::int16_t> (get_register_16(SP) + 1));
+		spVal |= (getByteFromMemory(get_register_16(SP)) << 8);
+		set_register(SP, static_cast<std::int16_t> (get_register_16(SP) + 1));
+
+		set_register(PC, spVal);	// Return!
+
+		if (flagType == CPU::FLAGTYPES::NONE)
+			ticks += 16;
+		else
+			ticks += 20;
+	}
+	else
+	{
+		ticks += 8;
+	}
+}
+
+// RETI
+void CPU::RETI()
+{
+	RET(CPU::FLAGTYPES::NONE);
+
+	enable_interrupts();
+}
+
+
+/*
+	Enabling and disabling Interrupts
+*/
+
+// EI
+void CPU::enable_interrupts()
+{
+	interrupts_enabled = true;
+	ticks += 4;
+}
+
+// DI
+void CPU::disable_interrupts()
+{
+	interrupts_enabled = false;
+	ticks += 4;
 }

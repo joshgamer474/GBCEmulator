@@ -71,7 +71,7 @@ public:
 		F
 	};
 
-	enum FLAGTYPES
+	enum class FLAGTYPES
 	{
 		NZ,		// Not zero
 		NC,		// Not carry
@@ -172,6 +172,13 @@ public:
 	void JP_INDIRECT(std::int16_t addr);								// JP (HL)
 		
 	void JR(CPU::FLAGTYPES, std::int8_t val);							// JR r8	JR [NZ, NC, Z, C], r8
+
+	void RET(CPU::FLAGTYPES);											// RET		RET [NZ, NC, Z, C]
+	void RETI();														// RETI
+
+	void enable_interrupts();											// EI
+	void disable_interrupts();											// DI
+	bool interrupts_enabled;
 
 
 	int8_t getByteFromMemory(CPU::REGISTERS reg);
