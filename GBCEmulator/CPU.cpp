@@ -215,7 +215,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 	int regPattern1, regPattern2;
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
-	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, A, B, C, D, etc.
+	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
 
 	switch (instruc)
