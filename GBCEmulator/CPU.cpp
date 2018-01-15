@@ -831,6 +831,42 @@ bool CPU::runInstruction(std::int8_t instruc)
 		break;
 
 
+		/*
+			DAA
+		*/
+		
+		// DAA
+	case 0x27:
+
+		registers[PC]++;
+		DAA();
+		break;
+
+
+
+		/*
+			SCF
+		*/
+	case 0x37:
+
+		registers[PC]++;
+		SCF();
+		break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	}// end switch()
 
@@ -1704,4 +1740,57 @@ void CPU::CALL(CPU::FLAGTYPES flagType, std::int16_t a16)
 	{
 		ticks += 12;
 	}
+}
+
+
+/*
+	DAA (Decimal Adjust Accumulator)
+*/
+
+// DAA
+void CPU::DAA()
+{
+	std::int8_t aVal, result;
+	aVal = result = get_register_8(A);
+
+	if ((aVal & 0x0F) > 0x09 || get_flag_half_carry())
+		result += 0x06;
+
+	if ((aVal & 0xF0) > 0x90 || get_flag_carry())
+		result += 0x60;
+
+	set_register(A, result);
+
+	// Check flag zero
+	if (result == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	// Clear flag negative
+	clear_flag_subtract();
+
+	// Check flag carry
+	if ((aVal & 0x80) == 0 && (result & 0x80) > 0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	// Clear flag half carry
+	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+
+/*
+	SCF (Set carry flag)
+*/
+
+// SCF
+void CPU::SCF()
+{
+	set_flag_carry();
+	clear_flag_subtract();
+	clear_flag_half_carry();
 }
