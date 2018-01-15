@@ -1809,6 +1809,7 @@ void CPU::SCF()
 // CCF
 void CPU::CCF()
 {
+	// Complement the carry flag
 	if (get_flag_carry())
 		clear_flag_carry();
 	else
@@ -1823,6 +1824,7 @@ void CPU::CCF()
 // CPL
 void CPU::CPL()
 {
+	// Complement register A
 	std::int8_t aVal = get_register_8(A);
 	aVal = ~aVal;
 	set_register(A, aVal);
