@@ -693,7 +693,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 		/*
-			JP
+			Jumps
 		*/
 
 		// JP a16
@@ -749,7 +749,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 		/*
-			RET
+			Returns
 		*/
 
 		// RET		RET [NZ, NC, Z, C]
@@ -798,7 +798,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 		/*
-			Returns
+			Restarts
 		*/
 
 		// RST
