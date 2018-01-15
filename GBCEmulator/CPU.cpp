@@ -734,14 +734,14 @@ bool CPU::runInstruction(std::int8_t instruc)
 		r8 = getByteFromMemory(CPU::REGISTERS::PC);
 		registers[PC]++;
 		if (instruc == 0xC3)
-			JR(CPU::FLAGTYPES::NONE, r8);						// JP r8
+			JR(CPU::FLAGTYPES::NONE, r8);						// JR r8
 		else
 		{
 			std::int8_t flagType = ((instruc & 0xF0) >> 4) - 0x02;	// 0, 1
 			if ((instruc & 0x0F) == 0x08)
-				JR((CPU::FLAGTYPES) (flagType + 2), r8);		// JP [Z, C], r8
+				JR((CPU::FLAGTYPES) (flagType + 2), r8);		// JR [Z, C], r8
 			else
-				JR((CPU::FLAGTYPES) flagType, r8);			// JP [NZ, NC], r8
+				JR((CPU::FLAGTYPES) flagType, r8);				// JR [NZ, NC], r8
 
 		}
 		break;
@@ -757,14 +757,14 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 		registers[PC]++;
 		if (instruc == 0xC9)
-			RET(CPU::FLAGTYPES::NONE);
+			RET(CPU::FLAGTYPES::NONE);								// RET
 		else
 		{
 			std::int8_t flagType = ((instruc & 0xF0) >> 4) - 0x0C;	// 0, 1
 			if ((instruc & 0x0F) == 0x08)
-				RET((CPU::FLAGTYPES) (flagType + 2));		// JP [Z, C], r8
+				RET((CPU::FLAGTYPES) (flagType + 2));				// RET [Z, C]
 			else
-				RET((CPU::FLAGTYPES) flagType);				// JP [NZ, NC], r8
+				RET((CPU::FLAGTYPES) flagType);						// RET [NZ, NC]
 		}
 
 		break;
@@ -809,7 +809,26 @@ bool CPU::runInstruction(std::int8_t instruc)
 		break;
 
 
+		/*
+			Calls
+		*/
 
+		// CALL a16		CALL [NZ, NC, Z, C], a16
+	case 0xC4: case 0xCC: case 0xCD: case 0xD4: case 0xDC:
+
+		registers[PC]++;
+		a16 = getNextTwoBytes();
+		if (instruc == 0xCD)
+			CALL(CPU::FLAGTYPES::NONE, a16);						// CALL a16
+		else
+		{
+			std::int8_t flagType = ((instruc & 0xF0) >> 4) - 0x0C;	// 0, 1
+			if ((instruc & 0x0F) == 0x0C)
+				CALL((CPU::FLAGTYPES) (flagType + 2), a16);			// CALL [Z, C], a16
+			else
+				CALL((CPU::FLAGTYPES) flagType, a16);				// CALL [NZ, NC], a16
+		}
+		break;
 
 
 
@@ -1624,4 +1643,65 @@ void CPU::RST(std::int8_t instruc)
 	set_register(SP, static_cast<std::int16_t> (get_register_16(SP) - 2));
 
 	ticks += 16;
+}
+
+
+
+/*
+	CALLs
+*/
+
+// CALL a16		CALL [NZ, NC, Z, C], a16
+void CPU::CALL(CPU::FLAGTYPES flagType, std::int16_t a16)
+{
+	bool flagWasTrue = false;
+
+	switch (flagType)
+	{
+	case CPU::FLAGTYPES::NZ:
+		if (!get_flag_zero())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::NC:
+		if (!get_flag_carry())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::Z:
+		if (get_flag_zero())
+			flagWasTrue = true;
+		break;
+
+	case CPU::FLAGTYPES::C:
+		if (get_flag_carry())
+			flagWasTrue = true;
+		break;
+
+	default:
+		flagWasTrue = true;
+	}
+
+
+	// Add to ticks
+	if (flagWasTrue)
+	{
+		// (SP - 1) <- PChigh
+		setByteToMemory(get_register_16(SP) - 1, static_cast<std::int8_t> (get_register_16(PC) >> 8));
+
+		// (SP - 2) <- PClow
+		setByteToMemory(get_register_16(SP) - 2, static_cast<std::int8_t> (get_register_16(PC) & 0x0F));
+
+		// PC <- a16
+		set_register(PC, a16);
+
+		// Set SP
+		set_register(SP, static_cast<std::int16_t> (get_register_16(SP) - 2));
+
+		ticks += 24;
+	}
+	else
+	{
+		ticks += 12;
+	}
 }

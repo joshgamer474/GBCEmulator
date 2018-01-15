@@ -178,6 +178,8 @@ public:
 
 	void RST(std::int8_t instruc);										// RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
 
+	void CALL(CPU::FLAGTYPES, std::int16_t a16);						// CALL a16		CALL [NZ, NC, Z, C], a16
+
 	void enable_interrupts();											// EI
 	void disable_interrupts();											// DI
 	bool interrupts_enabled;
