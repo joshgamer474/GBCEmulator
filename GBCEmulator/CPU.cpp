@@ -845,7 +845,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 		/*
-			SCF
+			SCF (Set carry flag), CCF (Complement carry flag), and CPL (Complement A)
 		*/
 	case 0x37:
 
@@ -853,8 +853,17 @@ bool CPU::runInstruction(std::int8_t instruc)
 		SCF();
 		break;
 
+	case 0x2F:
 
+		registers[PC]++;
+		CPL();
+		break;
 
+	case 0x3F:
+
+		registers[PC]++;
+		CCF();
+		break;
 
 
 
@@ -1784,7 +1793,7 @@ void CPU::DAA()
 
 
 /*
-	SCF (Set carry flag)
+	SCF (Set carry flag), CCF (Complement carry flag), and CPL (Complement A)
 */
 
 // SCF
@@ -1793,4 +1802,33 @@ void CPU::SCF()
 	set_flag_carry();
 	clear_flag_subtract();
 	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+// CCF
+void CPU::CCF()
+{
+	if (get_flag_carry())
+		clear_flag_carry();
+	else
+		set_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+// CPL
+void CPU::CPL()
+{
+	std::int8_t aVal = get_register_8(A);
+	aVal = ~aVal;
+	set_register(A, aVal);
+
+	set_flag_subtract();
+	set_flag_half_carry();
+
+	ticks += 4;
 }

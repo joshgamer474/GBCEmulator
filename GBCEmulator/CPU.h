@@ -181,7 +181,8 @@ public:
 
 	void DAA();															// DAA (Decimal Adjust Accumulator)
 	void SCF();															// SCF (Set carry flag)
-
+	void CCF();															// CCF (Complement carry flag)
+	void CPL();															// CPL (Complement A)
 
 
 	void enable_interrupts();											// EI
