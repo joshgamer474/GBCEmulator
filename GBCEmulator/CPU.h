@@ -197,6 +197,11 @@ public:
 	void NOP();
 	void STOP();
 
+	void RLCA();
+	void RLA();
+	void RRCA();
+	void RRA();
+
 	int8_t getByteFromMemory(CPU::REGISTERS reg);
 	int8_t getByteFromMemory(std::int16_t addr);
 	void setByteToMemory(int16_t addr, int8_t val);

@@ -894,6 +894,35 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 
+		/*
+			RLCA, RLA, RRCA, and RRA
+		*/
+	case 0x07:
+
+		registers[PC]++;
+		RLCA();
+		break;
+
+	case 0x0F:
+
+		registers[PC]++;
+		RRCA();
+		break;
+
+	case 0x17:
+
+		registers[PC]++;
+		RLA();
+		break;
+
+	case 0x1F:
+
+		registers[PC]++;
+		RRA();
+		break;
+
+
+
 
 
 
@@ -1878,5 +1907,87 @@ void CPU::NOP()
 void CPU::STOP()
 {
 	is_stopped = true;
+	ticks += 4;
+}
+
+
+
+/*
+	RLCA, RLA, RRCA, and RRA
+	Rotate [Left, Right] [Circular] Accumulator
+*/
+void CPU::RLCA()
+{
+	std::int8_t aVal, bit7;
+	aVal = get_register_8(A);
+	bit7 = (aVal >> 7);
+
+	aVal = (aVal << 1) | bit7;
+
+	if (bit7)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+void CPU::RLA()
+{
+	std::int8_t aVal, bit7;
+	aVal = get_register_8(A);
+	bit7 = (aVal >> 7);
+
+	aVal = (aVal << 1) | static_cast<std::int8_t> (get_flag_carry());
+
+	if (bit7)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+void CPU::RRCA()
+{
+	std::int8_t aVal, bit0;
+	aVal = get_register_8(A);
+	bit0 = (aVal & 0x01);
+
+	aVal = (aVal >> 1) | (bit0 << 7);
+
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 4;
+}
+
+void CPU::RRA()
+{
+	std::int8_t aVal, bit0;
+	aVal = get_register_8(A);
+	bit0 = (aVal & 0x01);
+
+	aVal = (aVal >> 1) | (static_cast<std::int8_t> (get_flag_carry()) << 7);
+
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
 	ticks += 4;
 }
