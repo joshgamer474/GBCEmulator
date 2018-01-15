@@ -220,6 +220,10 @@ public:
 
 	void handle_CB(std::int8_t instruc);
 
+	void RLC(CPU::REGISTERS reg);
+	void RRC(CPU::REGISTERS reg);
+	void RL(CPU::REGISTERS reg);
+	void RR(CPU::REGISTERS reg);
 
 };
 

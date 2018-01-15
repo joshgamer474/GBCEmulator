@@ -1997,20 +1997,248 @@ void CPU::POP(CPU::REGISTERS reg)
 
 
 
+
+
+
+
+
 /*
 	Prefix CB opcode handling
 */
+
 void CPU::handle_CB(std::int8_t instruc)
 {
+
+	int regPattern1, regPattern2;
+	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
+	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
+
 	ticks += 4;
 	registers[PC]++;
 
 	switch (instruc)
 	{
 
+		/*
+			RLC, RRC, RL, RR
+		*/
+
+		// RLC [B, C, D, E, H, L, (HL), A]
+	case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+
+		RLC((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
 
 
+		// RRC [B, C, D, E, H, L, (HL), A]
+	case 0x08: case 0x09: case 0x0A: case 0x0B: case 0x0C: case 0x0D: case 0x0E: case 0x0F:
+
+		RRC((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+		
+
+		// RL [B, C, D, E, H, L, (HL), A]
+	case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
+
+		RL((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+
+		
+		// RR [B, C, D, E, H, L, (HL), A]
+	case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
+
+		RR((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
 
 
 	}// end switch()
+}
+
+
+
+
+// RLC [B, C, D, E, H, L, (HL), A]
+void CPU::RLC(CPU::REGISTERS reg)
+{
+	std::int8_t regVal, bit7;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+	{
+		regVal = getByteFromMemory(get_register_16(reg));
+	}
+	else
+	{
+		regVal = get_register_8(reg);
+	}
+
+
+	bit7 = (regVal >> 7);
+	regVal = (regVal << 1) | bit7;
+
+	// Set register
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	if (bit7)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 8;
+}
+
+
+// RL [B, C, D, E, H, L, (HL), A]
+void CPU::RL(CPU::REGISTERS reg)
+{
+	std::int8_t regVal, bit7;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+	{
+		regVal = getByteFromMemory(get_register_16(reg));
+	}
+	else
+	{
+		regVal = get_register_8(reg);
+	}
+
+
+	bit7 = (regVal >> 7);
+	regVal = (regVal << 1) | static_cast<std::int8_t> (get_flag_carry());
+
+	// Set register
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	if (bit7)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 8;
+}
+
+
+// RRC [B, C, D, E, H, L, (HL), A]
+void CPU::RRC(CPU::REGISTERS reg)
+{
+	std::int8_t regVal, bit0;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+	{
+		regVal = getByteFromMemory(get_register_16(reg));
+	}
+	else
+	{
+		regVal = get_register_8(reg);
+	}
+
+
+	bit0 = (regVal & 0x01);
+	regVal = (regVal >> 1) | (bit0 << 7);
+
+	// Set register
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 8;
+}
+
+// RR [B, C, D, E, H, L, (HL), A]
+void CPU::RR(CPU::REGISTERS reg)
+{
+	std::int8_t regVal, bit0;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+	{
+		regVal = getByteFromMemory(get_register_16(reg));
+	}
+	else
+	{
+		regVal = get_register_8(reg);
+	}
+
+
+	bit0 = (regVal & 0x01);
+	regVal = (regVal >> 1) | (static_cast<std::int8_t> (get_flag_carry()) << 7);
+
+	// Set register
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	ticks += 8;
 }
