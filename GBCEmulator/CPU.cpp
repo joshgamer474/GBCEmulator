@@ -797,7 +797,16 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 
+		/*
+			Returns
+		*/
 
+		// RST
+	case 0xC7: case 0xCF: case 0xD7: case 0xDF: case 0xE7: case 0xEF: case 0xF7: case 0xFF:
+
+		registers[PC]++;
+		RST(instruc);
+		break;
 
 
 
@@ -1586,4 +1595,33 @@ void CPU::disable_interrupts()
 {
 	interrupts_enabled = false;
 	ticks += 4;
+}
+
+
+/*
+	 RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
+*/
+
+// RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
+void CPU::RST(std::int8_t instruc)
+{
+	int8_t pcLow = 0;
+
+	// Find out what pcLow should be
+	pcLow |= ((instruc & 0xF0) - 0xC0);
+	pcLow |= ((instruc & 0x0F) - 0x07);
+
+	// (SP - 1) <- PChigh
+	setByteToMemory(get_register_16(SP) - 1, static_cast<std::int8_t> (get_register_16(PC) >> 8));
+
+	// (SP - 2) <- PClow
+	setByteToMemory(get_register_16(SP) - 2, static_cast<std::int8_t> (get_register_16(PC) & 0x0F));
+
+	// PChigh <- 0, PClow <- pcLow
+	set_register(PC, static_cast<std::int16_t> (0x0000 | pcLow));
+
+	// Set SP
+	set_register(SP, static_cast<std::int16_t> (get_register_16(SP) - 2));
+
+	ticks += 16;
 }
