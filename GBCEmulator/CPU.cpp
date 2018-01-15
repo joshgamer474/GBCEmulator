@@ -2100,7 +2100,10 @@ void CPU::RLC(CPU::REGISTERS reg)
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
-	ticks += 8;
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
 }
 
 
@@ -2147,7 +2150,10 @@ void CPU::RL(CPU::REGISTERS reg)
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
-	ticks += 8;
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
 }
 
 
@@ -2194,7 +2200,10 @@ void CPU::RRC(CPU::REGISTERS reg)
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
-	ticks += 8;
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
 }
 
 // RR [B, C, D, E, H, L, (HL), A]
@@ -2240,5 +2249,8 @@ void CPU::RR(CPU::REGISTERS reg)
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
-	ticks += 8;
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
 }
