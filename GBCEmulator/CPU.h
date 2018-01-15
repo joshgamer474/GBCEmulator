@@ -71,6 +71,8 @@ public:
 		F
 	};
 
+	std::vector<REGISTERS> reg_list = { CPU::B, CPU::C, CPU::D, CPU::E, CPU::H, CPU::L, CPU::HL, CPU::A };
+
 	enum class FLAGTYPES
 	{
 		NZ,		// Not zero
@@ -196,68 +198,6 @@ public:
 
 
 	int16_t getNextTwoBytes();
-};
-
-
-
-
-/*
-	
-	CPU_Opcodes
-
-*/
-class CPU_Opcodes
-{
-
-	int NUM_OF_OPCODES = 500;
-
-public:
-
-	enum Operands
-	{
-		NOP,
-		LD,		// Load
-		ADD,
-		SUB,
-		AND,
-		OR,
-		RET,
-		POP,
-		JP,
-		INC,
-		DEC,
-		RLA,
-		RLCA,
-		JR
-
-		// And more..
-	};
-
-
-	// OP code struct - contains OP code parameters
-	struct op
-	{
-		Operands operand;
-		int reg1 = -1;
-		int reg2 = -1;
-		std::int8_t flags = 0;
-
-		std::int8_t durationCompleted = -1;	// Number of cycles it takes to perform successful OP
-		std::int8_t durationDidntDo = -1;	// Number of cycles it takes to perform unsuccessful condition OP
-	};
-
-
-
-	CPU_Opcodes();
-	~CPU_Opcodes();
-
-	void init();
-
-	std::vector<op> opcodes;
-	std::vector<CPU::REGISTERS> reg_list;
-
-
-
 };
 
 #endif
