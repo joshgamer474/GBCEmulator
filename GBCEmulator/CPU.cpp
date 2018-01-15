@@ -922,10 +922,29 @@ bool CPU::runInstruction(std::int8_t instruc)
 		break;
 
 
+		/*
+			PUSH and POP
+		*/
+
+		// PUSH [BC, DE, HL, AF]
+	case 0xC5: case 0xD5: case 0xE5: case 0xF5:
+
+		registers[PC]++;
+		if (instruc == 0xF5)
+			PUSH(AF);
+		else
+			PUSH((CPU::REGISTERS) (((instruc & 0xF0) >> 4) - 0x0C));	// PUSH [BC, DE, HL]
+		break;
 
 
-
-
+		// POP [BC, DE, HL, AF]
+	case 0xC1: case 0xD1: case 0xE1: case 0xF1:
+		registers[PC]++;
+		if (instruc == 0xF1)
+			POP(AF);
+		else
+			POP((CPU::REGISTERS) (((instruc & 0xF0) >> 4) - 0x0C));	// POP [BC, DE, HL]
+		break;
 
 	}// end switch()
 
@@ -1990,4 +2009,40 @@ void CPU::RRA()
 	clear_flag_half_carry();
 
 	ticks += 4;
+}
+
+
+/*
+	PUSH and POP
+*/
+void CPU::PUSH(CPU::REGISTERS reg)
+{
+	registers[SP] += 2;
+
+	std::int16_t regVal = get_register_16(reg);
+	std::int8_t high, low;
+	high = (regVal >> 8) & 0x0F;
+	low = (regVal & 0x0F);
+	setByteToMemory(get_register_16(SP), low);
+	setByteToMemory(get_register_16(SP) + 1, high);
+
+	ticks += 16;
+}
+
+void CPU::POP(CPU::REGISTERS reg)
+{
+	std::int16_t regVal = 0;
+	std::int8_t high, low;
+
+	low = getByteFromMemory(get_register_16(SP));
+	high = getByteFromMemory(get_register_16(SP) + 1);
+
+	regVal |= static_cast<std::int16_t> (high << 8);
+	regVal |= low;
+
+	set_register(reg, regVal);
+
+	registers[SP] -= 2;
+
+	ticks += 12;
 }

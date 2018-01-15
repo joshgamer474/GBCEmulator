@@ -202,6 +202,9 @@ public:
 	void RRCA();
 	void RRA();
 
+	void POP(CPU::REGISTERS reg);
+	void PUSH(CPU::REGISTERS reg);
+
 	int8_t getByteFromMemory(CPU::REGISTERS reg);
 	int8_t getByteFromMemory(std::int16_t addr);
 	void setByteToMemory(int16_t addr, int8_t val);
