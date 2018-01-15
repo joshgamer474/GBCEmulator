@@ -9,6 +9,8 @@ CPU::CPU()
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
 	interrupts_enabled = false;
+	is_halted = false;
+	is_stopped = false;
 }
 
 CPU::~CPU()
@@ -192,6 +194,9 @@ void CPU::printRegisters()
 	}
 	printf("\n");
 }
+
+
+
 
 /*
 	Instruction Methods
@@ -866,8 +871,26 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 
 
+		/*
+			HALT, NOP, STOP
+		*/
+	case 0x00:
 
+		registers[PC]++;
+		NOP();
+		break;
 
+	case 0x10:
+
+		registers[PC]++;
+		STOP();
+		break;
+
+	case 0x76:
+
+		registers[PC]++;
+		HALT();
+		break;
 
 
 
@@ -923,6 +946,8 @@ int16_t CPU::getNextTwoBytes()
 	registers[PC]++;
 	return d16;
 }
+
+
 
 
 /*
@@ -1830,5 +1855,28 @@ void CPU::CPL()
 	set_flag_subtract();
 	set_flag_half_carry();
 
+	ticks += 4;
+}
+
+
+
+/*
+	HALT, NOP, STOP
+*/
+void CPU::HALT()
+{
+	is_halted = true;
+	ticks += 4;
+}
+
+void CPU::NOP()
+{
+	ticks += 4;
+}
+
+
+void CPU::STOP()
+{
+	is_stopped = true;
 	ticks += 4;
 }

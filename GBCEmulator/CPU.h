@@ -33,6 +33,10 @@ public:
 
 	Memory *memory;
 
+	bool interrupts_enabled;
+	bool is_halted;
+	bool is_stopped;
+
 	/*
 		Debug stuff
 	*/
@@ -186,11 +190,12 @@ public:
 	void CCF();															// CCF (Complement carry flag)
 	void CPL();															// CPL (Complement A)
 
-
 	void enable_interrupts();											// EI
 	void disable_interrupts();											// DI
-	bool interrupts_enabled;
 
+	void HALT();
+	void NOP();
+	void STOP();
 
 	int8_t getByteFromMemory(CPU::REGISTERS reg);
 	int8_t getByteFromMemory(std::int16_t addr);
