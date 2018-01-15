@@ -211,6 +211,16 @@ public:
 
 
 	int16_t getNextTwoBytes();
+
+
+
+	/*
+		Prefix CB Opcodes
+	*/
+
+	void handle_CB(std::int8_t instruc);
+
+
 };
 
 #endif

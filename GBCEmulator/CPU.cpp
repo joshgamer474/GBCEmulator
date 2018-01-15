@@ -217,6 +217,7 @@ bool CPU::runInstruction(std::int8_t instruc)
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
+	registers[PC]++;
 
 	switch (instruc)
 	{
@@ -234,7 +235,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D:			 case 0x6F:
 	case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D:			 case 0x7F:
 
-		registers[PC]++;
 		LD((CPU::REGISTERS) reg_list[regPattern1], (CPU::REGISTERS) reg_list[regPattern2]);
 		break;
 
@@ -242,14 +242,12 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD A, (Y)
 	case 0x0A: case 0x1A:
 
-		registers[PC]++;
 		LD(A, getByteFromMemory((CPU::REGISTERS) reg_list[(instruc & 0xF0) >> 4]), false);	// (BC), (DE)
 		break;
 
 		// LD A, (HL+-)
 	case 0x2A: case 0x3A:
 
-		registers[PC]++;
 		LD(A, getByteFromMemory(HL), false);
 
 		if (instruc == 0x2A)
@@ -261,7 +259,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD X, (HL)
 	case 0x46: case 0x4E: case 0x56: case 0x5E: case 0x66: case 0x6E: case 0x7E:
 
-		registers[PC]++;
 		LD((CPU::REGISTERS) reg_list[regPattern1], getByteFromMemory(HL), false);
 		break;
 
@@ -269,21 +266,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD (HL), Y
 	case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75:			case 0x77:
 
-		registers[PC]++;
 		LD_reg_into_memory(HL, (CPU::REGISTERS) reg_list[regPattern2]);
 		break;
 
 		// LD [(BC), (DE)], A
 	case 0x02: case 0x12:
 
-		registers[PC]++;
 		LD_reg_into_memory((CPU::REGISTERS) ((instruc >> 4) & 0x0F), A);
 		break;
 
 		//LD (HL+-), Y
 	case 0x22: case 0x32:
 
-		registers[PC]++;
 		LD_reg_into_memory(HL, A);
 
 		if (instruc == 0x22)
@@ -296,7 +290,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD X, d8
 	case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E:		case 0x3E:
 
-		registers[PC]++;
 		LD((CPU::REGISTERS) reg_list[regPattern1], getByteFromMemory(PC), false);
 		registers[PC]++;
 		break;
@@ -304,7 +297,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD (HL), d8
 	case 0x36:
 
-		registers[PC]++;
 		LD(HL, getByteFromMemory(PC), true);
 		registers[PC]++;
 		break;
@@ -312,7 +304,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD (a16), A
 	case 0xEA:
 
-		registers[PC]++;
 		a16 = getNextTwoBytes();
 		LD(a16, get_register_8(A));
 		break;
@@ -320,7 +311,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD A, (a16)
 	case 0xFA:
 
-		registers[PC]++;
 		a16 = getNextTwoBytes();
 		LD_INDIRECT_A16(A, a16);
 		break;
@@ -328,7 +318,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD XY, d16
 	case 0x01: case 0x11: case 0x21: case 0x31:
 
-		registers[PC]++;
 		d16 = getNextTwoBytes();
 
 		if (instruc == 0x31)
@@ -341,14 +330,12 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD SP, HL
 	case 0xF9:
 
-		registers[PC]++;
 		LD(SP, HL);
 		break;
 
 		// LD (a16), SP
 	case 0x08:
 
-		registers[PC]++;
 		a16 = getNextTwoBytes();
 		LD(a16, get_register_16(SP));
 		break;
@@ -357,7 +344,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LDH A, (a8)  = LD A, (0xFF00 + a8)
 	case 0xF0:
 
-		registers[PC]++;
 		a8 = getByteFromMemory(PC);
 		parenA8 = getByteFromMemory(static_cast<std::int16_t> (0xFF00 + a8));
 		LDH(A, parenA8);
@@ -366,7 +352,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LDH (a8), A = LD (0xFF00 + a8), A
 	case 0xE0:
 
-		registers[PC]++;
 		a8 = getByteFromMemory(PC);
 		LDH_INDIRECT(static_cast<std::int16_t> (0xFF00 + a8), get_register_8(A));
 		break;
@@ -374,7 +359,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// LD HL, SP+r8
 	case 0xF8:
 
-		registers[PC]++;
 		r8 = getByteFromMemory(PC);
 		LD_HL_SPPLUSR8(HL, r8);
 		break;
@@ -388,21 +372,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// ADD A, Y
 	case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:		case 0x87:
 
-		registers[PC]++;
 		ADD(CPU::REGISTERS::A, get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// ADD A, (HL)
 	case 0x86:
 
-		registers[PC]++;
 		ADD(CPU::REGISTERS::A, memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// ADD A, d8
 	case 0xC6:
 
-		registers[PC]++;
 		ADD(CPU::REGISTERS::A, memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -410,7 +391,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// ADD HL, XY
 	case 0x09: case 0x19: case 0x29: case 0x39:
 
-		registers[PC]++;
 		if (instruc == 0x39)
 			ADD_HL((CPU::REGISTERS) SP);
 		else
@@ -420,7 +400,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// ADD SP, r8
 	case 0xE8:
 
-		registers[PC]++;
 		r8 = getByteFromMemory(get_register_16(PC));
 		registers[PC]++;
 		ADD_SP_R8(SP, r8);
@@ -434,21 +413,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// ADC A, Y
 	case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D:		 case 0x8F:
 
-		registers[PC]++;
 		ADC(CPU::REGISTERS::A, get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// ADC A, (HL)
 	case 0x8E:
 
-		registers[PC]++;
 		ADC(CPU::REGISTERS::A, memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// ADC A, d8
 	case 0xCE:
 
-		registers[PC]++;
 		ADC(CPU::REGISTERS::A, memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -462,21 +438,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// SUB X
 	case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95:		 case 0x97:
 
-		registers[PC]++;
 		SUB(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// SUB (HL)
 	case 0x96:
 
-		registers[PC]++;
 		SUB(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// SUB d8
 	case 0xD6:
 
-		registers[PC]++;
 		SUB(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -490,21 +463,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// SBC X
 	case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D:		 case 0x9F:
 
-		registers[PC]++;
 		SBC(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// SBC A, (HL)
 	case 0x9E:
 
-		registers[PC]++;
 		SBC(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// SBC d8
 	case 0xDE:
 
-		registers[PC]++;
 		SBC(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -519,21 +489,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// AND X
 	case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:		 case 0xA7:
 
-		registers[PC]++;
 		AND(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// AND (HL)
 	case 0xA6:
 
-		registers[PC]++;
 		AND(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// AND d8
 	case 0xE6:
 
-		registers[PC]++;
 		AND(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -548,21 +515,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// XOR X
 	case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD:		 case 0xAF:
 
-		registers[PC]++;
 		XOR(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// XOR (HL)
 	case 0xAE:
 
-		registers[PC]++;
 		XOR(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// XOR d8
 	case 0xEE:
 
-		registers[PC]++;
 		XOR(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -576,21 +540,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// OR X
 	case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5:		 case 0xB7:
 
-		registers[PC]++;
 		OR(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// OR (HL)
 	case 0xB6:
 
-		registers[PC]++;
 		OR(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// OR d8
 	case 0xF6:
 
-		registers[PC]++;
 		OR(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
 		break;
@@ -603,21 +564,18 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// CP X
 	case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD:		 case 0xBF:
 
-		registers[PC]++;
 		CP(get_register_8((CPU::REGISTERS) reg_list[regPattern2]), false);
 		break;
 
 		// CP X
 	case 0xBE:
 
-		registers[PC]++;
 		CP(memory->readByte(get_register_16((CPU::REGISTERS) HL)), true);
 		break;
 
 		// CP d8
 	case 0xFE:
 
-		registers[PC]++;
 		CP(memory->readByte(get_register_16((CPU::REGISTERS) PC)), false);
 		registers[PC]++;
 		break;
@@ -631,7 +589,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// INC XY
 	case 0x03: case 0x13: case 0x23: case 0x33:
 
-		registers[PC]++;
 		if (instruc == 0x33)
 			INC((CPU::REGISTERS) SP, false);
 		else
@@ -642,7 +599,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x04: case 0x14: case 0x24: case 0x34:
 	case 0x0C: case 0x1C: case 0x2C: case 0x3C:
 
-		registers[PC]++;
 		if (instruc == 0x34)
 			INC((CPU::REGISTERS) HL, true);						// INC (HL)
 		else
@@ -667,7 +623,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// DEC XY
 	case 0x0B: case 0x1B: case 0x2B: case 0x3B:
 
-		registers[PC]++;
 		if (instruc == 0x3B)
 			DEC((CPU::REGISTERS) SP, false);
 		else
@@ -678,7 +633,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 	case 0x05: case 0x15: case 0x25: case 0x35:
 	case 0x0D: case 0x1D: case 0x2D: case 0x3D:
 
-		registers[PC]++;
 		if (instruc == 0x35)
 			DEC((CPU::REGISTERS) HL, true);						// DEC (HL)
 		else
@@ -702,7 +656,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// JP a16
 	case 0xC2: case 0xC3: case 0xCA: case 0xD2: case 0xDA:
 
-		registers[PC]++;
 		addr = getNextTwoBytes();
 		if (instruc == 0xC3)
 			JP(CPU::FLAGTYPES::NONE, addr);						// JP a16
@@ -720,7 +673,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// JP (HL)
 	case 0xE9:
 
-		registers[PC]++;
 		hlVal = 0x0000;
 		hlVal |= getByteFromMemory(HL);
 		JP_INDIRECT(hlVal);
@@ -733,7 +685,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// JR r8		JR [NZ, NC, Z, C], r8
 	case 0x18: case 0x20: case 0x28: case 0x30: case 0x38:
 
-		registers[PC]++;
 		r8 = getByteFromMemory(CPU::REGISTERS::PC);
 		registers[PC]++;
 		if (instruc == 0xC3)
@@ -758,7 +709,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// RET		RET [NZ, NC, Z, C]
 	case 0xC0: case 0xC8: case 0xC9: case 0xD0: case 0xD8:
 
-		registers[PC]++;
 		if (instruc == 0xC9)
 			RET(CPU::FLAGTYPES::NONE);								// RET
 		else
@@ -776,7 +726,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// RETI
 	case 0xD9:
 
-		registers[PC]++;
 		RETI();
 		break;
 
@@ -788,13 +737,11 @@ bool CPU::runInstruction(std::int8_t instruc)
 		*/
 	case 0xF3:
 		
-		registers[PC]++;
 		disable_interrupts();
 		break;
 
 	case 0xFB:
 
-		registers[PC]++;
 		enable_interrupts();
 		break;
 
@@ -807,7 +754,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// RST
 	case 0xC7: case 0xCF: case 0xD7: case 0xDF: case 0xE7: case 0xEF: case 0xF7: case 0xFF:
 
-		registers[PC]++;
 		RST(instruc);
 		break;
 
@@ -819,7 +765,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// CALL a16		CALL [NZ, NC, Z, C], a16
 	case 0xC4: case 0xCC: case 0xCD: case 0xD4: case 0xDC:
 
-		registers[PC]++;
 		a16 = getNextTwoBytes();
 		if (instruc == 0xCD)
 			CALL(CPU::FLAGTYPES::NONE, a16);						// CALL a16
@@ -841,7 +786,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// DAA
 	case 0x27:
 
-		registers[PC]++;
 		DAA();
 		break;
 
@@ -852,19 +796,16 @@ bool CPU::runInstruction(std::int8_t instruc)
 		*/
 	case 0x37:
 
-		registers[PC]++;
 		SCF();
 		break;
 
 	case 0x2F:
 
-		registers[PC]++;
 		CPL();
 		break;
 
 	case 0x3F:
 
-		registers[PC]++;
 		CCF();
 		break;
 
@@ -876,19 +817,16 @@ bool CPU::runInstruction(std::int8_t instruc)
 		*/
 	case 0x00:
 
-		registers[PC]++;
 		NOP();
 		break;
 
 	case 0x10:
 
-		registers[PC]++;
 		STOP();
 		break;
 
 	case 0x76:
 
-		registers[PC]++;
 		HALT();
 		break;
 
@@ -899,25 +837,21 @@ bool CPU::runInstruction(std::int8_t instruc)
 		*/
 	case 0x07:
 
-		registers[PC]++;
 		RLCA();
 		break;
 
 	case 0x0F:
 
-		registers[PC]++;
 		RRCA();
 		break;
 
 	case 0x17:
 
-		registers[PC]++;
 		RLA();
 		break;
 
 	case 0x1F:
 
-		registers[PC]++;
 		RRA();
 		break;
 
@@ -929,7 +863,6 @@ bool CPU::runInstruction(std::int8_t instruc)
 		// PUSH [BC, DE, HL, AF]
 	case 0xC5: case 0xD5: case 0xE5: case 0xF5:
 
-		registers[PC]++;
 		if (instruc == 0xF5)
 			PUSH(AF);
 		else
@@ -939,12 +872,27 @@ bool CPU::runInstruction(std::int8_t instruc)
 
 		// POP [BC, DE, HL, AF]
 	case 0xC1: case 0xD1: case 0xE1: case 0xF1:
-		registers[PC]++;
+
 		if (instruc == 0xF1)
 			POP(AF);
 		else
 			POP((CPU::REGISTERS) (((instruc & 0xF0) >> 4) - 0x0C));	// POP [BC, DE, HL]
 		break;
+
+
+
+		/*
+			Prefix CB
+		*/
+	case 0xCB:
+
+		handle_CB(getByteFromMemory(get_register_16(PC)));
+		break;
+
+
+
+	default:
+		printf("Error - Do not know how to handle opcode %i\n", instruc);
 
 	}// end switch()
 
@@ -2045,4 +1993,24 @@ void CPU::POP(CPU::REGISTERS reg)
 	registers[SP] -= 2;
 
 	ticks += 12;
+}
+
+
+
+/*
+	Prefix CB opcode handling
+*/
+void CPU::handle_CB(std::int8_t instruc)
+{
+	ticks += 4;
+	registers[PC]++;
+
+	switch (instruc)
+	{
+
+
+
+
+
+	}// end switch()
 }
