@@ -2052,7 +2052,7 @@ void CPU::handle_CB(std::int8_t instruc)
 
 
 		/*
-			BIT
+			BIT, SET, RES
 		*/
 
 		// BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
@@ -2064,6 +2064,24 @@ void CPU::handle_CB(std::int8_t instruc)
 		BIT(static_cast<std::int8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
 		break;
 
+
+		// SET [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	case 0xC0: case 0xC1: case 0xC2: case 0xC3: case 0xC4: case 0xC5: case 0xC6: case 0xC7: case 0xC8: case 0xC9: case 0xCA: case 0xCB: case 0xCC: case 0xCD: case 0xCE: case 0xCF:
+	case 0xD0: case 0xD1: case 0xD2: case 0xD3: case 0xD4: case 0xD5: case 0xD6: case 0xD7: case 0xD8: case 0xD9: case 0xDA: case 0xDB: case 0xDC: case 0xDD: case 0xDE: case 0xDF:
+	case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
+	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
+
+		SET(static_cast<std::int8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
+		break;
+
+		// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85: case 0x86: case 0x87: case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
+	case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97: case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F:
+	case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
+	case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+
+		RES(static_cast<std::int8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
+		break;
 
 	}// end switch()
 }
@@ -2273,7 +2291,7 @@ void CPU::RR(CPU::REGISTERS reg)
 
 
 /*
-	BIT
+	BIT, SET, RES
 */
 
 // BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
@@ -2303,6 +2321,71 @@ void CPU::BIT(std::int8_t getBit, CPU::REGISTERS reg)
 
 	clear_flag_subtract();
 	set_flag_half_carry();
+
+
+	if (indirect)
+		ticks += 12;
+	else
+		ticks += 8;
+}
+
+// SET [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+void CPU::SET(std::int8_t setBit, CPU::REGISTERS reg)
+{
+	std::int8_t bit, regVal;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Set bit
+	bit = (0x01 << setBit);
+	regVal |= bit;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+	
+
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
+}
+
+// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+void CPU::RES(std::int8_t setBit, CPU::REGISTERS reg)
+{
+	std::int8_t bit, regVal;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Clear bit
+	bit = (0x01 << setBit);
+	bit = ~bit;
+	regVal &= bit;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
 
 
 	if (indirect)

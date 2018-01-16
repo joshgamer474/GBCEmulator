@@ -226,7 +226,8 @@ public:
 	void RR(CPU::REGISTERS reg);		// RR [B, C, D, E, H, L, (HL), A]
 
 	void BIT(std::int8_t bit, CPU::REGISTERS reg);	// BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-
+	void SET(std::int8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	void RES(std::int8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
 
 
 };
