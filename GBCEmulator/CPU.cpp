@@ -2051,6 +2051,44 @@ void CPU::handle_CB(std::int8_t instruc)
 		break;
 
 
+
+		/*
+			SLA, SRA, SRL
+		*/
+
+		// SLA [B, C, D, E, H, L, (HL), A]
+	case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27:
+
+		SLA((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+
+
+		// SRA [B, C, D, E, H, L, (HL), A]
+	case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F:
+
+		SRA((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+
+
+		// SRL [B, C, D, E, H, L, (HL), A]
+	case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
+
+		SRL((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+
+		
+		/*
+			SWAP
+		*/
+
+		// SWAP [B, C, D, E, H, L, (HL), A]
+	case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37:
+
+		SWAP((CPU::REGISTERS) reg_list[regPattern2]);
+		break;
+
+
+
 		/*
 			BIT, SET, RES
 		*/
@@ -2393,3 +2431,204 @@ void CPU::RES(std::int8_t setBit, CPU::REGISTERS reg)
 	else
 		ticks += 8;
 }
+
+
+
+
+
+
+/*
+	SLA, SRA, SRL
+*/
+
+// SLA [B, C, D, E, H, L, (HL), A]
+void CPU::SLA(CPU::REGISTERS reg)
+{
+	std::int8_t bit7, regVal;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Get bit7, Shift regVal left 1
+	bit7 = regVal >> 7;
+	regVal = regVal << 1;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (bit7)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	// Add to ticks
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
+}
+
+// SRA [B, C, D, E, H, L, (HL), A]
+void CPU::SRA(CPU::REGISTERS reg)
+{
+	std::int8_t bit0, bit7, regVal;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Get bit0 and bit7, Shift regVal right 1, keep original bit7 after shift
+	bit0 = regVal & 0x01;
+	bit7 = regVal & 0x80;
+	regVal = regVal >> 1;
+	regVal |= bit7;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	clear_flag_carry();
+
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	// Add to ticks
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
+}
+
+// SRL [B, C, D, E, H, L, (HL), A]
+void CPU::SRL(CPU::REGISTERS reg)
+{
+	std::int8_t bit0, regVal;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Get bit0, Shift regVal right 1
+	bit0 = regVal & 0x01;
+	regVal = regVal >> 1;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), regVal);
+	else
+		set_register(reg, regVal);
+
+	// Set/clear flags
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+	if (regVal == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+
+	// Add to ticks
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
+}
+
+
+
+
+/*
+	SWAP
+*/
+
+// SWAP [B, C, D, E, H, L, (HL), A]
+void CPU::SWAP(CPU::REGISTERS reg)
+{
+	std::int8_t regVal, high, low, result;
+	bool indirect = false;
+
+	if (reg == CPU::REGISTERS::HL)
+		indirect = true;
+
+	// Get register value
+	if (indirect)
+		regVal = getByteFromMemory(get_register_16(reg));
+	else
+		regVal = get_register_8(reg);
+
+	// Perform half-byte swap, e.g. 0001 0010 -> 0010 0001
+	high = (regVal >> 4) & 0x0F;
+	low = regVal & 0x0F;
+
+	result = (low << 4);
+	result |= high;
+
+	// Save modified regVal
+	if (indirect)
+		setByteToMemory(get_register_16(reg), result);
+	else
+		set_register(reg, result);
+
+	// Set/clear flags
+	if (result == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	clear_flag_subtract();
+	clear_flag_half_carry();
+	clear_flag_carry();
+
+	// Add to ticks
+	if (indirect)
+		ticks += 16;
+	else
+		ticks += 8;
+}
+
+
+
