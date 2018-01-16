@@ -2121,6 +2121,10 @@ void CPU::handle_CB(std::int8_t instruc)
 		RES(static_cast<std::int8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
 		break;
 
+
+	default:
+		printf("Error - Do not know how to handle Prefixed CB opcode %i\n", instruc);
+
 	}// end switch()
 }
 
