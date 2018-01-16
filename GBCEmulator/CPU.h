@@ -220,10 +220,14 @@ public:
 
 	void handle_CB(std::int8_t instruc);
 
-	void RLC(CPU::REGISTERS reg);
-	void RRC(CPU::REGISTERS reg);
-	void RL(CPU::REGISTERS reg);
-	void RR(CPU::REGISTERS reg);
+	void RLC(CPU::REGISTERS reg);		// RLC [B, C, D, E, H, L, (HL), A]
+	void RRC(CPU::REGISTERS reg);		// RRC [B, C, D, E, H, L, (HL), A]
+	void RL(CPU::REGISTERS reg);		// RL [B, C, D, E, H, L, (HL), A]
+	void RR(CPU::REGISTERS reg);		// RR [B, C, D, E, H, L, (HL), A]
+
+	void BIT(std::int8_t bit, CPU::REGISTERS reg);	// BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+
+
 
 };
 
