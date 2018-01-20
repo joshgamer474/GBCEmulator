@@ -28,11 +28,27 @@ private:
 	char game_version;
 	char header_checksum;	// Checks if cartridge is valid
 
+	int getNumOfRomBanks(char rom_size);
+	int getNumOfRamBanks(char ram_size);
+
+	struct CartridgeType
+	{
+		int mbc;
+		bool rom, ram, battery, timer, rumble, sensor, mmm01;
+	};
+
+	void getCartridgeType(char cartridge_type, CartridgeType *cartridgeType);
+
+
 public:
 
 	CartridgeReader();
 	CartridgeReader(std::string filename);
 	~CartridgeReader();
+
+	CartridgeType cartridgeType;
+	int num_ROM_banks;
+	int num_RAM_banks;
 
 	void setRomDestination(std::string filename);
 	bool readRom();
