@@ -11,16 +11,6 @@ CartridgeReader::CartridgeReader(std::string filename)
 {
 	// Set game cartridge name
 	setRomDestination(filename);
-
-	// Read game cartridge into memory
-	if (!readRom())
-	{
-		printf("Error - Failed to read in cartridge %s", filename.c_str());
-	}
-
-	// Read information from cartridge
-	getCartridgeInformation();
-	
 }
 
 
@@ -37,16 +27,24 @@ void CartridgeReader::setRomDestination(std::string filename)
 
 }
 
-bool CartridgeReader::readRom()
+bool CartridgeReader::readRom(bool isBios)
 {
+	is_bios = isBios;
+
 	std::ifstream rom;
 	rom.open(cartridgeFilename, std::ios::binary);
 
 	if (rom.is_open())
 	{
-		std::vector<char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
+		std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
 		romBuffer = romBufferr;
-		getCartridgeInformation();
+
+		if (!is_bios)
+		{
+			// Read information from cartridge
+			getCartridgeInformation();
+		}
+		rom.close();
 		return true;
 	}
 	else
@@ -89,15 +87,15 @@ void CartridgeReader::getCartridgeInformation()
 
 
 
-std::int8_t CartridgeReader::readByte(std::int16_t pos)
+std::uint8_t CartridgeReader::readByte(std::uint16_t pos)
 {
-	printf("Reading byte from pos %#010x\n", pos);
+	printf("Reading byte from pos %#04x\n", pos);
 	return romBuffer[pos];
 }
 
-void CartridgeReader::setByte(std::int16_t pos, int8_t val)
+void CartridgeReader::setByte(std::uint16_t pos, uint8_t val)
 {
-	printf("Writing byte %#010x to pos %#010x\n", val, pos);
+	printf("Writing byte %#02x to pos %#04x\n", val, pos);
 	romBuffer[pos] = val;
 }
 

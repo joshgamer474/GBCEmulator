@@ -10,6 +10,12 @@ MBC::MBC()
 	curr_rom_bank = 0;
 	curr_ram_bank = 0;
 
+	num_rom_banks = 2;
+	num_ram_banks = 1;
+
+	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
+	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
+
 	mbc_num = 0;
 
 	setFromTo(&rom_from_to, 0x0000, 0x7FFF);

@@ -14,7 +14,7 @@ class CartridgeReader
 private:
 
 	std::string cartridgeFilename;
-	std::vector<char> romBuffer;
+	std::vector<unsigned char> romBuffer;
 
 	// Information about the cartridge
 	char game_title[16];
@@ -50,11 +50,13 @@ public:
 	int num_ROM_banks;
 	int num_RAM_banks;
 
+	bool is_bios = false;
+
 	void setRomDestination(std::string filename);
-	bool readRom();
+	bool readRom(bool is_bios);
 	void getCartridgeInformation();
 
-	std::int8_t readByte(std::int16_t pos);
-	void setByte(std::int16_t pos, int8_t val);
+	std::uint8_t readByte(std::uint16_t pos);
+	void setByte(std::uint16_t pos, uint8_t val);
 };
 #endif

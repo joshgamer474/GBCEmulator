@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 #include "Memory.h"
 
 #ifndef CPU_H
@@ -19,8 +20,8 @@ class CPU
 private:
 
 	// Registers
-	std::vector<std::int16_t> registers;
-	std::int8_t instruction;
+	std::vector<std::uint16_t> registers;
+	std::uint8_t instruction;
 
 	std::uint16_t ticks;
 
@@ -46,8 +47,8 @@ public:
 	/*
 		Instruction stuff
 	*/
-	void getInstruction();
-	bool runInstruction(std::int8_t);
+	std::uint8_t getInstruction();
+	bool runInstruction(std::uint8_t);
 
 	// Opcodes handling
 	CPU_Opcodes *operationHandling;
@@ -86,14 +87,16 @@ public:
 		NONE
 	};
 
+	std::string getRegisterString(REGISTERS);
 
 	// Register getter
-	std::int8_t get_register_8(REGISTERS reg);
-	std::int16_t get_register_16(REGISTERS reg);
+	std::uint8_t get_register_8(REGISTERS reg);
+	std::uint16_t get_register_16(REGISTERS reg);
 
 
 	// Register setters
-	void set_register(REGISTERS reg, std::int16_t);
+	void set_register(REGISTERS reg, std::uint16_t);
+	void set_register(REGISTERS reg, std::uint8_t);
 	void set_register(REGISTERS reg, std::int8_t);
 
 
@@ -149,24 +152,24 @@ public:
 	void LD (CPU::REGISTERS reg1, CPU::REGISTERS reg2);					// LD X, Y
 	void LD(CPU::REGISTERS reg, int8_t val, bool indirect);				// LD X, d8 and LD (X), d8 when indirect == true
 	void LD_reg_into_memory(CPU::REGISTERS reg1, CPU::REGISTERS reg2);	// LD (C), A
-	void LD(CPU::REGISTERS reg, std::int16_t val);						// LD XY, d16
-	void LD(std::int16_t addr, std::int8_t val);						// LD (a16), val
-	void LD(std::int16_t addr, std::int16_t val);						// LD (a16), SP
-	void LD_INDIRECT_A16(CPU::REGISTERS reg, std::int16_t addr);		// LD A, (a16)
-	void LDH(CPU::REGISTERS reg, std::int8_t val);						// LDH A, (a8)
-	void LDH_INDIRECT(std::int16_t addr, std::int8_t val);				// LDH (a8), A
+	void LD(CPU::REGISTERS reg, std::uint16_t val);						// LD XY, d16
+	void LD(std::uint16_t addr, std::uint8_t val);						// LD (a16), val
+	void LD(std::uint16_t addr, std::uint16_t val);						// LD (a16), SP
+	void LD_INDIRECT_A16(CPU::REGISTERS reg, std::uint16_t addr);		// LD A, (a16)
+	void LDH(CPU::REGISTERS reg, std::uint8_t val);						// LDH A, (a8)
+	void LDH_INDIRECT(std::uint16_t addr, std::uint8_t val);				// LDH (a8), A
 	void LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8);			// LD HL, SP+r8
 
-	void ADD(CPU::REGISTERS reg1, std::int8_t d8, bool indirect);		// ADD A, d8
+	void ADD(CPU::REGISTERS reg1, std::uint8_t d8, bool indirect);		// ADD A, d8
 	void ADD_HL(CPU::REGISTERS reg);									// ADD HL, XY
 	void ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8);					// ADD SP, r8
-	void ADC(CPU::REGISTERS reg1, std::int8_t d8, bool indirect);		// ADC A, d8
-	void SUB(std::int8_t d8, bool indirect);							// SUB X
-	void SBC(std::int8_t d8, bool indirect);							// SBC A, X
-	void AND(std::int8_t d8, bool indirect);							// AND X	AND (HL) when indirect == true
-	void XOR(std::int8_t d8, bool indirect);							// XOR X	XOR (HL) when indirect == true
-	void OR (std::int8_t d8, bool indirect);							// OR X		OR (HL) when indirect == true
-	void CP (std::int8_t d8, bool indirect);							// Compare	CP X		CP (HL) when indirect == true
+	void ADC(CPU::REGISTERS reg1, std::uint8_t d8, bool indirect);		// ADC A, d8
+	void SUB(std::uint8_t d8, bool indirect);							// SUB X
+	void SBC(std::uint8_t d8, bool indirect);							// SBC A, X
+	void AND(std::uint8_t d8, bool indirect);							// AND X	AND (HL) when indirect == true
+	void XOR(std::uint8_t d8, bool indirect);							// XOR X	XOR (HL) when indirect == true
+	void OR (std::uint8_t d8, bool indirect);							// OR X		OR (HL) when indirect == true
+	void CP (std::uint8_t d8, bool indirect);							// Compare	CP X		CP (HL) when indirect == true
 
 	void INC(CPU::REGISTERS reg, bool indirect);						// Increment	INC X	INC (HL) when indirect == true
 	void DEC(CPU::REGISTERS reg, bool indirect);						// Decrement	DEC X	DEC (HL) when indirect == true
@@ -174,16 +177,16 @@ public:
 
 
 
-	void JP(CPU::FLAGTYPES, std::int16_t addr);							// JP a16	JP [NZ, NC, Z, C], a16
-	void JP_INDIRECT(std::int16_t addr);								// JP (HL)
+	void JP(CPU::FLAGTYPES, std::uint16_t addr);							// JP a16	JP [NZ, NC, Z, C], a16
+	void JP_INDIRECT(std::uint16_t addr);								// JP (HL)
 		
 	void JR(CPU::FLAGTYPES, std::int8_t val);							// JR r8	JR [NZ, NC, Z, C], r8
 
 	void RET(CPU::FLAGTYPES);											// RET		RET [NZ, NC, Z, C]
 	void RETI();														// RETI
 
-	void RST(std::int8_t instruc);										// RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
-	void CALL(CPU::FLAGTYPES, std::int16_t a16);						// CALL a16		CALL [NZ, NC, Z, C], a16
+	void RST(std::uint8_t instruc);										// RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
+	void CALL(CPU::FLAGTYPES, std::uint16_t a16);						// CALL a16		CALL [NZ, NC, Z, C], a16
 
 	void DAA();															// DAA (Decimal Adjust Accumulator)
 	void SCF();															// SCF (Set carry flag)
@@ -205,12 +208,12 @@ public:
 	void POP(CPU::REGISTERS reg);
 	void PUSH(CPU::REGISTERS reg);
 
-	int8_t getByteFromMemory(CPU::REGISTERS reg);
-	int8_t getByteFromMemory(std::int16_t addr);
-	void setByteToMemory(int16_t addr, int8_t val);
+	uint8_t getByteFromMemory(CPU::REGISTERS reg);
+	uint8_t getByteFromMemory(std::uint16_t addr);
+	void setByteToMemory(uint16_t addr, uint8_t val);
 
 
-	int16_t getNextTwoBytes();
+	uint16_t getNextTwoBytes();
 
 
 
@@ -230,9 +233,9 @@ public:
 	void SWAP(CPU::REGISTERS reg);		// SWAP [B, C, D, E, H, L, (HL), A]
 	void SRL(CPU::REGISTERS reg);		// SRL [B, C, D, E, H, L, (HL), A]
 
-	void BIT(std::int8_t bit, CPU::REGISTERS reg);	// BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-	void SET(std::int8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-	void RES(std::int8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	void BIT(std::uint8_t bit, CPU::REGISTERS reg);	// BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	void SET(std::uint8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+	void RES(std::uint8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
 
 
 };

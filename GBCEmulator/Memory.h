@@ -26,7 +26,7 @@ public:
 	unsigned char io[0x80];
 	unsigned char interrupt_register;
 
-	std::int8_t readByte(std::int16_t pos);
-	void setByte(std::int16_t pos, std::int8_t val);
+	std::uint8_t readByte(std::uint16_t pos);
+	void setByte(std::uint16_t pos, std::uint8_t val);
 };
 #endif
