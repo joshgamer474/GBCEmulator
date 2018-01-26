@@ -150,7 +150,7 @@ public:
 	*/
 
 	void LD (CPU::REGISTERS reg1, CPU::REGISTERS reg2);					// LD X, Y
-	void LD(CPU::REGISTERS reg, int8_t val, bool indirect);				// LD X, d8 and LD (X), d8 when indirect == true
+	void LD(CPU::REGISTERS reg, uint8_t val, bool indirect);				// LD X, d8 and LD (X), d8 when indirect == true
 	void LD_reg_into_memory(CPU::REGISTERS reg1, CPU::REGISTERS reg2);	// LD (C), A
 	void LD(CPU::REGISTERS reg, std::uint16_t val);						// LD XY, d16
 	void LD(std::uint16_t addr, std::uint8_t val);						// LD (a16), val

@@ -45,11 +45,11 @@ std::uint8_t CPU::get_register_8(REGISTERS reg)
 	{
 		if (reg % 2 == 0)	// Return upper 8
 		{
-			return static_cast<std::uint8_t> (registers[(reg - B) / 2] & 0xFF00) >> 8;
+			return static_cast<std::uint8_t> ((get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0xFF00) >> 8);
 		}
 		else				// Return lower 8
 		{
-			return static_cast<std::uint8_t> (registers[(reg - B) / 2] & 0x00FF);
+			return static_cast<std::uint8_t> (get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0x00FF);
 		}
 	}
 }
@@ -73,7 +73,7 @@ std::uint16_t CPU::get_register_16(REGISTERS reg)
 	}
 	else
 	{
-		if (reg % 2 == 0)	// Return upper 8
+		if (reg % 2 != 0)	// Return upper 8
 		{
 			return (registers[(reg - B) / 2] & 0xFF00) >> 8;
 		}
@@ -116,7 +116,7 @@ void CPU::set_register(REGISTERS reg, std::uint8_t val)
 	{
 		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
-		if (reg % 2 == 0)	// Is upper 8 bits
+		if (reg % 2 != 0)	// Is upper 8 bits
 		{
 			*reg_ptr &= 0x00FF;
 			*reg_ptr |= (((std::uint16_t) val) & 0x00FF) << 8;
@@ -139,7 +139,7 @@ void CPU::set_register(REGISTERS reg, std::int8_t val)
 	{
 		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
-		if (reg % 2 == 0)	// Is upper 8 bits
+		if (reg % 2 != 0)	// Is upper 8 bits
 		{
 			*reg_ptr &= 0x00FF;
 			*reg_ptr |= (((std::int16_t) val) & 0x00FF) << 8;
@@ -190,15 +190,20 @@ bool CPU::get_flag_subtract()		{ return (get_register_8(F) >> 6) & 0x0001; }
 bool CPU::get_flag_half_carry()		{ return (get_register_8(F) >> 5) & 0x0001; }
 bool CPU::get_flag_carry()			{ return (get_register_8(F) >> 4) & 0x0001; }
 
-void CPU::set_flag_zero()			{ registers[AF] |= 0x0080; }
-void CPU::set_flag_subtract()		{ registers[AF] |= 0x0040; }
-void CPU::set_flag_half_carry()		{ registers[AF] |= 0x0020; }
-void CPU::set_flag_carry()			{ registers[AF] |= 0x0010; }
+void CPU::set_flag_zero()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0080)); }
+void CPU::set_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0040)); }
+void CPU::set_flag_half_carry()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0020)); }
+void CPU::set_flag_carry()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0010)); }
 
-void CPU::clear_flag_zero()			{ registers[AF] &= 0xFF7F; }
-void CPU::clear_flag_subtract()		{ registers[AF] &= 0xFFBF; }
-void CPU::clear_flag_half_carry()	{ registers[AF] &= 0xFFDF; }
-void CPU::clear_flag_carry()		{ registers[AF] &= 0xFFEF; }
+void CPU::clear_flag_zero()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFF7F)); }
+void CPU::clear_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFBF)); }
+void CPU::clear_flag_half_carry()	{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFDF)); }
+void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFEF)); }
+
+//void CPU::clear_flag_zero()			{ registers[AF] &= 0xFF7F; }
+//void CPU::clear_flag_subtract()		{ registers[AF] &= 0xFFBF; }
+//void CPU::clear_flag_half_carry()	{ registers[AF] &= 0xFFDF; }
+//void CPU::clear_flag_carry()		{ registers[AF] &= 0xFFEF; }
 
 
 
@@ -215,7 +220,7 @@ void CPU::printRegisters()
 	printf("------------------------------\n");
 	for (int i = 0; i < NUM_OF_REGISTERS; i++)
 	{
-		printf("%s: %#04x\n", getRegisterString((CPU::REGISTERS) i).c_str(), registers[i]);
+		printf("%s: %#04x\n", getRegisterString((CPU::REGISTERS) i).c_str(), get_register_16((CPU::REGISTERS) i));
 	}
 	printf("\n");
 }
@@ -262,6 +267,9 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 
 	printf("Running instruction %#04x\n", instruc);
+
+	if (registers[PC] == 0x0014)
+		printf("yo");
 
 	switch (instruc)
 	{
@@ -334,7 +342,11 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		// LD X, d8
 	case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E:		case 0x3E:
 
-		LD((CPU::REGISTERS) reg_list[regPattern1], getByteFromMemory(PC), false);
+		if ((instruc & 0x0F) == 0x06)
+			LD((CPU::REGISTERS) reg_list[(instruc >> 4) * 2], getByteFromMemory(PC), false);	// B, D, H
+		else
+			LD((CPU::REGISTERS) reg_list[((instruc >> 4) * 2) + 1], getByteFromMemory(PC), false);	// C, E, L, A
+
 		registers[PC]++;
 		break;
 
@@ -384,11 +396,23 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		LD(a16, get_register_16(SP));
 		break;
 
+		// LD (C), A
+	case 0xE2:
+
+		LD_reg_into_memory(C, A);
+		break;
+
+		// LD A, (C)
+	case 0xF2:
+
+		LD(A, getByteFromMemory(get_register_16(C)), false);
+		break;
 
 		// LDH A, (a8)  = LD A, (0xFF00 + a8)
 	case 0xF0:
 
 		a8 = getByteFromMemory(PC);
+		registers[PC]++;
 		parenA8 = getByteFromMemory(static_cast<std::int16_t> (0xFF00 + a8));
 		LDH(A, parenA8);
 		break;
@@ -397,6 +421,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	case 0xE0:
 
 		a8 = getByteFromMemory(PC);
+		registers[PC]++;
 		LDH_INDIRECT(static_cast<std::int16_t> (0xFF00 + a8), get_register_8(A));
 		break;
 
@@ -404,6 +429,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	case 0xF8:
 
 		r8 = static_cast<std::int8_t>(getByteFromMemory(PC));
+		registers[PC]++;
 		LD_HL_SPPLUSR8(HL, r8);
 		break;
 
@@ -1026,7 +1052,7 @@ void CPU::LD_reg_into_memory(CPU::REGISTERS reg1, CPU::REGISTERS reg2)
 }
 
 // LD X, d8 and LD (X), d8 when indirect == true
-void CPU::LD(CPU::REGISTERS reg, int8_t val, bool indirect=false)
+void CPU::LD(CPU::REGISTERS reg, uint8_t val, bool indirect=false)
 {
 	if (!indirect)
 		set_register(reg, val);
@@ -1461,6 +1487,7 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 
 	result = regValue + 1;
 
+	set_register(reg, result);
 
 	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
 	{
@@ -1505,6 +1532,7 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 	result = regValue - 1;
 
+	set_register(reg, result);
 
 	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
 	{
@@ -2143,7 +2171,7 @@ void CPU::handle_CB(std::int8_t instruc)
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
 	case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
 
-		BIT(static_cast<std::uint8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
+		BIT(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
 		break;
 
 
@@ -2153,7 +2181,7 @@ void CPU::handle_CB(std::int8_t instruc)
 	case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
 
-		SET(static_cast<std::uint8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
+		SET(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
 		break;
 
 		// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
@@ -2162,7 +2190,7 @@ void CPU::handle_CB(std::int8_t instruc)
 	case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
 	case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
 
-		RES(static_cast<std::uint8_t> (reg_list[regPattern1]), reg_list[regPattern2]);
+		RES(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
 		break;
 
 
