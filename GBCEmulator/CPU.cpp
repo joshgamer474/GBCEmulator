@@ -263,13 +263,19 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
+	// Check if bios is done running
+	if (registers[PC] >= 0x100 && memory->cartridgeReader->is_bios)
+		memory->cartridgeReader->is_bios = false;
+
+
+	if (registers[PC] == 0x6A)
+		printf("yo");
+
 	registers[PC]++;
 
 
 	printf("Running instruction %#04x\n", instruc);
 
-	if (registers[PC] == 0x0014)
-		printf("yo");
 
 	switch (instruc)
 	{
@@ -294,7 +300,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		// LD A, (Y)
 	case 0x0A: case 0x1A:
 
-		LD(A, getByteFromMemory((CPU::REGISTERS) reg_list[(instruc & 0xF0) >> 4]), false);	// (BC), (DE)
+		LD(A, getByteFromMemory((CPU::REGISTERS) ((instruc & 0xF0) >> 4)), false);	// (BC), (DE)
 		break;
 
 		// LD A, (HL+-)
@@ -757,7 +763,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 		r8 = static_cast<std::int8_t>(getByteFromMemory(CPU::REGISTERS::PC));
 		registers[PC]++;
-		if (instruc == 0xC3)
+		if (instruc == 0x18)
 			JR(CPU::FLAGTYPES::NONE, r8);						// JR r8
 		else
 		{
@@ -1826,7 +1832,7 @@ void CPU::CALL(CPU::FLAGTYPES flagType, std::uint16_t a16)
 		setByteToMemory(get_register_16(SP) - 1, static_cast<std::int8_t> (get_register_16(PC) >> 8));
 
 		// (SP - 2) <- PClow
-		setByteToMemory(get_register_16(SP) - 2, static_cast<std::int8_t> (get_register_16(PC) & 0x0F));
+		setByteToMemory(get_register_16(SP) - 2, static_cast<std::int8_t> (get_register_16(PC) & 0xFF));
 
 		// PC <- a16
 		set_register(PC, a16);
@@ -1963,6 +1969,8 @@ void CPU::RLCA()
 
 	aVal = (aVal << 1) | bit7;
 
+	set_register(A, aVal);
+
 	if (bit7)
 		set_flag_carry();
 	else
@@ -1981,6 +1989,8 @@ void CPU::RLA()
 	bit7 = (aVal >> 7);
 
 	aVal = (aVal << 1) | static_cast<std::uint8_t> (get_flag_carry());
+
+	set_register(A, aVal);
 
 	if (bit7)
 		set_flag_carry();
@@ -2001,6 +2011,8 @@ void CPU::RRCA()
 
 	aVal = (aVal >> 1) | (bit0 << 7);
 
+	set_register(A, aVal);
+
 	if (bit0)
 		set_flag_carry();
 	else
@@ -2020,6 +2032,8 @@ void CPU::RRA()
 
 	aVal = (aVal >> 1) | (static_cast<std::uint8_t> (get_flag_carry()) << 7);
 
+	set_register(A, aVal);
+
 	if (bit0)
 		set_flag_carry();
 	else
@@ -2037,14 +2051,14 @@ void CPU::RRA()
 */
 void CPU::PUSH(CPU::REGISTERS reg)
 {
-	registers[SP] += 2;
-
 	std::uint16_t regVal = get_register_16(reg);
 	std::uint8_t high, low;
-	high = (regVal >> 8) & 0x0F;
-	low = (regVal & 0x0F);
-	setByteToMemory(get_register_16(SP), low);
-	setByteToMemory(get_register_16(SP) + 1, high);
+	high = (regVal >> 8) & 0xFF;
+	low = (regVal & 0xFF);
+	setByteToMemory(get_register_16(SP) - 1, high);
+	setByteToMemory(get_register_16(SP)  - 2, low);
+
+	registers[SP] -= 2;
 
 	ticks += 16;
 }
@@ -2062,7 +2076,7 @@ void CPU::POP(CPU::REGISTERS reg)
 
 	set_register(reg, regVal);
 
-	registers[SP] -= 2;
+	registers[SP] += 2;
 
 	ticks += 12;
 }

@@ -25,7 +25,6 @@ public:
 
 	//char memoryMap[0xFFFF];
 
-	unsigned char internal_work_ram[0x2000];
 	unsigned char high_ram[0x7F];
 	unsigned char io[0x80];
 	unsigned char interrupt_register;
@@ -36,6 +35,8 @@ public:
 	std::vector<std::vector<unsigned char>> working_ram_banks;
 	
 	void initWorkRAM(bool isColorGB);
+
+	void initROMBanks();
 
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);

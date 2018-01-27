@@ -122,7 +122,32 @@ void MBC::setFromTo(From_To *ft, int start, int end)
 
 std::uint8_t MBC::readByte(std::uint16_t pos)
 {
-	return 0;
+	switch (pos & 0xF000)
+	{
+		// ROM 00
+	case 0x0000:
+	case 0x1000:
+	case 0x2000:
+	case 0x3000:
+		return romBanks[0][pos];
+
+		// ROM 01 - N
+	case 0x4000:
+	case 0x5000:
+	case 0x6000:
+	case 0x7000:
+		return romBanks[curr_rom_bank][pos - 0x4000];
+
+		// External RAM
+	case 0xA000:
+	case 0xB000:
+		return external_ram[pos - 0xA000];
+
+	default:
+		printf("WARNING - MBC::readByte() used address: %#06x\n", pos);
+		return 0;
+
+	}
 }
 
 

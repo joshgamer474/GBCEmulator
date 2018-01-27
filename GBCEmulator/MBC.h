@@ -8,13 +8,13 @@
 class MBC
 {
 
-#define ROM_BANK_SIZE 0x4000
-#define RAM_BANK_SIZE 0x2000
-
 private:
 
 
 public:
+
+	const std::uint16_t ROM_BANK_SIZE = 0x4000;
+	const std::uint16_t RAM_BANK_SIZE = 0x2000;
 
 	MBC();
 	MBC(int mbc_num);
@@ -39,6 +39,8 @@ public:
 	bool rom_banking_mode;	// RAM bank 0 can be used during this mode
 	bool ram_banking_mode;
 	bool external_ram_enabled;
+
+	unsigned char external_ram[0x2000];
 
 	struct From_To
 	{

@@ -3,12 +3,14 @@
 
 CartridgeReader::CartridgeReader()
 {
-
+	is_bios = true;
 }
 
 
 CartridgeReader::CartridgeReader(std::string filename)
 {
+	is_bios = true;
+
 	// Set game cartridge name
 	setRomDestination(filename);
 }
@@ -27,10 +29,8 @@ void CartridgeReader::setRomDestination(std::string filename)
 
 }
 
-bool CartridgeReader::readRom(bool isBios)
+bool CartridgeReader::readRom()
 {
-	is_bios = isBios;
-
 	std::ifstream rom;
 	rom.open(cartridgeFilename, std::ios::binary);
 
@@ -39,11 +39,9 @@ bool CartridgeReader::readRom(bool isBios)
 		std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
 		romBuffer = romBufferr;
 
-		if (!is_bios)
-		{
-			// Read information from cartridge
-			getCartridgeInformation();
-		}
+		// Read information from cartridge
+		getCartridgeInformation();
+		
 		rom.close();
 		return true;
 	}
@@ -238,6 +236,5 @@ void CartridgeReader::getCartridgeType(char cartridge_type, CartridgeType *cartr
 	else
 		cartridgeType->sensor = false;
 }
-
 
 

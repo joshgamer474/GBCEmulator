@@ -31,15 +31,15 @@ void Memory::initWorkRAM(bool isColorGB)
 
 std::uint8_t Memory::readByte(std::uint16_t pos)
 {
-	if (cartridgeReader->is_bios)
+	if (cartridgeReader->is_bios && pos < 256)
 	{
-		return cartridgeReader->readByte(pos);
+		return cartridgeReader->bios[pos];
 	}
 
 
 	switch (pos & 0xF000)
 	{
-		// ROM and RAM
+		/// ROM and RAM
 	case 0x0000:
 	case 0x1000:
 	case 0x2000:
@@ -53,27 +53,20 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		return mbc->readByte(pos);
 
 
+		/// GPU RAM
 	case 0x8000:
 	case 0x9000:
 
-		/// TODO: GPU RAM
 		if ((pos & 0xFF00) < 0x9800)
 		{
 			// 0x8000 - 0x97FF : Tile RAM
-		}
-		else if ((pos & 0xFF00) < 0x9C00)
-		{
 			// 0x9800 - 0x9BFF : BG Map Data 1
-		}
-		else
-		{
 			// 0x9C00 - 0x9FFF : BG Map Data 2
+			return gpu->readByte(pos);
 		}
 
-		printf("WARNING - Memory::readByte() doesn't handle address: %#06x yet\n", pos);
-		return 0;
 
-
+		/// GB Work RAM, GPU Object Attribute Memory (OAM), I/O, High RAM, Interrupt enable reg
 	case 0xC000:
 	case 0xD000:
 	case 0xE000:
@@ -82,11 +75,36 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		if ((pos & 0xFF00) < 0xFE00)
 		{
 			// 0xC000 - 0xFDFF : Internal work RAM and (echo) Internal work RAM
+			if ((pos & 0xF000) < 0xD000)
+			{
+				// 0xC000 - 0xCFFF
+				return working_ram_banks[0][pos - 0xD000];
+			}
+			else if ((pos & 0xF000) < 0xE000)
+			{
+				// 0xD000 - 0xDFFF
+				return working_ram_banks[curr_working_ram_bank][pos - 0xE000];
+			}
+			else
+			{
+				//0xE000 - 0xFDFF : (echo) Internal work RAM
+				if ((pos & 0xF000) < 0xF000)
+				{
+					// 0xE000 - 0xEFFF
+					return working_ram_banks[0][pos - 0xE000];
+				}
+				else
+				{
+					// 0xF000 - 0xFDFF
+					return working_ram_banks[curr_working_ram_bank][pos - 0xF000];
+				}
+			}
 
 		}
 		else if ((pos & 0xFFF0) < 0xFEA0)
 		{
 			// 0xFE00 - 0xFE9F : Sprite RAM
+			return gpu->readByte(pos);
 		}
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{
@@ -97,22 +115,18 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
 			// 0xFF00 - 0xFF7F : Hardware I/O
+			return io[pos - 0xFF00];
 		}
 		else if (pos < 0xFFFF)
 		{
 			// 0xFF80 - 0xFFFE : High RAM area
+			return high_ram[pos - 0xFF80];
 		}
 		else if (pos == 0xFFFF)
 		{
 			// 0xFFFF : Interrupt Enable Register
+			return interrupt_register;
 		}
-		else
-		{
-			printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-		}
-
-		printf("WARNING - Memory::readByte() doesn't handle address: %#06x yet\n", pos);
-		return 0;
 	
 	default:
 		printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
@@ -216,4 +230,15 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 
 
 	//cartridgeReader->setByte(pos, val);
+}
+
+
+void Memory::initROMBanks()
+{
+	std::uint64_t counter = 0;
+	for (int i = 0; i < cartridgeReader->num_ROM_banks; i++)
+	{
+		mbc->romBanks[i] = std::vector<unsigned char>(cartridgeReader->romBuffer.begin() + (i * mbc->ROM_BANK_SIZE), cartridgeReader->romBuffer.begin() + ((i + 1)* mbc->ROM_BANK_SIZE));
+		counter += mbc->ROM_BANK_SIZE;
+	}
 }
