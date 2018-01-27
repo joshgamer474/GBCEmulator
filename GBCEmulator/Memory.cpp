@@ -66,7 +66,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		}
 
 
-		/// GB Work RAM, GPU Object Attribute Memory (OAM), I/O, High RAM, Interrupt enable reg
+		/// GB Work RAM, GPU Object Attribute Memory (OAM), Hardware I/O, High RAM, Interrupt enable reg
 	case 0xC000:
 	case 0xD000:
 	case 0xE000:
@@ -115,7 +115,52 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
 			// 0xFF00 - 0xFF7F : Hardware I/O
-			return io[pos - 0xFF00];
+			
+			
+			if (pos == 0xFF00)
+			{
+				// 0xFF0 : Gamepad
+				return gamepad;
+			}
+			else if (pos < 0xFF04)
+			{
+				/// TODO: handle Serial Data
+				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
+				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+				return 0;
+			}
+			else if (pos < 0xFF08)
+			{
+				// 0xFF04 - 0xFF07 : Timer
+				return timer[pos - 0xFF04];
+			}
+			else if (pos < 0xFF10)
+			{
+				// 0xFF08 - 0xFF09 : Not referenced
+				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+				return 0;
+			}
+			else if (pos == 0xFF0F)
+			{
+				// 0xFF0F : Interrupt Flag
+				return interrupt_flag;
+			}
+			else if (pos < 0xFF40)
+			{
+				// 0xFF10 - 0xFF3F : Audio
+				return audio[pos - 0xFF10];
+			}
+			else if (pos < 0xFF6C)
+			{
+				// 0xFF40 - 0xFF6B : GPU LCD
+				return gpu->readByte(pos);
+			}
+			else
+			{
+				// 0xFF6C - 0xFF7F : Not referenced
+				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+				return 0;
+			}
 		}
 		else if (pos < 0xFFFF)
 		{
@@ -125,7 +170,15 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if (pos == 0xFFFF)
 		{
 			// 0xFFFF : Interrupt Enable Register
-			return interrupt_register;
+			/// TODO:
+			/*
+				Bit 0: V-Blank  Interrupt Enable  (INT 40h)  (1=Enable)
+				 Bit 1: LCD STAT Interrupt Enable  (INT 48h)  (1=Enable)
+				 Bit 2: Timer    Interrupt Enable  (INT 50h)  (1=Enable)
+				 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
+				 Bit 4: Joypad   Interrupt Enable  (INT 60h)  (1=Enable)
+			*/
+			return interrupt_enable;
 		}
 	
 	default:
@@ -202,7 +255,56 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
 			// 0xFF00 - 0xFF7F : Hardware I/O
-			io[pos - 0xFF00] = val;
+			
+			if (pos == 0xFF00)
+			{
+				// 0xFF0 : Gamepad
+				gamepad = val;
+			}
+			else if (pos < 0xFF04)
+			{
+				/// TODO: handle Serial Data
+				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
+				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+			}
+			else if (pos < 0xFF08)
+			{
+				// 0xFF04 - 0xFF07 : Timer
+				timer[pos - 0xFF04] = val;
+			}
+			else if (pos < 0xFF10)
+			{
+				// 0xFF08 - 0xFF09 : Not referenced
+				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+			}
+			else if (pos == 0xFF0F)
+			{
+				// 0xFF0F : Interrupt Flag
+				/// TODO:
+				/*
+					 Bit 0: V-Blank  Interrupt Request (INT 40h)  (1=Request)
+					 Bit 1: LCD STAT Interrupt Request (INT 48h)  (1=Request)
+					 Bit 2: Timer    Interrupt Request (INT 50h)  (1=Request)
+					 Bit 3: Serial   Interrupt Request (INT 58h)  (1=Request)
+					 Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
+				*/
+				interrupt_flag = val;
+			}
+			else if (pos < 0xFF40)
+			{
+				// 0xFF10 - 0xFF3F : Audio
+				audio[pos - 0xFF10] = val;
+			}
+			else if (pos < 0xFF6C)
+			{
+				// 0xFF40 - 0xFF6B : GPU LCD
+				gpu->setByte(pos, val);
+			}
+			else
+			{
+				// 0xFF6C - 0xFF7F : Not referenced
+				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+			}
 		}
 		else if (pos < 0xFFFF)
 		{
@@ -212,7 +314,15 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		else if (pos == 0xFFFF)
 		{
 			// 0xFFFF : Interrupt Enable Register
-			interrupt_register = val;
+			/// TODO:
+			/*
+				 Bit 0: V-Blank  Interrupt Enable  (INT 40h)  (1=Enable)
+			 Bit 1: LCD STAT Interrupt Enable  (INT 48h)  (1=Enable)
+			 Bit 2: Timer    Interrupt Enable  (INT 50h)  (1=Enable)
+			 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
+			 Bit 4: Joypad   Interrupt Enable  (INT 60h)  (1=Enable)
+			*/
+			interrupt_enable = val;
 		}
 		else
 		{

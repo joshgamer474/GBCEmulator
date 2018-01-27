@@ -26,8 +26,12 @@ public:
 	//char memoryMap[0xFFFF];
 
 	unsigned char high_ram[0x7F];
-	unsigned char io[0x80];
-	unsigned char interrupt_register;
+	unsigned char gamepad;
+	unsigned char timer[0x04];
+	unsigned char audio[0x30];
+
+	unsigned char interrupt_flag;
+	unsigned char interrupt_enable;
 
 	int num_working_ram_banks;
 	int curr_working_ram_bank;
