@@ -4,10 +4,14 @@
 #define GPU_H
 
 #include <vector>
+#include <GL/freeglut.h>
 
 #define VRAM_SIZE 0x2000
 #define OAM_SIZE 0xA0
 #define PALETTE_DATA_SIZE 0x08
+
+#define SCREEN_PIXEL_H 144
+#define SCREEN_PIXEL_W 160
 
 class GPU
 {
@@ -51,5 +55,8 @@ public:
 	// Reading and writing methods
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);
+
+
+	void display();
 };
 #endif

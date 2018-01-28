@@ -136,3 +136,15 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 		printf("WARNING - GPU::setByte() doesn't handle address: %#06x\n", pos);
 	}
 }
+
+
+
+
+void GPU::display()
+{
+	glClear(GL_COLOR_BUFFER_BIT);
+	glutSwapBuffers();
+	glFlush();
+}
+
+

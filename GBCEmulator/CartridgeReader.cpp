@@ -123,6 +123,8 @@ int CartridgeReader::getNumOfRamBanks(char ram_size)
 	case 0x03: return 4;
 	case 0x04: return 16;
 	case 0x05: return 8;
+
+	default: return 0;
 	}
 }
 

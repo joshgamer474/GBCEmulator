@@ -164,7 +164,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 		// 0x0000 - 0x1FFF : Set RAM enable
 		if ((pos & 0xF000) < 0x2000)
 		{
-			if (val & 0x0F == 0x0A)
+			if ((val & 0x0F) == 0x0A)
 				external_ram_enabled = true;
 			else
 				external_ram_enabled = false;
@@ -197,10 +197,10 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 
 			// Don't use ROM banks 0x00, 0x20, 0x40, or 0x60
 			if (mbc_num == 1 || mbc_num == 3 && 
-				(val & 0x1F == 0x00 ||
-				val & 0x1F == 0x20 ||
-				val & 0x1F == 0x40 ||
-				val & 0x1F == 0x60))
+				((val & 0x1F) == 0x00 ||
+				(val & 0x1F) == 0x20 ||
+				(val & 0x1F) == 0x40 ||
+				(val & 0x1F) == 0x60))
 				curr_rom_bank += 1;
 		}
 		break;
