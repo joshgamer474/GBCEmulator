@@ -268,6 +268,27 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		memory->cartridgeReader->is_bios = false;
 
 
+	// Check for interrupts
+	if (interrupts_enabled)
+	{
+		interrupts_enabled = false;
+
+		std::uint8_t mask = 0x01;
+
+		// Find out which interrupt should be processed
+		for (int i = 0; i < 5; i++)
+		{
+			if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+			{
+				mask = ~mask;
+				memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+				PUSH(PC);
+				registers[PC] = interrupt_table[i];
+			}
+			mask = mask << 1;
+		}
+	}
+
 	if (registers[PC] == 0x6A)
 		printf("yo");
 

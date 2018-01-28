@@ -55,6 +55,11 @@ public:
 
 
 	/*
+		Interrupt stuff
+	*/
+	unsigned char interrupt_table[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
+
+	/*
 		Register stuff
 	*/
 
@@ -104,15 +109,6 @@ public:
 	Flag methods
 
 	8-bit Register
-
-	Bit  Name  Set Clr  Expl.
-	7    zf    Z   NZ   Zero Flag
-	6    n     -   -    Add/Sub-Flag (BCD)
-	5    h     -   -    Half Carry Flag (BCD)
-	4    cy    C   NC   Carry Flag
-	3-0  -     -   -    Not used (always zero)
-
-
 
 	Flag register (F) bits:
 
@@ -208,13 +204,7 @@ public:
 	void POP(CPU::REGISTERS reg);
 	void PUSH(CPU::REGISTERS reg);
 
-	uint8_t getByteFromMemory(CPU::REGISTERS reg);
-	uint8_t getByteFromMemory(std::uint16_t addr);
-	void setByteToMemory(uint16_t addr, uint8_t val);
-
-
 	uint16_t getNextTwoBytes();
-
 
 
 	/*
@@ -237,6 +227,15 @@ public:
 	void SET(std::uint8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
 	void RES(std::uint8_t bit, CPU::REGISTERS reg);	// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
 
+
+
+	/*
+		Reading and Writing from/to memory
+	*/
+
+	uint8_t getByteFromMemory(CPU::REGISTERS reg);
+	uint8_t getByteFromMemory(std::uint16_t addr);
+	void setByteToMemory(uint16_t addr, uint8_t val);
 
 };
 
