@@ -200,43 +200,53 @@ void GPU::getTile(int tile_num, int line_num, TILE *tile)
 
 void GPU::renderLine()
 {
-	int pixelOffset = lcd_y * SCREEN_PIXEL_W;
-
 	// VRAM offset for which set of tiles to use
-	//int tile_map_offset = bg_tile_data_select.start - 0x8000;
 	int tile_map_offset = bg_tile_map_select.start - 0x8000;
 
-
 	// Which tile to start with in the map line
-	std::uint16_t tile_offset = (scroll_x >> 3);
-	std::uint16_t old_tile_offset = tile_offset;
+	std::uint16_t tile_offset, x_tile_offset, y_tile_offset;
+	x_tile_offset = (scroll_x >> 3);
+	y_tile_offset = (scroll_y / 8);
+	tile_offset = x_tile_offset + (y_tile_offset * 32);
+	std::uint16_t original_tile_offset = tile_offset;
+	std::uint16_t actual_tile_num = 0;
 
 	// Which line of pixels to use in the tiles
 	int y = (lcd_y + scroll_y) & 0x07;
-
-	// Where in the tile line to start
-	int x = scroll_x & 0x07;
-
-	int tile_num;
-	std::uint8_t color;
-	TILE tile;
 
 	if (lcd_y == 0)
 		y_roll_over = 0;
 	else if (y == 0)
 		y_roll_over++;
 
-	// Which line of tiles to use
-	//tile_map_offset += (((lcd_y + scroll_y) & 0xFF) >> 3) (y_roll_over * (SCREEN_PIXEL_W / 8));
-	tile_map_offset += (y_roll_over * (SCREEN_PIXEL_W / 8));
+	// Where in the tile line to start
+	int x = scroll_x & 0x07;
 
-	tile_num = vram_banks[curr_vram_bank][tile_map_offset + tile_offset];
-	getTile(tile_num, y, &tile);
+	int use_tile_num, map_tile_num_offset, map_tile_num;
+	std::uint8_t color;
+	TILE tile;
+
+	// Which line of tiles to use
+	tile_map_offset += (y_roll_over * 32);
+
+	map_tile_num_offset = tile_map_offset + tile_offset;
+	use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
+	actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
+	
+	std::uint16_t tile_x_roll_over = actual_tile_num + (SCREEN_PIXEL_W / 8);
+	std::uint16_t max_tile_x_roll_over = ((y_tile_offset + y_roll_over) * 32) + 31;
+	std::uint16_t max_tile_y_roll_over = bg_tile_map_select.end - bg_tile_map_select.start;
+
+	//printf("actual_tile_num = %i, tile_x_roll_over = %i, tile_map_offset = %i, tile_offset = %i\n", actual_tile_num, tile_x_roll_over, tile_map_offset, tile_offset);
+	getTile(use_tile_num, y, &tile);
 
 	if (bg_display_enable)
 	{
 		for (int i = 0; i < SCREEN_PIXEL_W; i++)
 		{
+			actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
+			//printf("tile_mape_offset + tile_offset = %i, Using tile num: %i\n", tile_map_offset + tile_offset, (tile_map_offset + tile_offset) - (bg_tile_map_select.start - 0x8000));
+
 			color = ((tile.b1 >> (6 - x)) & 0x02) | ((tile.b0 >> (7 - x)) & 0x01);
 			frame[i + (lcd_y * SCREEN_PIXEL_W)] = palette_color[color];
 
@@ -245,12 +255,24 @@ void GPU::renderLine()
 			{
 				x = 0;
 				tile_offset += 1;
-				tile_offset &= 31;	// Max 32 tiles
-				tile_num = vram_banks[curr_vram_bank][tile_map_offset + tile_offset];
-				getTile(tile_num, y, &tile);
+				if (tile_offset > max_tile_x_roll_over)
+				{
+					tile_offset = ((y_tile_offset + y_roll_over) * 32);	// Do an X roll over
+				}
+				if (tile_offset > max_tile_y_roll_over)
+				{
+					tile_offset -= max_tile_y_roll_over;				// Do a Y roll over
+				}
+				map_tile_num_offset = tile_map_offset + tile_offset;
+				use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset & (bg_tile_map_select.end - 0x8000)];
+				actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
+				//printf("actual_tile_num = %i, tile_map_offset = %i, tile_offset = %i\n", actual_tile_num, tile_map_offset, tile_offset);
+				getTile(use_tile_num, y, &tile);
 			}
 		}
 	}
+
+	//printf("y = %i, lcd_y = %i\n", y, lcd_y);
 
 	if (object_display_enable)
 	{
