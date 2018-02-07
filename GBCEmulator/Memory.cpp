@@ -352,3 +352,21 @@ void Memory::initROMBanks()
 		counter += mbc->ROM_BANK_SIZE;
 	}
 }
+
+// Performs copying of ROM/RAM to GPU->OAM memory
+void Memory::do_oam_dma_transfer(std::uint8_t start_address)
+{
+	std::uint16_t source_addr, dest_addr;
+	std::uint8_t val;
+
+	source_addr = (static_cast<std::uint16_t>(start_address) << 8);
+	dest_addr = 0xFE00;
+
+	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
+	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)
+	{
+		val = readByte(source_addr);
+		setByte(dest_addr, val);
+	}
+	
+}

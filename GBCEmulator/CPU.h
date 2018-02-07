@@ -8,6 +8,9 @@
 #ifndef CPU_H
 #define CPU_H
 
+
+//#define ENABLE_DEBUG_PRINT
+
 class CPU_Opcodes;
 
 class CPU
@@ -23,10 +26,6 @@ private:
 	std::vector<std::uint16_t> registers;
 	std::uint8_t instruction;
 
-	std::uint16_t ticks;
-
-	//Memory memory;
-
 public:
 
 	CPU();
@@ -37,6 +36,7 @@ public:
 	bool interrupts_enabled;
 	bool is_halted;
 	bool is_stopped;
+	std::uint64_t ticks;
 
 	/*
 		Debug stuff

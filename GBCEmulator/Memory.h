@@ -9,6 +9,12 @@
 
 #define WORK_RAM_SIZE 0x1000
 
+#define INTERRUPT_VBLANK 0x01
+#define INTERRUPT_LCD_STATUS 0x02
+#define INTERRUPT_TIMER 0x04
+#define INTERRUPT_SERIAL 0x08
+#define INTERRUPT_JOYPAD 0x10
+
 class Memory
 {
 private:
@@ -39,8 +45,8 @@ public:
 	std::vector<std::vector<unsigned char>> working_ram_banks;
 	
 	void initWorkRAM(bool isColorGB);
-
 	void initROMBanks();
+	void do_oam_dma_transfer(std::uint8_t start_address);
 
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);

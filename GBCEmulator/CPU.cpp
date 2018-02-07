@@ -289,13 +289,16 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		}
 	}
 
+#ifdef ENABLE_DEBUG_PRINT
 	if (registers[PC] == 0x6A)
 		printf("yo");
+#endif
 
 	registers[PC]++;
 
-
+#ifdef ENABLE_DEBUG_PRINT
 	printf("Running instruction %#04x\n", instruc);
+#endif
 
 
 	switch (instruc)
