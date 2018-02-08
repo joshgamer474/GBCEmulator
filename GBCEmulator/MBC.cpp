@@ -43,7 +43,22 @@ MBC::MBC(int mbcNum)
 	case 7: MBC7_init(); break;
 
 	default:
-		MBC(); break;
+		rom_banking_mode = true;
+		ram_banking_mode = false;
+		external_ram_enabled = false;
+		curr_rom_bank = 0;
+		curr_ram_bank = 0;
+
+		num_rom_banks = 2;
+		num_ram_banks = 1;
+
+		romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
+		ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
+
+		mbc_num = 0;
+
+		setFromTo(&rom_from_to, 0x0000, 0x7FFF);
+		setFromTo(&ram_from_to, 0xA000, 0xBFFF);
 	}
 }
 
@@ -212,6 +227,8 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0x6000:
 	case 0x7000:
 
+		if (mbc_num == 0) return;
+
 		// 0x4000 - 0x5FFF : Set RAM bank number or Set upper bits of ROM bank number
 		if ((pos & 0xF000) < 0x6000 && mbc_num != 2)
 		{
@@ -258,7 +275,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xB000:
 
 		/// Currently not supporting MBC2
-		ramBanks[curr_ram_bank][pos & RAM_BANK_SIZE] = val;
+		ramBanks[curr_ram_bank][pos - 0xA000] = val;
 		break;
 
 

@@ -73,6 +73,7 @@ public:
 	void setRomDestination(std::string filename);
 	bool readRom();
 	void getCartridgeInformation();
+	bool getColorGBFlag();
 
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, uint8_t val);

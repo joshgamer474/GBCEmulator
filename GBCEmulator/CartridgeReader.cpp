@@ -76,6 +76,7 @@ void CartridgeReader::getCartridgeInformation()
 
 	getCartridgeType(cartridge_type, &cartridgeType);
 	num_ROM_banks = getNumOfRomBanks(rom_size);
+	if (num_ROM_banks == 1) num_ROM_banks++;
 	num_RAM_banks = getNumOfRamBanks(ram_size);
 	
 	destination_code = romBuffer[0x014A];
@@ -83,7 +84,10 @@ void CartridgeReader::getCartridgeInformation()
  	header_checksum = romBuffer[0x014D];
 }
 
-
+bool CartridgeReader::getColorGBFlag()
+{
+	return cgb_flag;
+}
 
 std::uint8_t CartridgeReader::readByte(std::uint16_t pos)
 {

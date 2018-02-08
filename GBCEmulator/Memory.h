@@ -15,6 +15,8 @@
 #define INTERRUPT_SERIAL 0x08
 #define INTERRUPT_JOYPAD 0x10
 
+class Joypad;
+
 class Memory
 {
 private:
@@ -28,6 +30,7 @@ public:
 	CartridgeReader *cartridgeReader;
 	MBC *mbc;
 	GPU *gpu;
+	Joypad *joypad;
 
 	//char memoryMap[0xFFFF];
 

@@ -15,6 +15,7 @@
 
 class Memory;
 class CPU;
+class Joypad;
 
 class GPU
 {
@@ -31,6 +32,7 @@ public:
 
 	CPU *cpu;
 	Memory *memory;
+	Joypad *joypad;
 	bool is_color_gb;
 	int num_vram_banks;	// 1 for regular GB, 2 for GB color
 	int curr_vram_bank;
@@ -41,12 +43,15 @@ public:
 		GLubyte r, g, b;
 	};
 	RGB frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-	RGB palette_color[4] =
-	{	{ 255, 255, 255 },
-		{ 192, 192, 192 },
-		{ 96, 96, 96 },
-		{ 0, 0, 0 } 
-	};
+	RGB bg_palette_color[4];
+	RGB object_palette0_color[4];
+	RGB object_palette1_color[4];
+	//{	{ 255, 255, 255 },
+	//	{ 192, 192, 192 },
+	//	{ 96, 96, 96 },
+	//	{ 0, 0, 0 } 
+	//};
+	void set_color_palette(RGB *palette, std::uint8_t val);
 
 	struct TILE
 	{

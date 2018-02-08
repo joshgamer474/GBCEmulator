@@ -3,6 +3,7 @@
 #include "GPU.h"
 #include "Memory.h"
 #include "CPU.h"
+#include "Joypad.h"
 
 GPU::GPU()
 {
@@ -107,6 +108,21 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 		else if (pos < 0xFF6C)
 		{
 			// LCD Stuff, VRAM bank selector
+
+			if (memory->cartridgeReader->getColorGBFlag())
+			{
+				switch (pos)
+				{
+
+				case 0xFF68:	background_palette_index = val; return;;
+				case 0xFF69:	background_palette_data[background_palette_index] = val; return;;
+				case 0xFF6A:	sprite_palette_index = val; return;;
+				case 0xFF6B:	sprite_palette_data[sprite_palette_index] = val; return;;
+
+				}
+			}
+
+
 			switch (pos)
 			{
 			case 0xFF40:	set_lcd_control(val); break;
@@ -116,9 +132,9 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF44:	lcd_y = 0; break;				// Read only - Writing to this register resets the counter
 			case 0xFF45:	lcd_y_compare = val; break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
-			case 0xFF47:	bg_palette = val; break;
-			case 0xFF48:	object_pallete0 = val; break;
-			case 0xFF49:	object_pallete1 = val; break;
+			case 0xFF47:	bg_palette = val; set_color_palette(bg_palette_color, val); break;
+			case 0xFF48:	object_pallete0 = val; set_color_palette(object_palette0_color, val); break;
+			case 0xFF49:	object_pallete1 = val; set_color_palette(object_palette1_color, val); break;
 			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
 			case 0xFF4F:	curr_vram_bank = val; break;
@@ -127,10 +143,6 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF53:	hdma3 = val; break;
 			case 0xFF54:	hdma4 = val; break;
 			case 0xFF55:	hdma5 = val; break;
-			case 0xFF68:	background_palette_index = val; break;
-			case 0xFF69:	background_palette_data[background_palette_index] = val; break;
-			case 0xFF6A:	sprite_palette_index = val; break;
-			case 0xFF6B:	sprite_palette_data[sprite_palette_index] = val; break;
 
 			default:
 				printf("WARNING - GPU::setByte() doesn't handle address: %#06x\n", pos);
@@ -142,6 +154,23 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 	}
 }
 
+
+void GPU::set_color_palette(RGB *palette, std::uint8_t val)
+{
+	GLubyte color_val = 0;
+
+	for (int i = 0; i < 4; i++)
+	{
+		switch ((val >> (i * 2)) & 3)
+		{
+		case 0: color_val = 255; break;
+		case 1: color_val = 192; break;
+		case 3: color_val = 96; break;
+		case 4: color_val = 0; break;
+		}
+		palette[i] = { color_val, color_val, color_val };
+	}
+}
 
 
 void GPU::set_lcd_control(unsigned char lcdControl)
@@ -248,7 +277,7 @@ void GPU::renderLine()
 			//printf("tile_mape_offset + tile_offset = %i, Using tile num: %i\n", tile_map_offset + tile_offset, (tile_map_offset + tile_offset) - (bg_tile_map_select.start - 0x8000));
 
 			color = ((tile.b1 >> (6 - x)) & 0x02) | ((tile.b0 >> (7 - x)) & 0x01);
-			frame[i + (lcd_y * SCREEN_PIXEL_W)] = palette_color[color];
+			frame[i + (lcd_y * SCREEN_PIXEL_W)] = bg_palette_color[color];
 
 			x++;
 			if (x == 8)
@@ -322,7 +351,7 @@ void GPU::run()
 				gpu_mode = GPU_MODE_OAM;
 			}
 
-			ticks -= 204;
+			ticks = 0;
 		}
 		break;
 
@@ -332,16 +361,16 @@ void GPU::run()
 		if (ticks >= 456)
 		{
 			lcd_y++;
-			//glutPostRedisplay();
 
 			if (lcd_y > 153)
 			{
 				display();
 				lcd_y = 0;
 				gpu_mode = GPU_MODE_OAM;
+				joypad->check_keyboard_input();
 			}
 
-			ticks -= 456;
+			ticks = 0;
 		}
 		break;
 
@@ -351,7 +380,7 @@ void GPU::run()
 		if (ticks >= 80)
 		{
 			gpu_mode = GPU_MODE_VRAM;
-			ticks -= 80;
+			ticks = 0;
 		}
 		break;
 
@@ -362,7 +391,7 @@ void GPU::run()
 		{
 			renderLine();
 			gpu_mode = GPU_MODE_HBLANK;
-			ticks -= 172;
+			ticks = 0;
 		}
 		break;
 	}

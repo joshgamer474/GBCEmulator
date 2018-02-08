@@ -269,7 +269,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 
 	// Check for interrupts
-	if (interrupts_enabled)
+	if (interrupts_enabled & memory->interrupt_flag)
 	{
 		interrupts_enabled = false;
 
@@ -284,6 +284,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 				memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
 				PUSH(PC);
 				registers[PC] = interrupt_table[i];
+				break;
 			}
 			mask = mask << 1;
 		}
@@ -293,6 +294,9 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (registers[PC] == 0x6A)
 		printf("yo");
 #endif
+
+	if (registers[PC] == 0xFA)
+		printf("yo");
 
 	registers[PC]++;
 
@@ -443,7 +447,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 		a8 = getByteFromMemory(PC);
 		registers[PC]++;
-		parenA8 = getByteFromMemory(static_cast<std::int16_t> (0xFF00 + a8));
+		parenA8 = getByteFromMemory(static_cast<std::uint16_t> (0xFF00 + a8));
 		LDH(A, parenA8);
 		break;
 
@@ -452,7 +456,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 		a8 = getByteFromMemory(PC);
 		registers[PC]++;
-		LDH_INDIRECT(static_cast<std::int16_t> (0xFF00 + a8), get_register_8(A));
+		LDH_INDIRECT(static_cast<std::uint16_t> (0xFF00 + a8), get_register_8(A));
 		break;
 
 		// LD HL, SP+r8
@@ -1207,10 +1211,10 @@ void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 
 	result = r + d8;
 
-	set_register(reg, static_cast<std::int8_t> (result & 0x00FF));
+	set_register(reg, static_cast<std::uint8_t> (result & 0x00FF));
 
 	// Check flag zero
-	if (result == 0)
+	if ((result & 0x00FF) == 0)
 		set_flag_zero();
 	else
 		clear_flag_zero();

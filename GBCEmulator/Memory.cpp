@@ -1,11 +1,13 @@
 #include "stdafx.h"
 #include "Memory.h"
+#include "Joypad.h"
 
 Memory::Memory()
 {
 	cartridgeReader = new CartridgeReader();
 	mbc = NULL;
 	gpu = NULL;
+	joypad = NULL;
 
 	initWorkRAM(false);
 }
@@ -57,13 +59,12 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 	case 0x8000:
 	case 0x9000:
 
-		if ((pos & 0xFF00) < 0x9800)
-		{
-			// 0x8000 - 0x97FF : Tile RAM
-			// 0x9800 - 0x9BFF : BG Map Data 1
-			// 0x9C00 - 0x9FFF : BG Map Data 2
-			return gpu->readByte(pos);
-		}
+
+		// 0x8000 - 0x97FF : Tile RAM
+		// 0x9800 - 0x9BFF : BG Map Data 1
+		// 0x9C00 - 0x9FFF : BG Map Data 2
+		return gpu->readByte(pos);
+		
 
 
 		/// GB Work RAM, GPU Object Attribute Memory (OAM), Hardware I/O, High RAM, Interrupt enable reg
@@ -78,12 +79,12 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			if ((pos & 0xF000) < 0xD000)
 			{
 				// 0xC000 - 0xCFFF
-				return working_ram_banks[0][pos - 0xD000];
+				return working_ram_banks[0][pos - 0xC000];
 			}
 			else if ((pos & 0xF000) < 0xE000)
 			{
 				// 0xD000 - 0xDFFF
-				return working_ram_banks[curr_working_ram_bank][pos - 0xE000];
+				return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
 			}
 			else
 			{
@@ -120,7 +121,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			if (pos == 0xFF00)
 			{
 				// 0xFF0 : Gamepad
-				return gamepad;
+				return joypad->get_joypad_byte();
 			}
 			else if (pos < 0xFF04)
 			{
@@ -134,16 +135,16 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 				// 0xFF04 - 0xFF07 : Timer
 				return timer[pos - 0xFF04];
 			}
+			else if (pos == 0xFF0F)
+			{
+				// 0xFF0F : Interrupt Flag
+				return interrupt_flag;
+			}
 			else if (pos < 0xFF10)
 			{
 				// 0xFF08 - 0xFF09 : Not referenced
 				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
 				return 0;
-			}
-			else if (pos == 0xFF0F)
-			{
-				// 0xFF0F : Interrupt Flag
-				return interrupt_flag;
 			}
 			else if (pos < 0xFF40)
 			{
@@ -259,7 +260,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			if (pos == 0xFF00)
 			{
 				// 0xFF0 : Gamepad
-				gamepad = val;
+				joypad->set_joypad_byte(val);
 			}
 			else if (pos < 0xFF04)
 			{
@@ -272,23 +273,23 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 				// 0xFF04 - 0xFF07 : Timer
 				timer[pos - 0xFF04] = val;
 			}
-			else if (pos < 0xFF10)
-			{
-				// 0xFF08 - 0xFF09 : Not referenced
-				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
-			}
 			else if (pos == 0xFF0F)
 			{
 				// 0xFF0F : Interrupt Flag
 				/// TODO:
 				/*
-					 Bit 0: V-Blank  Interrupt Request (INT 40h)  (1=Request)
-					 Bit 1: LCD STAT Interrupt Request (INT 48h)  (1=Request)
-					 Bit 2: Timer    Interrupt Request (INT 50h)  (1=Request)
-					 Bit 3: Serial   Interrupt Request (INT 58h)  (1=Request)
-					 Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
+				Bit 0: V-Blank  Interrupt Request (INT 40h)  (1=Request)
+				Bit 1: LCD STAT Interrupt Request (INT 48h)  (1=Request)
+				Bit 2: Timer    Interrupt Request (INT 50h)  (1=Request)
+				Bit 3: Serial   Interrupt Request (INT 58h)  (1=Request)
+				Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
 				*/
 				interrupt_flag = val;
+			}
+			else if (pos < 0xFF10)
+			{
+				// 0xFF08 - 0xFF09 : Not referenced
+				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
 			}
 			else if (pos < 0xFF40)
 			{
