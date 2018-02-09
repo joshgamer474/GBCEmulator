@@ -54,8 +54,6 @@ Temporary Items
 .vs/
 Debug/
 GBCEmulator/Debug/
-*.vcx*
 *.gb
 *.gbc
-*.sln
 
