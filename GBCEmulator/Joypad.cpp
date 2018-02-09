@@ -57,8 +57,9 @@ void Joypad::set_joypad_byte(std::uint8_t val)
 {
 	joypad_byte = val;
 
-	if (memory->interrupt_enable & INTERRUPT_JOYPAD)
-		memory->interrupt_flag |= INTERRUPT_JOYPAD;
+	//if (memory->interrupt_enable & INTERRUPT_JOYPAD)
+	//	memory->interrupt_flag |= INTERRUPT_JOYPAD;
+	memory->interrupt_flag |= INTERRUPT_JOYPAD;
 }
 
 std::uint8_t Joypad::get_joypad_byte()

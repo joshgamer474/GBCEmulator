@@ -137,7 +137,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF49:	object_pallete1 = val; set_color_palette(object_palette1_color, val); break;
 			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
-			case 0xFF4F:	curr_vram_bank = val; break;
+			case 0xFF4F:	curr_vram_bank = (val & 0x01); break;
 			case 0xFF51:	hdma1 = val; break;
 			case 0xFF52:	hdma2 = val; break;
 			case 0xFF53:	hdma3 = val; break;
@@ -176,6 +176,7 @@ void GPU::set_color_palette(RGB *palette, std::uint8_t val)
 void GPU::set_lcd_control(unsigned char lcdControl)
 {
 	lcd_control = lcdControl;
+	bool old_lcd_display_enable = lcd_display_enable;
 
 	lcd_display_enable =					(lcd_control & 0x80) ? true : false;
 	window_tile_map_display_select.start =	(lcd_control & 0x40) ? 0x9C00 : 0x9800;
@@ -189,6 +190,20 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 	object_size =							(lcd_control & 0x04) ? 16 : 8;
 	object_display_enable =					(lcd_control & 0x02) ? true : false;
 	bg_display_enable =						(lcd_control & 0x01) ? true : false;
+
+	if (old_lcd_display_enable == true && lcd_display_enable == false)
+	{
+		lcd_y = 0;
+		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
+		gpu_mode = GPU_MODE_VBLANK;
+		set_lcd_status_mode_flag((GPU_MODE) gpu_mode);
+	}
+	else if ((old_lcd_display_enable == false && lcd_display_enable == true)
+		|| (old_lcd_display_enable == true && lcd_display_enable == true))
+	{
+		lcd_y = 0;
+		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
+	}
 }
 
 void GPU::set_lcd_status(unsigned char lcdStatus)
@@ -209,15 +224,28 @@ void GPU::set_lcd_status(unsigned char lcdStatus)
 void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 {
 	lcd_status &= 0xFC;
-	lcd_status |= mode;
+	if (mode != GPU_MODE_NONE)
+		lcd_status |= mode;
+
+	switch (mode)
+	{
+	case GPU_MODE_OAM: lcd_status |= BIT5; break;
+	case GPU_MODE_VBLANK: lcd_status |= BIT4; break;
+	case GPU_MODE_HBLANK: lcd_status |= BIT3; break;
+	}
 }
 
 void GPU::set_lcd_status_coincidence_flag(bool flag)
 {
 	if (flag)
+	{
 		lcd_status |= 0x04;
+		memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
+	}
 	else
+	{
 		lcd_status &= 0xFB;
+	}
 }
 
 void GPU::getTile(int tile_num, int line_num, TILE *tile)
@@ -342,8 +370,9 @@ void GPU::run()
 			// Check if frame rendering has completed, start VBLANK interrupt
 			if (lcd_y == 143)
 			{
-				if (memory->interrupt_enable & INTERRUPT_VBLANK)
-					memory->interrupt_flag |= INTERRUPT_VBLANK;
+				//if (memory->interrupt_enable & INTERRUPT_VBLANK)
+				//	memory->interrupt_flag |= INTERRUPT_VBLANK;
+				memory->interrupt_flag |= INTERRUPT_VBLANK;
 				gpu_mode = GPU_MODE_VBLANK;
 			}
 			else
@@ -400,7 +429,9 @@ void GPU::run()
 		set_lcd_status_coincidence_flag(true);
 	else
 		set_lcd_status_coincidence_flag(false);
-	set_lcd_status_mode_flag((GPU_MODE)gpu_mode);
+
+	if (gpu_mode != GPU_MODE_NONE)
+		set_lcd_status_mode_flag((GPU_MODE)gpu_mode);
 }
 
 

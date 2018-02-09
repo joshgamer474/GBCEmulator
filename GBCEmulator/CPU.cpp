@@ -265,7 +265,10 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 	// Check if bios is done running
 	if (registers[PC] >= 0x100 && memory->cartridgeReader->is_bios)
+	{
 		memory->cartridgeReader->is_bios = false;
+		printRegisters();
+	}
 
 
 	// Check for interrupts
@@ -1290,7 +1293,7 @@ void CPU::ADD_HL(CPU::REGISTERS reg)
 void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 {
 	std::int16_t spVal = get_register_16(reg);
-	std::uint16_t result = static_cast<std::int16_t>(spVal + r8);
+	std::uint16_t result = static_cast<std::uint16_t>(spVal + r8);
 
 	// Clear flag zero
 	clear_flag_zero();
@@ -1326,7 +1329,7 @@ void CPU::SUB(std::uint8_t d8, bool indirect=false)
 	std::uint16_t regAValue, result;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = regAValue - d8;
+	result = (regAValue - d8) & 0x00FF;
 
 	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
 
@@ -1382,7 +1385,7 @@ void CPU::AND(std::uint8_t d8, bool indirect=false)
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = regAValue & regValue;
+	result = (regAValue & regValue) & 0x00FF;
 
 	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
 
@@ -1413,7 +1416,7 @@ void CPU::XOR(std::uint8_t d8, bool indirect=false)
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = regAValue ^ regValue;
+	result = (regAValue ^ regValue) & 0x00FF;
 
 	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
 
@@ -1443,7 +1446,7 @@ void CPU::OR(std::uint8_t d8, bool indirect=false)
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = regAValue | regValue;
+	result = (regAValue | regValue) & 0x00FF;
 
 	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
 
@@ -1475,7 +1478,7 @@ void CPU::CP(std::uint8_t d8, bool indirect=false)
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = regAValue - regValue;
+	result = (regAValue - regValue) & 0x00FF;
 
 	// Check flag zero
 	if (result == 0)
@@ -1525,6 +1528,8 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 
 	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
 	{
+		if (reg >= B)
+			result &= 0x00FF;
 
 		// Check flag zero
 		if (result == 0)
@@ -1570,6 +1575,8 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
 	{
+		if (reg >= B)
+			result &= 0x00FF;
 
 		// Check flag zero
 		if (result == 0)

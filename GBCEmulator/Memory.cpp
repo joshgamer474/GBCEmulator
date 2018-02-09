@@ -27,6 +27,8 @@ void Memory::initWorkRAM(bool isColorGB)
 	else
 		num_working_ram_banks = 2;
 
+	curr_working_ram_bank = 1;
+
 	working_ram_banks.resize(num_working_ram_banks, std::vector<unsigned char>(WORK_RAM_SIZE, 0));
 }
 
@@ -111,7 +113,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		{
 			// 0xFEA0 - 0xFEFF : Unused
 			printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-			return 0;
+			return 0xFF;
 		}
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
@@ -144,7 +146,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			{
 				// 0xFF08 - 0xFF09 : Not referenced
 				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-				return 0;
+				return 0xFF;
 			}
 			else if (pos < 0xFF40)
 			{
@@ -160,7 +162,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			{
 				// 0xFF6C - 0xFF7F : Not referenced
 				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-				return 0;
+				return 0xFF;
 			}
 		}
 		else if (pos < 0xFFFF)
@@ -184,7 +186,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 	
 	default:
 		printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-		return 0;
+		return 0xFF;
 	}
 
 
@@ -251,7 +253,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{
 			// 0xFEA0 - 0xFEFF : Unused
-			printf("WARNING - Memory::setByte() doesn't handle address: %#06x\n", pos);
+			printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
 		}
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
