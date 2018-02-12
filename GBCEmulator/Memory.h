@@ -3,9 +3,7 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include "CartridgeReader.h"
-#include "MBC.h"
-#include "GPU.h"
+#include <vector>
 
 #define WORK_RAM_SIZE 0x1000
 
@@ -15,6 +13,9 @@
 #define INTERRUPT_SERIAL 0x08
 #define INTERRUPT_JOYPAD 0x10
 
+class CartridgeReader;
+class MBC;
+class GPU;
 class Joypad;
 
 class Memory

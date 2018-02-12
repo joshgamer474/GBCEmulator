@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CartridgeReader.h"
+#include "Debug.h"
 
 CartridgeReader::CartridgeReader()
 {

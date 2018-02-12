@@ -4,8 +4,10 @@
 #include "Memory.h"
 #include "CPU.h"
 #include "Joypad.h"
+#include "CartridgeReader.h"
+#include "Debug.h"
 
-GPU::GPU()
+GPU::GPU(SDL_Renderer *render)
 {
 	is_color_gb = false;
 	num_vram_banks = 1;
@@ -21,6 +23,10 @@ GPU::GPU()
 	sprite_palette_data.resize(PALETTE_DATA_SIZE);
 
 	gpu_mode = GPU_MODE_VRAM;
+
+	renderer = render;
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	game_screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
 }
 
 
@@ -155,9 +161,9 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 }
 
 
-void GPU::set_color_palette(RGB *palette, std::uint8_t val)
+void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val)
 {
-	GLubyte color_val = 0;
+	unsigned char color_val = 0;
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -168,7 +174,7 @@ void GPU::set_color_palette(RGB *palette, std::uint8_t val)
 		case 3: color_val = 96; break;
 		case 4: color_val = 0; break;
 		}
-		palette[i] = { color_val, color_val, color_val };
+		palette[i] = { color_val, color_val, color_val, 255 };
 	}
 }
 
@@ -341,20 +347,25 @@ void GPU::renderLine()
 
 void GPU::display()
 {
-	glClearColor(1, 1, 1, 1);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glRasterPos2f(-1, 1);
-	glPixelZoom(1, -1);
-	glDrawPixels(SCREEN_PIXEL_W, SCREEN_PIXEL_H, GL_RGB, GL_UNSIGNED_BYTE, frame);
-	//printFrame();
-	glFlush();
-	glutSwapBuffers();
+#ifdef DEBUG
+	// Render partial screen with debug info
+	SDL_Rect game_screen_rect = { 0, 0, SCREEN_PIXEL_W * 2, SCREEN_PIXEL_H * 2 };
+	SDL_UpdateTexture(game_screen, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, game_screen, NULL, &game_screen_rect);
+	SDL_RenderPresent(renderer);
+#else
+	// Render full screen
+	SDL_UpdateTexture(game_screen, NULL, frame, SCREEN_PIXEL_W * sizeof(unsigned char) * 4);
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, game_screen, NULL, NULL);
+	SDL_RenderPresent(renderer);
+#endif
 }
 
 void GPU::run()
 {
 	if (lcd_display_enable == false) return;
-
 
 	ticks += cpu->ticks - last_ticks;
 	last_ticks = cpu->ticks;
@@ -396,7 +407,11 @@ void GPU::run()
 				display();
 				lcd_y = 0;
 				gpu_mode = GPU_MODE_OAM;
-				joypad->check_keyboard_input();
+
+				//if (SDL_PollEvent(&e) != 0 && e.type == e.key.type && e.key.keysym.scancode != SDL_SCANCODE_UNKNOWN)
+				//{
+				//	joypad->check_keyboard_input(&e);
+				//}
 			}
 
 			ticks = 0;

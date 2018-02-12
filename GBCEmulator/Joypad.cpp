@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Joypad.h"
 #include "Memory.h"
+#include "Debug.h"
 
 Joypad::Joypad()
 {
@@ -67,22 +68,22 @@ std::uint8_t Joypad::get_joypad_byte()
 	return joypad_byte;
 }
 
-void Joypad::check_keyboard_input()
+void Joypad::check_keyboard_input(SDL_Event *e)
 {
 	BUTTONS b = NONE;
-	if (GetKeyState(VK_RIGHT) & 0x8000)
+	if (e->key.keysym.sym == SDLK_RIGHT)
 		b = RIGHT;
-	else if (GetKeyState(VK_LEFT) & 0x8000)
+	else if (e->key.keysym.sym == SDLK_LEFT)
 		b = LEFT;
-	else if (GetKeyState(VK_UP) & 0x8000)
+	else if (e->key.keysym.sym == SDLK_UP)
 		b = UP;
-	else if (GetKeyState(VK_DOWN) & 0x8000)
+	else if (e->key.keysym.sym == SDLK_DOWN)
 		b = DOWN;
-	else if (GetKeyState(VK_RETURN) & 0x8000)
+	else if (e->key.keysym.sym == SDLK_RETURN)
 		b = START;
-	else if (GetKeyState('A') & 0x8000)
+	else if (e->key.keysym.sym == SDLK_z)
 		b = A;
-	else if (GetKeyState('B') & 0x8000)
+	else if (e->key.keysym.sym == SDLK_x)
 		b = B;
 
 	if (b != NONE)

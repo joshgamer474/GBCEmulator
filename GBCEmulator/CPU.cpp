@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "CPU.h"
-
+#include "Memory.h"
+#include "CartridgeReader.h"
+#include "Debug.h"
 
 CPU::CPU()
 {

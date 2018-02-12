@@ -4,7 +4,8 @@
 #define GPU_H
 
 #include <vector>
-#include <GL/freeglut.h>
+#include "SDL.h"
+#include "SDL_ttf.h"
 
 #define VRAM_SIZE 0x2000
 #define OAM_SIZE 0xA0
@@ -27,7 +28,7 @@ private:
 
 public:
 
-	GPU();
+	GPU(SDL_Renderer *render);
 	~GPU();
 
 	CPU *cpu;
@@ -38,20 +39,17 @@ public:
 	int curr_vram_bank;
 	std::uint64_t ticks, last_ticks;
 
-	struct RGB
-	{
-		GLubyte r, g, b;
-	};
-	RGB frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-	RGB bg_palette_color[4];
-	RGB object_palette0_color[4];
-	RGB object_palette1_color[4];
-	//{	{ 255, 255, 255 },
-	//	{ 192, 192, 192 },
-	//	{ 96, 96, 96 },
-	//	{ 0, 0, 0 } 
-	//};
-	void set_color_palette(RGB *palette, std::uint8_t val);
+	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+	SDL_Color bg_palette_color[4];
+	SDL_Color object_palette0_color[4];
+	SDL_Color object_palette1_color[4];
+	void set_color_palette(SDL_Color *palette, std::uint8_t val);
+
+	//RGB frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+	//RGB bg_palette_color[4];
+	//RGB object_palette0_color[4];
+	//RGB object_palette1_color[4];
+	//void set_color_palette(RGB *palette, std::uint8_t val);
 
 	struct TILE
 	{
@@ -125,6 +123,18 @@ public:
 	void set_lcd_status_mode_flag(GPU_MODE);
 	void set_lcd_status_coincidence_flag(bool flag);
 	void printFrame();
+
+
+	/*
+		Input handling
+	*/
+	SDL_Event e;
+
+	/*
+		Graphics
+	*/
+	SDL_Renderer *renderer;
+	SDL_Texture *game_screen;
 
 	/*
 		Reading and writing methods

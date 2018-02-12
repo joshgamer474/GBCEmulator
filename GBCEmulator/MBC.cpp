@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "MBC.h"
-
+#include "Debug.h"
 
 MBC::MBC()
 {

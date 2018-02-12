@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "Memory.h"
 
 #ifndef CPU_H
 #define CPU_H
@@ -12,6 +11,7 @@
 //#define ENABLE_DEBUG_PRINT
 
 class CPU_Opcodes;
+class Memory;
 
 class CPU
 {

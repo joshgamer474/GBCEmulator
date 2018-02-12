@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "Memory.h"
+#include "CartridgeReader.h"
+#include "MBC.h"
+#include "GPU.h"
 #include "Joypad.h"
+#include "Debug.h"
 
 Memory::Memory()
 {
