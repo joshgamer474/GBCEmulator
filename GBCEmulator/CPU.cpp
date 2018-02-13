@@ -40,7 +40,7 @@ std::uint8_t CPU::get_register_8(REGISTERS reg)
 {
 	if (reg < B)
 	{
-		printf("Error - Using get_register_8() to get register: %i", reg);
+		logger->error("Error - Using get_register_8() to get register: %s", REGISTERS_STR[reg]);
 		return 0;
 	}
 	else
@@ -107,7 +107,6 @@ void CPU::set_register(REGISTERS reg, std::uint16_t val)
 	}
 	else			// Set only 8 bits
 	{
-		//printf("Error in set_register() - reg >= B, reg: %i", reg);
 		set_register(reg, (std::uint8_t) (val & 0x00FF));
 	}
 }
@@ -131,7 +130,7 @@ void CPU::set_register(REGISTERS reg, std::uint8_t val)
 	}
 	else
 	{
-		printf("Error in set_register() - reg < B, reg: %i", reg);
+		logger->error("Error in set_register(uint8_t) - reg < B, reg: %s", REGISTERS_STR[reg]);
 	}
 }
 
@@ -154,7 +153,7 @@ void CPU::set_register(REGISTERS reg, std::int8_t val)
 	}
 	else
 	{
-		printf("Error in set_register() - reg < B, reg: %i", reg);
+		logger->error("Error in set_register(int8_t) - reg < B, reg: %s", REGISTERS_STR[reg]);
 	}
 }
 
@@ -202,11 +201,6 @@ void CPU::clear_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::
 void CPU::clear_flag_half_carry()	{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFDF)); }
 void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFEF)); }
 
-//void CPU::clear_flag_zero()			{ registers[AF] &= 0xFF7F; }
-//void CPU::clear_flag_subtract()		{ registers[AF] &= 0xFFBF; }
-//void CPU::clear_flag_half_carry()	{ registers[AF] &= 0xFFDF; }
-//void CPU::clear_flag_carry()		{ registers[AF] &= 0xFFEF; }
-
 
 
 
@@ -215,16 +209,24 @@ void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<std::uin
 */
 void CPU::printRegisters()
 {
-	std::string s;
+	//std::string s;
 
-	printf("------------------------------\n");
-	printf("\tRegisters\n");
-	printf("------------------------------\n");
-	for (int i = 0; i < NUM_OF_REGISTERS; i++)
-	{
-		printf("%s: %#04x\n", getRegisterString((CPU::REGISTERS) i).c_str(), get_register_16((CPU::REGISTERS) i));
-	}
-	printf("\n");
+	//printf("------------------------------\n");
+	//printf("\tRegisters\n");
+	//printf("------------------------------\n");
+	//for (int i = 0; i < NUM_OF_REGISTERS; i++)
+	//{
+	//	printf("%s: %#04x\n", getRegisterString((CPU::REGISTERS) i).c_str(), get_register_16((CPU::REGISTERS) i));
+	//}
+	//printf("\n");
+
+	logger->info("Registers - BC: 0x{0:x}\tDE: 0x{1:x}\tHL: 0x{2:x}\tAF: 0x{3:x}\tSP: 0x{4:x}\tPC: 0x{5:x}",
+		get_register_16(BC),
+		get_register_16(DE),
+		get_register_16(HL),
+		get_register_16(AF),
+		get_register_16(SP),
+		get_register_16(PC));
 }
 
 
@@ -270,6 +272,8 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	{
 		memory->cartridgeReader->is_bios = false;
 		printRegisters();
+		logger->info("Done running bootstrap, moving on to cartridge");
+		startLogging = true;
 	}
 
 
@@ -295,20 +299,13 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		}
 	}
 
-#ifdef ENABLE_DEBUG_PRINT
-	if (registers[PC] == 0x6A)
-		printf("yo");
-#endif
-
-	if (registers[PC] == 0xFA)
-		printf("yo");
+	if (startLogging)
+	{
+		printRegisters();
+		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+	}
 
 	registers[PC]++;
-
-#ifdef ENABLE_DEBUG_PRINT
-	printf("Running instruction %#04x\n", instruc);
-#endif
-
 
 	switch (instruc)
 	{
@@ -1001,7 +998,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 
 
 	default:
-		printf("Error - Do not know how to handle opcode %i\n", instruc);
+		logger->error("Error - Do not know how to handle opcode 0x{0:x}", instruc);
 
 	}// end switch()
 
@@ -1268,7 +1265,7 @@ void CPU::ADD_HL(CPU::REGISTERS reg)
 
 	result = hlVal + regVal;
 
-	set_register(reg, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(reg, static_cast<std::uint16_t> (result & 0xFFFF));
 
 	// Clear flag negative
 	clear_flag_subtract();
@@ -1296,6 +1293,8 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 {
 	std::int16_t spVal = get_register_16(reg);
 	std::uint16_t result = static_cast<std::uint16_t>(spVal + r8);
+
+	registers[SP] = result;
 
 	// Clear flag zero
 	clear_flag_zero();

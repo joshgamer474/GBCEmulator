@@ -4,6 +4,7 @@
 #define MEMORY_H
 
 #include <vector>
+#include "spdlog/spdlog.h"
 
 #define WORK_RAM_SIZE 0x1000
 
@@ -51,6 +52,8 @@ public:
 	void initWorkRAM(bool isColorGB);
 	void initROMBanks();
 	void do_oam_dma_transfer(std::uint8_t start_address);
+
+	std::shared_ptr<spdlog::logger> logger;
 
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);

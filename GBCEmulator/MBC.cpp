@@ -7,8 +7,8 @@ MBC::MBC()
 	rom_banking_mode = true;
 	ram_banking_mode = false;
 	external_ram_enabled = false;
-	curr_rom_bank = 0;
-	curr_ram_bank = 0;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
 
 	num_rom_banks = 2;
 	num_ram_banks = 1;
@@ -23,7 +23,12 @@ MBC::MBC()
 }
 
 
-MBC::MBC(int mbcNum)
+MBC::~MBC()
+{
+
+}
+
+void MBC::MBC_init(int mbcNum)
 {
 	rom_banking_mode = true;
 	ram_banking_mode = false;
@@ -46,8 +51,8 @@ MBC::MBC(int mbcNum)
 		rom_banking_mode = true;
 		ram_banking_mode = false;
 		external_ram_enabled = false;
-		curr_rom_bank = 0;
-		curr_ram_bank = 0;
+		curr_rom_bank = 1;
+		curr_ram_bank = 1;
 
 		num_rom_banks = 2;
 		num_ram_banks = 1;
@@ -62,14 +67,14 @@ MBC::MBC(int mbcNum)
 	}
 }
 
-MBC::~MBC()
-{
-
-}
-
-
 void MBC::MBC1_init()
 {
+	rom_banking_mode = true;
+	ram_banking_mode = true;
+	external_ram_enabled = true;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
+
 	num_rom_banks = 0x80;
 	num_ram_banks = 0x04;
 
@@ -78,6 +83,8 @@ void MBC::MBC1_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
+
+	mbc_num = 1;
 }
 
 
@@ -87,6 +94,12 @@ void MBC::MBC1_init()
 */
 void MBC::MBC2_init()
 {
+	rom_banking_mode = true;
+	ram_banking_mode = true;
+	external_ram_enabled = true;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
+
 	num_rom_banks = 0x10;
 	num_ram_banks = 0x04;
 
@@ -95,11 +108,19 @@ void MBC::MBC2_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xA1FF);
+
+	mbc_num = 2;
 }
 
 
 void MBC::MBC3_init()
 {
+	rom_banking_mode = true;
+	ram_banking_mode = true;
+	external_ram_enabled = true;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
+
 	num_rom_banks = 0x80;
 	num_ram_banks = 0x04;
 
@@ -108,6 +129,8 @@ void MBC::MBC3_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
+
+	mbc_num = 3;
 }
 
 void MBC::MBC5_init()
@@ -159,7 +182,7 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 		return external_ram[pos - 0xA000];
 
 	default:
-		printf("WARNING - MBC::readByte() used address: %#06x\n", pos);
+		logger->warn("MBC::readByte() used address: 0x{0:x}", pos);
 		return 0;
 
 	}
@@ -263,7 +286,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 			} // end mbc_num == 1
 			else
 			{
-				printf("WARNING - MBC::setByte() used address: %#06x with val: %#04x\n", pos, val);
+				logger->warn("MBC::setByte() used address: 0x{0:x} with val: 0x{1:x}", pos, val);
 			}
 		}
 
@@ -280,7 +303,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 
 
 	default:
-		printf("WARNING - MBC::setByte() doesn't handle address: %#06x with val: %#04x\n", pos, val);
+		logger->warn("MBC::setByte() used address: 0x{0:x} with val: 0x{1:x}", pos, val);
 	}
 }
 

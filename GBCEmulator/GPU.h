@@ -4,8 +4,9 @@
 #define GPU_H
 
 #include <vector>
-#include "SDL.h"
-#include "SDL_ttf.h"
+#include "SDL/SDL.h"
+#include "SDL/SDL_ttf.h"
+#include "spdlog/spdlog.h"
 
 #define VRAM_SIZE 0x2000
 #define OAM_SIZE 0xA0
@@ -135,6 +136,9 @@ public:
 	*/
 	SDL_Renderer *renderer;
 	SDL_Texture *game_screen;
+
+
+	std::shared_ptr<spdlog::logger> logger;
 
 	/*
 		Reading and writing methods

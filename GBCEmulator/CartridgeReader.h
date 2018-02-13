@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
+#include "spdlog/spdlog.h"
 
 class CartridgeReader
 {
@@ -69,6 +70,7 @@ public:
 	int num_RAM_banks;
 
 	bool is_bios = false;
+	std::shared_ptr<spdlog::logger> logger;
 
 	void setRomDestination(std::string filename);
 	bool readRom();

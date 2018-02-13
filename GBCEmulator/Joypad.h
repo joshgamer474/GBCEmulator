@@ -4,7 +4,8 @@
 
 #include <cstdint>
 #include <Windows.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
+#include "spdlog/spdlog.h"
 
 #define BIT0 0x01
 #define BIT1 0x02
@@ -42,6 +43,8 @@ public:
 	void set_joypad_byte(std::uint8_t val);
 	std::uint8_t get_joypad_byte();
 	void check_keyboard_input(SDL_Event *e);
+
+	std::shared_ptr<spdlog::logger> logger;
 
 private:
 

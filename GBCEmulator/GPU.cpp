@@ -81,13 +81,13 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF6B:	return sprite_palette_data[sprite_palette_index];
 
 			default:
-				printf("WARNING - GPU::readByte() doesn't handle address: %#06x\n", pos);
+				logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
 				return -1;
 			}
 		}
 
 	default:
-		printf("WARNING - GPU::readByte() doesn't handle address: %#06x\n", pos);
+		logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
 		return -1;
 	}
 }
@@ -151,12 +151,12 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF55:	hdma5 = val; break;
 
 			default:
-				printf("WARNING - GPU::setByte() doesn't handle address: %#06x\n", pos);
+				logger->warn("GPU::setByte() doesn't handle address: 0x{0:x}", pos);
 			}
 		}
 		break;
 	default:
-		printf("WARNING - GPU::setByte() doesn't handle address: %#06x\n", pos);
+		logger->warn("GPU::setByte() doesn't handle address: 0x{0:x}", pos);
 	}
 }
 
@@ -468,7 +468,7 @@ void GPU::printFrame()
 			case 0: s += "3"; break;
 			}
 		}
-		printf(s.c_str());
-		printf("\n");
+		s += "\n";
 	}
+	logger->debug("{}", s.c_str());
 }

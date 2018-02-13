@@ -4,6 +4,7 @@
 #define MBC_H
 
 #include <vector>
+#include "spdlog/spdlog.h"
 
 class MBC
 {
@@ -17,10 +18,10 @@ public:
 	const std::uint16_t RAM_BANK_SIZE = 0x2000;
 
 	MBC();
-	MBC(int mbc_num);
 	~MBC();
 
 	int mbc_num;
+	void MBC_init(int mbc_num);
 	void MBC1_init();
 	void MBC2_init();
 	void MBC3_init();
@@ -51,6 +52,7 @@ public:
 	From_To ram_from_to;
 	void setFromTo(From_To *, int start, int end);
 
+	std::shared_ptr<spdlog::logger> logger;
 
 	// Reading and writing methods
 	std::uint8_t readByte(std::uint16_t pos);

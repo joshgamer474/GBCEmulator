@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include "spdlog/spdlog.h"
 
 #ifndef CPU_H
 #define CPU_H
@@ -37,6 +38,8 @@ public:
 	bool is_halted;
 	bool is_stopped;
 	std::uint64_t ticks;
+	bool startLogging = false;
+	std::shared_ptr<spdlog::logger> logger;
 
 	/*
 		Debug stuff
@@ -81,6 +84,8 @@ public:
 		F
 	};
 
+	
+	std::vector<std::string> REGISTERS_STR = {"BC", "DE", "HL", "AF", "SP", "PC", "B", "C", "D", "E", "H", "L", "A", "F"};
 	std::vector<REGISTERS> reg_list = { CPU::B, CPU::C, CPU::D, CPU::E, CPU::H, CPU::L, CPU::HL, CPU::A };
 
 	enum class FLAGTYPES

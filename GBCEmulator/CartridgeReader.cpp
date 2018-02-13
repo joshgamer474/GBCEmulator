@@ -37,11 +37,13 @@ bool CartridgeReader::readRom()
 
 	if (rom.is_open())
 	{
+		logger->info("Reading in rom");
 		std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
 		romBuffer = romBufferr;
 
 		// Read information from cartridge
 		getCartridgeInformation();
+		logger->info("Finished reading in {}", game_title);
 		
 		rom.close();
 		return true;
@@ -92,13 +94,13 @@ bool CartridgeReader::getColorGBFlag()
 
 std::uint8_t CartridgeReader::readByte(std::uint16_t pos)
 {
-	printf("Reading byte from pos %#04x\n", pos);
+	logger->info("Reading byte from pos 0x{0:x}", pos);
 	return romBuffer[pos];
 }
 
 void CartridgeReader::setByte(std::uint16_t pos, uint8_t val)
 {
-	printf("Writing byte %#02x to pos %#04x\n", val, pos);
+	logger->info("Writing byte 0x{0:x} to pos 0x{1:x}", val, pos);
 	romBuffer[pos] = val;
 }
 

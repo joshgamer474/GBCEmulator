@@ -116,7 +116,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{
 			// 0xFEA0 - 0xFEFF : Unused
-			printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+			logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 			return 0xFF;
 		}
 		else if ((pos & 0xFFF0) < 0xFF80)
@@ -133,8 +133,8 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			{
 				/// TODO: handle Serial Data
 				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
-				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
-				return 0;
+				logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
+				return 0xFF;
 			}
 			else if (pos < 0xFF08)
 			{
@@ -149,7 +149,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			else if (pos < 0xFF10)
 			{
 				// 0xFF08 - 0xFF09 : Not referenced
-				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+				logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 				return 0xFF;
 			}
 			else if (pos < 0xFF40)
@@ -165,7 +165,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			else
 			{
 				// 0xFF6C - 0xFF7F : Not referenced
-				printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+				logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 				return 0xFF;
 			}
 		}
@@ -189,7 +189,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		}
 	
 	default:
-		printf("WARNING - Memory::readByte() doesn't handle address: %#06x\n", pos);
+		logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 		return 0xFF;
 	}
 
@@ -257,7 +257,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{
 			// 0xFEA0 - 0xFEFF : Unused
-			printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+			logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 		}
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
@@ -272,7 +272,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			{
 				/// TODO: handle Serial Data
 				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
-				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+				logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 			}
 			else if (pos < 0xFF08)
 			{
@@ -295,7 +295,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			else if (pos < 0xFF10)
 			{
 				// 0xFF08 - 0xFF09 : Not referenced
-				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+				logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 			}
 			else if (pos < 0xFF40)
 			{
@@ -310,7 +310,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			else
 			{
 				// 0xFF6C - 0xFF7F : Not referenced
-				printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+				logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 			}
 		}
 		else if (pos < 0xFFFF)
@@ -333,13 +333,13 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		}
 		else
 		{
-			printf("WARNING - Memory::setByte() doesn't handle address: %#06x\n", pos);
+			logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 		}
 
 		break;
 
 	default:
-		printf("WARNING - Memory::setByte() doesn't handle address: %#06x, val: %#04x\n", pos, val);
+		logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 
 	}
 
