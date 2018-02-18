@@ -41,10 +41,9 @@ GPU::~GPU()
 }
 
 
-void GPU::init_gbc()
+void GPU::init_color_gb()
 {
 	num_vram_banks = 2;
-	curr_vram_bank = 0;
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 }
 

@@ -53,7 +53,10 @@ Temporary Items
 # Code ignores
 .vs/
 Debug/
+Release/
+GBCEmulator/Release
 GBCEmulator/Debug/
-*.gb
-*.gbc
+GBCEmulator/testroms/*.gb
+GBCEmulator/testroms/*.gbc
+GBCEmulator/log*.txt
 
