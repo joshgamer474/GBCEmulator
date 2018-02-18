@@ -105,7 +105,7 @@ void CartridgeReader::setByte(std::uint16_t pos, uint8_t val)
 }
 
 
-int CartridgeReader::getNumOfRomBanks(char rom_size)
+int CartridgeReader::getNumOfRomBanks(unsigned char rom_size)
 {
 	switch (rom_size)
 	{
@@ -121,7 +121,7 @@ int CartridgeReader::getNumOfRomBanks(char rom_size)
 	}
 }
 
-int CartridgeReader::getNumOfRamBanks(char ram_size)
+int CartridgeReader::getNumOfRamBanks(unsigned char ram_size)
 {
 	switch (ram_size)
 	{
@@ -135,7 +135,7 @@ int CartridgeReader::getNumOfRamBanks(char ram_size)
 	}
 }
 
-void CartridgeReader::getCartridgeType(char cartridge_type, CartridgeType *cartridgeType)
+void CartridgeReader::getCartridgeType(unsigned char cartridge_type, CartridgeType *cartridgeType)
 {
 	// MBC
 	switch (cartridge_type)

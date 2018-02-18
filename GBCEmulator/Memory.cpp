@@ -5,6 +5,7 @@
 #include "GPU.h"
 #include "Joypad.h"
 #include "Debug.h"
+#include <string>
 
 Memory::Memory()
 {
@@ -133,8 +134,9 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			{
 				/// TODO: handle Serial Data
 				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
-				logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
-				return 0xFF;
+				//logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
+				//return 0xFF;
+				return linkport[pos - 0xFF03];
 			}
 			else if (pos < 0xFF08)
 			{
@@ -272,7 +274,24 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			{
 				/// TODO: handle Serial Data
 				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
-				logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
+				//logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
+				
+				if (pos == 0xFF02 && val == 0x81)
+				{
+					if (linkport[0] == 10 && firstTen == false)
+						firstTen = true;
+					else if (linkport[0] == 10 && firstTen == true)
+					{
+						firstTen = false;
+						logger->info(blargg.c_str());
+						blargg = "";
+					}
+
+					//logger->info("{}", std::to_string(linkport[0]));
+					blargg += linkport[0];
+				}
+				
+				linkport[pos - 0xFF01] = val;
 			}
 			else if (pos < 0xFF08)
 			{

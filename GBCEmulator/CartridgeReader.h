@@ -17,19 +17,19 @@ private:
 	std::string cartridgeFilename;
 
 	// Information about the cartridge
-	char game_title[16];
-	char manufacturer_code[4];
-	char cgb_flag;
-	char sgb_flag;
-	char cartridge_type;
-	char rom_size;
-	char ram_size;
-	char destination_code;	// 0x00 = Japanese, 0x01 = non-Japanese
-	char game_version;
-	char header_checksum;	// Checks if cartridge is valid
+	unsigned char game_title[16];
+	unsigned char manufacturer_code[4];
+	unsigned char cgb_flag;
+	unsigned char sgb_flag;
+	unsigned char cartridge_type;
+	unsigned char rom_size;
+	unsigned char ram_size;
+	unsigned char destination_code;	// 0x00 = Japanese, 0x01 = non-Japanese
+	unsigned char game_version;
+	unsigned char header_checksum;	// Checks if cartridge is valid
 
-	int getNumOfRomBanks(char rom_size);
-	int getNumOfRamBanks(char ram_size);
+	int getNumOfRomBanks(unsigned char rom_size);
+	int getNumOfRamBanks(unsigned char ram_size);
 
 	struct CartridgeType
 	{
@@ -37,7 +37,7 @@ private:
 		bool rom, ram, battery, timer, rumble, sensor, mmm01;
 	};
 
-	void getCartridgeType(char cartridge_type, CartridgeType *cartridgeType);
+	void getCartridgeType(unsigned char cartridge_type, CartridgeType *cartridgeType);
 
 
 public:

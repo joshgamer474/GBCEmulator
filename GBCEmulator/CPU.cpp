@@ -299,11 +299,11 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		}
 	}
 
-	if (startLogging)
-	{
-		printRegisters();
-		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
-	}
+	//if (startLogging)
+	//{
+	//	printRegisters();
+	//	logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+	//}
 
 	registers[PC]++;
 

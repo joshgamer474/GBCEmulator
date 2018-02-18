@@ -40,6 +40,9 @@ public:
 	unsigned char gamepad;
 	unsigned char timer[0x04];
 	unsigned char audio[0x30];
+	unsigned char linkport[3];
+	bool firstTen = false;
+	std::string blargg = "";
 
 	unsigned char interrupt_flag;
 	unsigned char interrupt_enable;

@@ -32,6 +32,8 @@ public:
 	GPU(SDL_Renderer *render);
 	~GPU();
 
+	void init_gbc();
+
 	CPU *cpu;
 	Memory *memory;
 	Joypad *joypad;
@@ -90,6 +92,7 @@ public:
 
 	// LCD Color Palettes (GBC only)
 	unsigned char background_palette_index, sprite_palette_index;
+	bool auto_increment_background_palette_index, auto_increment_sprite_palette_index;
 	std::vector<unsigned char> background_palette_data;
 	std::vector<unsigned char> sprite_palette_data;
 

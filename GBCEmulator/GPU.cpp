@@ -19,7 +19,7 @@ GPU::GPU(SDL_Renderer *render)
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 	object_attribute_memory.resize(OAM_SIZE);
 
-	background_palette_data.resize(PALETTE_DATA_SIZE);
+	background_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
 	sprite_palette_data.resize(PALETTE_DATA_SIZE);
 
 	gpu_mode = GPU_MODE_VRAM;
@@ -27,6 +27,11 @@ GPU::GPU(SDL_Renderer *render)
 	renderer = render;
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	game_screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
+
+	background_palette_index = 0;
+	sprite_palette_index = 0;
+	auto_increment_background_palette_index = false;
+	auto_increment_sprite_palette_index = false;
 }
 
 
@@ -35,6 +40,13 @@ GPU::~GPU()
 
 }
 
+
+void GPU::init_gbc()
+{
+	num_vram_banks = 2;
+	curr_vram_bank = 0;
+	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
+}
 
 std::uint8_t GPU::readByte(std::uint16_t pos)
 {
@@ -120,10 +132,20 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 				switch (pos)
 				{
 
-				case 0xFF68:	background_palette_index = val; return;;
-				case 0xFF69:	background_palette_data[background_palette_index] = val; return;;
-				case 0xFF6A:	sprite_palette_index = val; return;;
-				case 0xFF6B:	sprite_palette_data[sprite_palette_index] = val; return;;
+				case 0xFF68:	background_palette_index = val & 0x3F; 
+								auto_increment_background_palette_index = val & 0x80; 
+								return;
+				case 0xFF69:	background_palette_data[background_palette_index] = val; 
+								if (auto_increment_background_palette_index) background_palette_index++;
+								background_palette_index &= 0x3F;
+								return;
+				case 0xFF6A:	sprite_palette_index = val & 0x07; 
+								auto_increment_sprite_palette_index = val & 0x80; 
+								return;
+				case 0xFF6B:	sprite_palette_data[sprite_palette_index] = val; 
+								if (auto_increment_sprite_palette_index) sprite_palette_index++;
+								sprite_palette_index &= 0x07;
+								return;
 
 				}
 			}
