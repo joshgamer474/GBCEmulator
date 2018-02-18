@@ -36,6 +36,12 @@ GPU::~GPU()
 }
 
 
+void GPU::init_color_gb()
+{
+	num_vram_banks = 2;
+	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
+}
+
 std::uint8_t GPU::readByte(std::uint16_t pos)
 {
 	switch (pos & 0xF000)

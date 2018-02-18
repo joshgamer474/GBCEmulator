@@ -69,7 +69,7 @@ public:
 	};
 	int gpu_mode;
 
-
+	void init_color_gb();
 	void run();
 	void renderLine();
 	void display();
