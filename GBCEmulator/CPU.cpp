@@ -779,9 +779,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		// JP (HL)
 	case 0xE9:
 
-		hlVal = 0x0000;
-		hlVal |= getByteFromMemory(HL);
-		JP_INDIRECT(hlVal);
+		JP_INDIRECT(get_register_16(HL));
 		break;
 
 
