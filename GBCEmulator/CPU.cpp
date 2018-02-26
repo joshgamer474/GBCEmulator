@@ -1103,6 +1103,12 @@ void CPU::LD_reg_into_memory(CPU::REGISTERS reg1, CPU::REGISTERS reg2)
 	// Get address from reg1
 	uint16_t addr = get_register_16(reg1);
 
+	// Cover LD (C), A
+	if (reg1 == C)
+	{
+		addr += 0xFF00;
+	}
+
 	setByteToMemory(addr, val);
 
 	// Add to ticks
