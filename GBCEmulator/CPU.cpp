@@ -254,6 +254,28 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 // Get instruction from Ram[PC]
 std::uint8_t CPU::getInstruction()
 {
+	// Check for interrupts
+	if (interrupts_enabled & memory->interrupt_flag)
+	{
+		interrupts_enabled = false;
+
+		std::uint8_t mask = 0x01;
+
+		// Find out which interrupt should be processed
+		for (int i = 0; i < 5; i++)
+		{
+			if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+			{
+				mask = ~mask;
+				memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+				PUSH(PC);
+				registers[PC] = interrupt_table[i];
+				break;
+			}
+			mask = mask << 1;
+		}
+	}
+
 	return getByteFromMemory(get_register_16(PC));
 }
 
@@ -277,33 +299,34 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	}
 
 
-	// Check for interrupts
-	if (interrupts_enabled & memory->interrupt_flag)
-	{
-		interrupts_enabled = false;
-
-		std::uint8_t mask = 0x01;
-
-		// Find out which interrupt should be processed
-		for (int i = 0; i < 5; i++)
-		{
-			if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
-			{
-				mask = ~mask;
-				memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-				PUSH(PC);
-				registers[PC] = interrupt_table[i];
-				break;
-			}
-			mask = mask << 1;
-		}
-	}
-
-	//if (startLogging)
+	//// Check for interrupts
+	//if (interrupts_enabled & memory->interrupt_flag)
 	//{
-	//	printRegisters();
-	//	logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+	//	interrupts_enabled = false;
+
+	//	std::uint8_t mask = 0x01;
+
+	//	// Find out which interrupt should be processed
+	//	for (int i = 0; i < 5; i++)
+	//	{
+	//		if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+	//		{
+	//			mask = ~mask;
+	//			memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+	//			PUSH(PC);
+	//			registers[PC] = interrupt_table[i];
+	//			break;
+	//		}
+	//		mask = mask << 1;
+	//	}
 	//}
+
+	if (startLogging)
+	{
+		//printRegisters();
+		//logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+		int a = 0;
+	}
 
 	registers[PC]++;
 
@@ -441,7 +464,8 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		// LD A, (C)
 	case 0xF2:
 
-		LD(A, getByteFromMemory(get_register_16(C)), false);
+		//LD(A, getByteFromMemory(get_register_16(C)), false);
+		LD(A, getByteFromMemory(0xFF00 + get_register_16(C)), false);
 		break;
 
 		// LDH A, (a8)  = LD A, (0xFF00 + a8)
@@ -1269,13 +1293,15 @@ void CPU::ADD_HL(CPU::REGISTERS reg)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if ((hlVal & 0x0100) == 0 && (result & 0x0100) > 0)
+	//if ((hlVal & 0x0100) == 0 && (result & 0x0100) > 0)
+	if ((hlVal & 0x0800) == 1 && (result & 0x0800) == 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((hlVal & 0x8000) == 0 && (result & 0x8000) > 0)
+	//if ((hlVal & 0x8000) == 0 && (result & 0x8000) > 0)
+	if ((hlVal & 0x8000) == 1 && (result & 0x8000) == 0)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -2091,6 +2117,8 @@ void CPU::PUSH(CPU::REGISTERS reg)
 	low = (regVal & 0xFF);
 	setByteToMemory(get_register_16(SP) - 1, high);
 	setByteToMemory(get_register_16(SP)  - 2, low);
+	/*setByteToMemory(get_register_16(SP), high);
+	setByteToMemory(get_register_16(SP) - 1, low);*/
 
 	registers[SP] -= 2;
 
@@ -2105,7 +2133,12 @@ void CPU::POP(CPU::REGISTERS reg)
 	low = getByteFromMemory(get_register_16(SP));
 	high = getByteFromMemory(get_register_16(SP) + 1);
 
-	regVal |= static_cast<std::int16_t> (high << 8);
+	if (reg == AF)
+	{
+		low &= 0xF0;
+	}
+
+	regVal |= static_cast<std::uint16_t> (high << 8);
 	regVal |= low;
 
 	set_register(reg, regVal);

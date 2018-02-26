@@ -18,6 +18,7 @@
 class Memory;
 class CPU;
 class Joypad;
+class Tile;
 
 class GPU
 {
@@ -26,6 +27,7 @@ private:
 
 	std::vector<std::vector<unsigned char>> vram_banks;
 	std::vector<unsigned char> object_attribute_memory;
+	std::vector<std::vector<Tile>> bg_tiles;
 
 public:
 
@@ -48,11 +50,6 @@ public:
 	SDL_Color object_palette1_color[4];
 	void set_color_palette(SDL_Color *palette, std::uint8_t val);
 
-	//RGB frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-	//RGB bg_palette_color[4];
-	//RGB object_palette0_color[4];
-	//RGB object_palette1_color[4];
-	//void set_color_palette(RGB *palette, std::uint8_t val);
 
 	struct TILE
 	{
@@ -74,8 +71,9 @@ public:
 	void init_color_gb();
 	void run();
 	void renderLine();
+	void renderLineTwo();
 	void display();
-
+	void updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
 
 	/*
 		LCD Registers
@@ -113,6 +111,7 @@ public:
 
 	// LCD Control Register objects
 	LCDSelect window_tile_map_display_select, bg_tile_data_select, bg_tile_map_select;
+	bool bg_tile_data_select_method, bg_tile_map_select_method;
 	std::uint8_t object_size;
 	bool lcd_display_enable;
 	bool window_display_enable;
