@@ -1212,13 +1212,13 @@ void CPU::LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if ((spVal & 0x0100) == 0 && (result & 0x0100) > 0)
+	if (((spVal & 0x0F) + (std::int16_t)(r8 & 0x0F)) > 0x0F)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((spVal & 0x8000) == 0 && (result & 0x8000) > 0)
+	if (((spVal & 0xFF) + (std::int16_t)(r8 & 0xFF)) > 0xFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1364,13 +1364,13 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if ((spVal & 0x0100) == 0 && (result & 0x0100) > 0)
+	if (((spVal & 0x0F) + (std::int16_t)(r8 & 0x0F)) > 0x0F)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((spVal & 0x8000) == 0 && (result & 0x8000) > 0)
+	if (((spVal & 0xFF) + (std::int16_t)(r8 & 0xFF)) > 0xFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
