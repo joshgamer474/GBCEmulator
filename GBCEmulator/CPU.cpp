@@ -107,7 +107,7 @@ void CPU::set_register(REGISTERS reg, std::uint16_t val)
 	}
 	else			// Set only 8 bits
 	{
-		set_register(reg, (std::uint8_t) (val & 0x00FF));
+		set_register(reg, (std::uint8_t) val);
 	}
 }
 
@@ -1235,16 +1235,16 @@ void CPU::LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8)
 // ADD A, d8
 void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 {
-	// Get reg1->value and reg2->value
-	std::uint16_t r, result;
+	// Get reg->value
+	std::uint8_t r, result;
 	r = get_register_8(reg);
 
 	result = r + d8;
 
-	set_register(reg, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(reg, result);
 
 	// Check flag zero
-	if ((result & 0x00FF) == 0)
+	if (result == 0)
 		set_flag_zero();
 	else
 		clear_flag_zero();
@@ -1253,13 +1253,13 @@ void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 	clear_flag_subtract();
 
 	// Check flag half carry
-	if ((r & 0x0010) == 0 && (result & 0x0010) > 0)
+	if (((r & 0x0F) + (d8 & 0x0F)) > 0x0F)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((r & 0x0080) == 0 && (result & 0x0080) > 0)
+	if (((std::uint16_t)(r) + (std::uint16_t)(d8)) > 0xFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1277,10 +1277,42 @@ void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 // ADC A, d8
 void CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 {
-	ADD(reg, val, indirect);
+	// Get reg->value
+	std::uint8_t r, result, carryFlag;
+	r = get_register_8(reg);
+	carryFlag = get_flag_carry();
 
-	if (get_flag_carry())
-		set_register(reg, static_cast<std::uint8_t> (get_register_8(reg) + 0x0001));
+	result = r + val + carryFlag;
+
+	set_register(reg, result);
+
+	// Check flag zero
+	if (result == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	// Clear flag negative
+	clear_flag_subtract();
+
+	// Check flag half carry
+	if (((r & 0x0F) + (val & 0x0F) + carryFlag) > 0x0F)
+		set_flag_half_carry();
+	else
+		clear_flag_half_carry();
+
+	// Check flag carry
+	if (((std::uint16_t)(r) + (std::uint16_t)(val) + (std::uint16_t)(carryFlag)) > 0xFF)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+
+	// Add to ticks
+	if (!indirect)
+		ticks += 8;
+	else
+		ticks += 4;
 }
 
 
@@ -1357,12 +1389,12 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 void CPU::SUB(std::uint8_t d8, bool indirect=false)
 {
 	// Get reg->value and regA->value
-	std::uint16_t regAValue, result;
+	std::uint8_t regAValue, result;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = (regAValue - d8) & 0x00FF;
+	result = regAValue - d8;
 
-	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(CPU::REGISTERS::A, result);
 
 	// Check flag zero
 	if (result == 0)
@@ -1374,13 +1406,13 @@ void CPU::SUB(std::uint8_t d8, bool indirect=false)
 	set_flag_subtract();
 
 	// Check flag half carry
-	if ((regAValue & 0x0010) == 0 && (result & 0x0010) > 0)
+	if (((std::int16_t)(regAValue & 0x0F) - (std::int16_t)(d8 & 0x0F)) < 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((regAValue & 0x0080) == 0 && (result & 0x0080) > 0)
+	if (regAValue < d8)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1397,10 +1429,42 @@ void CPU::SUB(std::uint8_t d8, bool indirect=false)
 // SBC A, X
 void CPU::SBC(std::uint8_t d8, bool indirect=false)
 {
-	SUB(d8, indirect);
+	// Get reg->value and regA->value
+	std::uint8_t regAValue, result, carryFlag;
+	regAValue = get_register_8(CPU::REGISTERS::A);
+	carryFlag = (std::uint8_t)get_flag_carry();
 
-	if (get_flag_carry())
-		set_register(A, static_cast<std::uint8_t> (get_register_8(A) - 0x0001));
+	result = regAValue - d8 - carryFlag;
+
+	set_register(CPU::REGISTERS::A, result);
+
+	// Check flag zero
+	if (result == 0)
+		set_flag_zero();
+	else
+		clear_flag_zero();
+
+	// Set flag negative
+	set_flag_subtract();
+
+	// Check flag half carry
+	if (((std::int16_t)(regAValue & 0x0F) - (std::int16_t)(d8 & 0x0F) - (std::int16_t)(carryFlag) < 0))
+		set_flag_half_carry();
+	else
+		clear_flag_half_carry();
+
+	// Check flag carry
+	if (regAValue < d8 + carryFlag)
+		set_flag_carry();
+	else
+		clear_flag_carry();
+
+
+	// Add to ticks
+	if (indirect)
+		ticks += 8;
+	else
+		ticks += 4;
 }
 
 
@@ -1412,13 +1476,13 @@ void CPU::SBC(std::uint8_t d8, bool indirect=false)
 // AND (HL) when indirect == true
 void CPU::AND(std::uint8_t d8, bool indirect=false)
 {
-	std::int16_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = (regAValue & regValue) & 0x00FF;
+	result = regAValue & regValue;
 
-	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(CPU::REGISTERS::A, result);
 
 	// Check flag zero
 	if (result == 0)
@@ -1443,13 +1507,13 @@ void CPU::AND(std::uint8_t d8, bool indirect=false)
 // XOR (HL) when indirect == true
 void CPU::XOR(std::uint8_t d8, bool indirect=false)
 {
-	std::int16_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = (regAValue ^ regValue) & 0x00FF;
+	result = regAValue ^ regValue;
 
-	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(CPU::REGISTERS::A, result);
 
 	// Check flag zero
 	if (result == 0)
@@ -1473,13 +1537,13 @@ void CPU::XOR(std::uint8_t d8, bool indirect=false)
 // OR X
 void CPU::OR(std::uint8_t d8, bool indirect=false)
 {
-	std::int16_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = (regAValue | regValue) & 0x00FF;
+	result = regAValue | regValue;
 
-	set_register(CPU::REGISTERS::A, static_cast<std::uint8_t> (result & 0x00FF));
+	set_register(CPU::REGISTERS::A, result);
 
 	// Check flag zero
 	if (result == 0)
@@ -1505,11 +1569,11 @@ void CPU::OR(std::uint8_t d8, bool indirect=false)
 void CPU::CP(std::uint8_t d8, bool indirect=false)
 {
 	// Get reg->value and regA->value
-	std::uint16_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
-	result = (regAValue - regValue) & 0x00FF;
+	result = regAValue - regValue;
 
 	// Check flag zero
 	if (result == 0)
@@ -1521,13 +1585,13 @@ void CPU::CP(std::uint8_t d8, bool indirect=false)
 	set_flag_subtract();
 
 	// Check flag half carry
-	if ((regAValue & 0x0010) == 0 && (result & 0x0010) > 0)
+	if (((std::int16_t)(regAValue & 0x0F) - (std::int16_t)(d8 & 0x0F)) < 0)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if ((regAValue & 0x0080) == 0 && (result & 0x0080) > 0)
+	if (regAValue < d8)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1620,7 +1684,8 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 
 		// Check flag half carry
-		if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
+		//if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
+		if ((regValue & 0x0010) == 1 && (result & 0x0010) == 0)
 			set_flag_half_carry();
 		else
 			clear_flag_half_carry();
