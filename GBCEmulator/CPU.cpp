@@ -2106,6 +2106,7 @@ void CPU::RLCA()
 	else
 		clear_flag_carry();
 
+	clear_flag_zero();
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
@@ -2118,7 +2119,7 @@ void CPU::RLA()
 	aVal = get_register_8(A);
 	bit7 = (aVal >> 7);
 
-	aVal = (aVal << 1) | static_cast<std::uint8_t> (get_flag_carry());
+	aVal = (aVal << 1) | (std::uint8_t) (get_flag_carry());
 
 	set_register(A, aVal);
 
@@ -2127,6 +2128,7 @@ void CPU::RLA()
 	else
 		clear_flag_carry();
 
+	clear_flag_zero();
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
