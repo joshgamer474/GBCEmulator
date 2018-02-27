@@ -1990,34 +1990,42 @@ void CPU::CALL(CPU::FLAGTYPES flagType, std::uint16_t a16)
 // DAA
 void CPU::DAA()
 {
-	std::uint8_t aVal, result;
+	std::uint8_t aVal;
+	std::uint16_t result;
 	aVal = result = get_register_8(A);
 
-	if ((aVal & 0x0F) > 0x09 || get_flag_half_carry())
-		result += 0x06;
+	if (!get_flag_subtract())
+	{
+		if ((result & 0x0F) > 0x09 || get_flag_half_carry())
+			result += 0x06;
 
-	if ((aVal & 0xF0) > 0x90 || get_flag_carry())
-		result += 0x60;
+		if (result > 0x9F || get_flag_carry())
+			result += 0x60;
+	}
+	else
+	{
+		if (get_flag_half_carry())
+			result = (result - 0x06) & 0xFF;
 
-	set_register(A, result);
+		if (get_flag_carry())
+			result -= 0x60;
+	}
 
 	// Check flag zero
-	if (result == 0)
+	if ((result % 0x0100) == 0)
 		set_flag_zero();
 	else
 		clear_flag_zero();
 
-	// Clear flag negative
-	clear_flag_subtract();
 
 	// Check flag carry
-	if ((aVal & 0x80) == 0 && (result & 0x80) > 0)
+	if (result > 0xFF)
 		set_flag_carry();
-	else
-		clear_flag_carry();
 
 	// Clear flag half carry
 	clear_flag_half_carry();
+
+	set_register(A, (std::uint8_t) (result % 0x0100));
 
 	ticks += 4;
 }
