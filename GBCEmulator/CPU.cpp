@@ -1619,12 +1619,10 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 
 	result = regValue + 1;
 
-	set_register(reg, result);
-
-	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
+	//if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
+	if (reg >= B || (reg == HL && indirect == true))
 	{
-		if (reg >= B)
-			result &= 0x00FF;
+		result %= 0x0100;
 
 		// Check flag zero
 		if (result == 0)
@@ -1643,9 +1641,13 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 			clear_flag_half_carry();
 	}
 
+	if (!indirect)
+		set_register(reg, result);
+	else
+		setByteToMemory(get_register_16(reg), result);
 
 	// Add to ticks
-	if ((reg == CPU::REGISTERS::HL && !indirect) || reg == CPU::REGISTERS::BC || reg == CPU::REGISTERS::DE || reg == CPU::REGISTERS::SP)
+	if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
 		ticks += 8;
 	else if (reg == CPU::REGISTERS::HL && indirect)
 		ticks += 12;
@@ -1666,12 +1668,10 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 	result = regValue - 1;
 
-	set_register(reg, result);
-
-	if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && !indirect) && reg != CPU::REGISTERS::SP)
+	//if (reg != CPU::REGISTERS::BC && reg != CPU::REGISTERS::DE && (reg != CPU::REGISTERS::HL && indirect) && reg != CPU::REGISTERS::SP)
+	if (reg >= B || (reg == HL && indirect == true))
 	{
-		if (reg >= B)
-			result &= 0x00FF;
+		result %= 0x0100;
 
 		// Check flag zero
 		if (result == 0)
@@ -1690,9 +1690,13 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 			clear_flag_half_carry();
 	}
 
+	if (!indirect)
+		set_register(reg, result);
+	else
+		setByteToMemory(get_register_16(reg), result);
 
 	// Add to ticks
-	if ((reg == CPU::REGISTERS::HL && !indirect) || reg == CPU::REGISTERS::BC || reg == CPU::REGISTERS::DE || reg == CPU::REGISTERS::SP)
+	if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
 		ticks += 8;
 	else if (reg == CPU::REGISTERS::HL && indirect)
 		ticks += 12;
