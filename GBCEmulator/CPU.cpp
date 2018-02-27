@@ -1319,27 +1319,26 @@ void CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 // ADD HL, XY
 void CPU::ADD_HL(CPU::REGISTERS reg)
 {
-	std::uint16_t hlVal, regVal, result;
+	std::uint16_t hlVal, regVal;
+	std::uint32_t result;
 	hlVal = get_register_16(HL);
 	regVal = get_register_16(reg);
 
 	result = hlVal + regVal;
 
-	set_register(reg, static_cast<std::uint16_t> (result & 0xFFFF));
+	set_register(HL, (std::uint16_t)(result % 0x010000));
 
 	// Clear flag negative
 	clear_flag_subtract();
 
 	// Check flag half carry
-	//if ((hlVal & 0x0100) == 0 && (result & 0x0100) > 0)
-	if ((hlVal & 0x0800) == 1 && (result & 0x0800) == 0)
+	if (((hlVal & 0x0FFF) + (regVal & 0x0FFF)) > 0x0FFF)
 		set_flag_half_carry();
 	else
 		clear_flag_half_carry();
 
 	// Check flag carry
-	//if ((hlVal & 0x8000) == 0 && (result & 0x8000) > 0)
-	if ((hlVal & 0x8000) == 1 && (result & 0x8000) == 0)
+	if (result > 0xFFFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
