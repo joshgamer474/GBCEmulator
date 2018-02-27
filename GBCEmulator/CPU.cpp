@@ -2163,7 +2163,7 @@ void CPU::RRA()
 	aVal = get_register_8(A);
 	bit0 = (aVal & 0x01);
 
-	aVal = (aVal >> 1) | (static_cast<std::uint8_t> (get_flag_carry()) << 7);
+	aVal = (aVal >> 1) | ((std::uint8_t) (get_flag_carry()) << 7);
 
 	set_register(A, aVal);
 
@@ -2746,7 +2746,10 @@ void CPU::SRA(CPU::REGISTERS reg)
 		set_register(reg, regVal);
 
 	// Set/clear flags
-	clear_flag_carry();
+	if (bit0)
+		set_flag_carry();
+	else
+		clear_flag_carry();
 
 	if (regVal == 0)
 		set_flag_zero();
