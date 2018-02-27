@@ -1637,7 +1637,7 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 
 
 		// Check flag half carry
-		if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
+		if (((regValue & 0x0F) + 1) > 0x0F)
 			set_flag_half_carry();
 		else
 			clear_flag_half_carry();
@@ -1684,8 +1684,7 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 
 
 		// Check flag half carry
-		//if ((regValue & 0x0010) == 0 && (result & 0x0010) > 0)
-		if ((regValue & 0x0010) == 1 && (result & 0x0010) == 0)
+		if (((std::int16_t)(regValue & 0x0F) - 1) < 0)
 			set_flag_half_carry();
 		else
 			clear_flag_half_carry();
