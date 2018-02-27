@@ -216,7 +216,7 @@ public:
 		Prefix CB Opcodes
 	*/
 
-	void handle_CB(std::int8_t instruc);
+	void handle_CB(std::uint8_t instruc);
 
 	void RLC(CPU::REGISTERS reg);		// RLC [B, C, D, E, H, L, (HL), A]
 	void RRC(CPU::REGISTERS reg);		// RRC [B, C, D, E, H, L, (HL), A]

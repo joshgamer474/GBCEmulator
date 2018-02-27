@@ -2233,7 +2233,7 @@ void CPU::POP(CPU::REGISTERS reg)
 	Prefix CB opcode handling
 */
 
-void CPU::handle_CB(std::int8_t instruc)
+void CPU::handle_CB(std::uint8_t instruc)
 {
 
 	int regPattern1, regPattern2;
@@ -2336,7 +2336,7 @@ void CPU::handle_CB(std::int8_t instruc)
 	case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
 
-		SET(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
+		SET(static_cast<std::uint8_t> (regPattern1 - 16), reg_list[regPattern2]);
 		break;
 
 		// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
@@ -2345,7 +2345,7 @@ void CPU::handle_CB(std::int8_t instruc)
 	case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
 	case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
 
-		RES(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
+		RES(static_cast<std::uint8_t> (regPattern1 - 8), reg_list[regPattern2]);
 		break;
 
 
