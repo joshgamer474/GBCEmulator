@@ -2150,6 +2150,7 @@ void CPU::RRCA()
 	else
 		clear_flag_carry();
 
+	clear_flag_zero();
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
@@ -2171,6 +2172,7 @@ void CPU::RRA()
 	else
 		clear_flag_carry();
 
+	clear_flag_zero();
 	clear_flag_subtract();
 	clear_flag_half_carry();
 
