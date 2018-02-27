@@ -10,6 +10,7 @@ CPU::CPU()
 
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
+	enable_interrupt = false;
 	interrupts_enabled = false;
 	is_halted = false;
 	is_stopped = false;
@@ -255,25 +256,35 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 std::uint8_t CPU::getInstruction()
 {
 	// Check for interrupts
-	if (interrupts_enabled & memory->interrupt_flag)
+	//if (interrupts_enabled & memory->interrupt_flag)
+	if (memory->interrupt_flag)
 	{
-		interrupts_enabled = false;
-
-		std::uint8_t mask = 0x01;
-
-		// Find out which interrupt should be processed
-		for (int i = 0; i < 5; i++)
+		if (interrupts_enabled)
 		{
-			if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+			interrupts_enabled = false;
+
+			std::uint8_t mask = 0x01;
+
+			// Find out which interrupt should be processed
+			for (int i = 0; i < 5; i++)
 			{
-				mask = ~mask;
-				memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-				PUSH(PC);
-				registers[PC] = interrupt_table[i];
-				break;
+				if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+				{
+					mask = ~mask;
+					memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+					PUSH(PC);
+					registers[PC] = interrupt_table[i];
+					break;
+				}
+				mask = mask << 1;
 			}
-			mask = mask << 1;
 		}
+	}
+
+	if (enable_interrupt)
+	{
+		interrupts_enabled = true;
+		enable_interrupt = false;
 	}
 
 	return getByteFromMemory(get_register_16(PC));
@@ -1796,7 +1807,7 @@ void CPU::JR(CPU::FLAGTYPES flagType, std::int8_t val)
 	// Add to ticks
 	if (flagWasTrue)
 	{
-		set_register(PC, static_cast<std::uint16_t>(get_register_16(PC) + static_cast<std::int16_t>(val)));	// Jump!
+		set_register(PC, (std::uint16_t)(get_register_16(PC) + (std::int16_t)(val)));	// Jump!
 		ticks += 12;
 	}
 	else
@@ -1847,9 +1858,9 @@ void CPU::RET(CPU::FLAGTYPES flagType)
 	{
 		std::uint16_t spVal = 0;
 		spVal |= getByteFromMemory(get_register_16(SP));
-		set_register(SP, static_cast<std::uint16_t> (get_register_16(SP) + 1));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) + 1));
 		spVal |= (getByteFromMemory(get_register_16(SP)) << 8);
-		set_register(SP, static_cast<std::uint16_t> (get_register_16(SP) + 1));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) + 1));
 
 		set_register(PC, spVal);	// Return!
 
@@ -1880,13 +1891,14 @@ void CPU::RETI()
 // EI
 void CPU::enable_interrupts()
 {
-	interrupts_enabled = true;
+	enable_interrupt = true;
 	ticks += 4;
 }
 
 // DI
 void CPU::disable_interrupts()
 {
+	enable_interrupt = false;
 	interrupts_enabled = false;
 	ticks += 4;
 }
@@ -1906,16 +1918,16 @@ void CPU::RST(std::uint8_t instruc)
 	pcLow |= ((instruc & 0x0F) - 0x07);
 
 	// (SP - 1) <- PChigh
-	setByteToMemory(get_register_16(SP) - 1, static_cast<std::uint8_t> (get_register_16(PC) >> 8));
+	setByteToMemory(get_register_16(SP) - 1, (std::uint8_t)(get_register_16(PC) >> 8));
 
 	// (SP - 2) <- PClow
-	setByteToMemory(get_register_16(SP) - 2, static_cast<std::uint8_t> (get_register_16(PC) & 0x0F));
+	setByteToMemory(get_register_16(SP) - 2, (uint8_t)(get_register_16(PC) & 0xFF));
 
 	// PChigh <- 0, PClow <- pcLow
-	set_register(PC, static_cast<std::uint16_t> (0x0000 | pcLow));
+	set_register(PC, (std::uint16_t)(0x0000 | pcLow));
 
 	// Set SP
-	set_register(SP, static_cast<std::uint16_t> (get_register_16(SP) - 2));
+	set_register(SP, (std::uint16_t)(get_register_16(SP) - 2));
 
 	ticks += 16;
 }
@@ -1962,16 +1974,16 @@ void CPU::CALL(CPU::FLAGTYPES flagType, std::uint16_t a16)
 	if (flagWasTrue)
 	{
 		// (SP - 1) <- PChigh
-		setByteToMemory(get_register_16(SP) - 1, static_cast<std::int8_t> (get_register_16(PC) >> 8));
+		setByteToMemory(get_register_16(SP) - 1, (std::uint8_t)(get_register_16(PC) >> 8));
 
 		// (SP - 2) <- PClow
-		setByteToMemory(get_register_16(SP) - 2, static_cast<std::int8_t> (get_register_16(PC) & 0xFF));
+		setByteToMemory(get_register_16(SP) - 2, (std::uint8_t)(get_register_16(PC) & 0xFF));
 
 		// PC <- a16
 		set_register(PC, a16);
 
 		// Set SP
-		set_register(SP, static_cast<std::uint16_t> (get_register_16(SP) - 2));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) - 2));
 
 		ticks += 24;
 	}

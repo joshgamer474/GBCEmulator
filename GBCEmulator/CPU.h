@@ -34,6 +34,7 @@ public:
 
 	Memory *memory;
 
+	bool enable_interrupt;
 	bool interrupts_enabled;
 	bool is_halted;
 	bool is_stopped;
