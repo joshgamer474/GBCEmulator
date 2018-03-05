@@ -215,7 +215,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xA000:
 	case 0xB000:
 
-		if (mbc->mbc_num != 0)
+		//if (mbc->mbc_num != 0)
 			mbc->setByte(pos, val);
 		break;
 

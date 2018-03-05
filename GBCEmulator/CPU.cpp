@@ -256,8 +256,8 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 std::uint8_t CPU::getInstruction()
 {
 	// Check for interrupts
-	if (interrupts_enabled & memory->interrupt_flag)
-	if (memory->interrupt_flag)
+	//if (interrupts_enabled & memory->interrupt_flag)
+	if (memory->interrupt_flag & memory->interrupt_enable)
 	{
 		if (interrupts_enabled)
 		{
@@ -272,6 +272,7 @@ std::uint8_t CPU::getInstruction()
 				{
 					mask = ~mask;
 					memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+					memory->interrupt_enable &= mask;
 					PUSH(PC);
 					registers[PC] = interrupt_table[i];
 					break;
@@ -335,7 +336,6 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (startLogging)
 	{
 		//startLogging = false;
-		logger->set_level(spdlog::level::trace);
 		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
 		int a = 0;
 	}
@@ -1952,6 +1952,7 @@ void CPU::RETI()
 // EI
 void CPU::enable_interrupts()
 {
+	logger->trace("EI");
 	enable_interrupt = true;
 	ticks += 4;
 }
@@ -1959,6 +1960,7 @@ void CPU::enable_interrupts()
 // DI
 void CPU::disable_interrupts()
 {
+	logger->trace("DI");
 	enable_interrupt = false;
 	interrupts_enabled = false;
 	ticks += 4;
