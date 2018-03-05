@@ -97,6 +97,7 @@ public:
 		C,		// Carry
 		NONE
 	};
+	std::vector<std::string> FLAGTYPES_STR = { "NZ", "NC", "Z", "C", "NONE" };
 
 	std::string getRegisterString(REGISTERS);
 

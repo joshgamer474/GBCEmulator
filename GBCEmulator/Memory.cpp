@@ -214,7 +214,9 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0x7000:
 	case 0xA000:
 	case 0xB000:
-		mbc->setByte(pos, val);
+
+		if (mbc->mbc_num != 0)
+			mbc->setByte(pos, val);
 		break;
 
 		// VRAM
