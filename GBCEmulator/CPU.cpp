@@ -281,12 +281,25 @@ std::uint8_t CPU::getInstruction()
 				mask = mask << 1;
 			}
 		}
+		else if (interrupts_enabled == false && is_halted)
+		{
+			registers[PC]--;
+		}
 	}
 
 	if (enable_interrupt)
 	{
 		interrupts_enabled = true;
 		enable_interrupt = false;
+	}
+
+	if (is_halted && memory->interrupt_flag == 0x00)
+	{
+		registers[PC]--;
+	}
+	else if (is_halted && memory->interrupt_flag)
+	{
+		is_halted = false;
 	}
 
 	return getByteFromMemory(get_register_16(PC));
@@ -311,28 +324,6 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		startLogging = true;
 	}
 
-
-	//// Check for interrupts
-	//if (interrupts_enabled & memory->interrupt_flag)
-	//{
-	//	interrupts_enabled = false;
-
-	//	std::uint8_t mask = 0x01;
-
-	//	// Find out which interrupt should be processed
-	//	for (int i = 0; i < 5; i++)
-	//	{
-	//		if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
-	//		{
-	//			mask = ~mask;
-	//			memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-	//			PUSH(PC);
-	//			registers[PC] = interrupt_table[i];
-	//			break;
-	//		}
-	//		mask = mask << 1;
-	//	}
-	//}
 
 	if (startLogging)
 	{
