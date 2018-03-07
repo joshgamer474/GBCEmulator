@@ -97,13 +97,13 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 
 			default:
 				logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
-				return -1;
+				return 0xFF;
 			}
 		}
 
 	default:
 		logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
-		return -1;
+		return 0xFF;
 	}
 }
 

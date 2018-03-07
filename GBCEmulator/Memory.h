@@ -14,6 +14,8 @@
 #define INTERRUPT_SERIAL 0x08
 #define INTERRUPT_JOYPAD 0x10
 
+#define TIMER_DIV_RATE 16384
+
 class CartridgeReader;
 class MBC;
 class GPU;
@@ -51,12 +53,18 @@ public:
 	int curr_working_ram_bank;
 	bool is_color_gb;
 	std::vector<std::vector<unsigned char>> working_ram_banks;
+	std::shared_ptr<spdlog::logger> logger;
+
+	// Timer variables
+	bool timer_enabled;
+	std::uint64_t prev_clock_div, curr_clock, prev_clock_tima;
+	std::uint16_t clock_frequency;
 	
 	void initWorkRAM(bool isColorGB);
 	void initROMBanks();
 	void do_oam_dma_transfer(std::uint8_t start_address);
-
-	std::shared_ptr<spdlog::logger> logger;
+	void writeToTimerRegisters(std::uint16_t addr, std::uint8_t val);
+	void updateTimer(std::uint64_t ticks, double clock_speed);
 
 	std::uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);

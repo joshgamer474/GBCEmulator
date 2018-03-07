@@ -8,6 +8,8 @@
 #ifndef CPU_H
 #define CPU_H
 
+#define CLOCK_SPEED 4194304				// Hz/CPU cycles
+#define CLOCK_SPEED_GBC_MAX 8400000
 
 //#define ENABLE_DEBUG_PRINT
 
@@ -17,9 +19,6 @@ class Memory;
 class CPU
 {
 	int NUM_OF_REGISTERS = 6;
-
-	double CLOCK_SPEED = 4.194304 * 1000000; // Hz
-	double CLOCK_SPEED_GBC_MAX = 8.4 * 1000000; // Hz
 
 private:
 
@@ -41,6 +40,7 @@ public:
 	std::uint64_t ticks;
 	bool startLogging = false;
 	std::shared_ptr<spdlog::logger> logger;
+
 
 	/*
 		Debug stuff

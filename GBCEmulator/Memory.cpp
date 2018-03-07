@@ -14,6 +14,10 @@ Memory::Memory()
 	gpu = NULL;
 	joypad = NULL;
 
+	timer_enabled = false;
+	prev_clock_div = prev_clock_tima = curr_clock = 0;
+	clock_frequency = 0;
+
 	initWorkRAM(false);
 }
 
@@ -215,7 +219,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xA000:
 	case 0xB000:
 
-		//if (mbc->mbc_num != 0)
+		if (mbc->mbc_num != 0)
 			mbc->setByte(pos, val);
 		break;
 
@@ -298,7 +302,8 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			else if (pos < 0xFF08)
 			{
 				// 0xFF04 - 0xFF07 : Timer
-				timer[pos - 0xFF04] = val;
+				//timer[pos - 0xFF04] = val;
+				writeToTimerRegisters(pos, val);
 			}
 			else if (pos == 0xFF0F)
 			{
@@ -397,4 +402,61 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 		setByte(dest_addr, val);
 	}
 	
+}
+
+void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
+{
+	switch (addr)
+	{
+	case 0xFF04:
+		timer[addr - 0xFF04] = 0x00;
+		break;
+
+	case 0xFF05: case 0xFF06:
+		timer[addr - 0xFF04] = val;
+		break;
+
+	case 0xFF07:
+		timer[addr - 0xFF04] = val;
+
+		// Bits 0-1
+		switch ((val & 0x03))
+		{
+		case 0:	clock_frequency = 4096;	break;	// Hz
+		case 1: clock_frequency = 262144; break;
+		case 2: clock_frequency = 65536; break;
+		case 3: clock_frequency = 16384; break;
+		}
+
+		// Bit 2
+		timer_enabled = (val & 0x04);
+	}
+}
+
+
+void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
+{
+	// Update 0xFF04
+	std::uint8_t divider_reg = timer[0];
+	std::uint16_t timer_counter = timer[1];
+	curr_clock = ticks;
+	if (curr_clock - prev_clock_div >= (clock_speed / TIMER_DIV_RATE))
+	{
+		divider_reg++;
+		prev_clock_div = curr_clock;
+		timer[0] = divider_reg;
+	}
+
+	// Update 0xFF05
+	if (timer_enabled && curr_clock - prev_clock_tima >= clock_frequency)
+	{
+		timer_counter++;
+		if (timer_counter > 0xFF)
+		{
+			timer_counter = timer[2];
+			interrupt_flag |= 0x04;
+		}
+		prev_clock_tima = curr_clock;
+		timer[1] = (timer_counter & 0xFF);
+	}
 }

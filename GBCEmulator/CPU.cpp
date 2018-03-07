@@ -275,6 +275,7 @@ std::uint8_t CPU::getInstruction()
 					memory->interrupt_enable &= mask;
 					PUSH(PC);
 					registers[PC] = interrupt_table[i];
+					logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);
 					break;
 				}
 				mask = mask << 1;
@@ -336,6 +337,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (startLogging)
 	{
 		//startLogging = false;
+		//logger->set_level(spdlog::level::trace);
 		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
 		int a = 0;
 	}
@@ -1939,9 +1941,10 @@ void CPU::RETI()
 {
 	logger->trace("RETI");
 
-	RET(CPU::FLAGTYPES::NONE);
+	interrupts_enabled = true;
+	enable_interrupt = false;
 
-	enable_interrupts();
+	RET(CPU::FLAGTYPES::NONE);
 }
 
 
