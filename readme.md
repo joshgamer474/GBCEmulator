@@ -4,6 +4,7 @@ A WIP Gameboy (Color) emulator written in C++
 ## Progress
 
 The emulator currently passes all of blargg's individual cpu instruction tests, however it prematurely passes the all-in-one cpu_instrs.gb test.
+
 ![](https://github.com/joshgamer474/GBCEmulator/raw/master/GBCEmulator/res/blargg_cpu_intrs.gif)
 
 ## TODO
