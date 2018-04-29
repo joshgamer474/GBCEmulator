@@ -22,6 +22,11 @@ Core features that need to be implemented:
 * Input handling using SDL
 * Add timing and sleeping to core while() loop so the emulator runs at its proper speed
 
+Organization features:
+* Implement Conan.io packaging for libraries
+* Implement Conan.io package for this repo
+** Includes CMake building
+
 
 ## Issues
 
