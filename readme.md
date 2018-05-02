@@ -14,8 +14,11 @@ A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 ### How to build
 
 ```git clone https://github.com/joshgamer474/GBCEmulator.git```
+
 ```cd GBCEmulator```
+
 ```conan install . --install-folder build```
+
 ```conan build . --install-folder build```
 
 ### How to use
@@ -35,6 +38,7 @@ A few core features need to be ironed out and tested more:
 - [ ] Interrupt handling correctness
 - [ ] GPU background rollover testing
 - [ ] Get a game to actually boot
+
 
 Core features that need to be implemented:
 - [ ] GPU Sprite Rendering
