@@ -31,30 +31,43 @@ The emulator currently passes all of blargg's individual cpu instruction tests, 
 Drag and drop your favorite rom into the built GBCEmulator.exe
 
 
-
-## TODO
-
-A few core features need to be ironed out and tested more:
-- [ ] Memory Bank Controllers
-- [ ] Interrupt handling correctness
-- [ ] GPU background rollover testing
-- [ ] Get a game to actually boot
-
-
-Core features that need to be implemented:
-- [ ] GPU Sprite Rendering
-- [ ] Input handling using SDL
-- [ ] Add timing and sleeping to core while() loop so the emulator runs at its proper speed
-
-
-Organization features:
-- [x] Implement Conan.io packaging for libraries
-- [x] Implement Conan.io package for this repo
-- [x] Include CMake building
-
-
 ## Issues
 
 Currently all of blargg's cpu .gb tests pass individually, however the all-in-one cpu_instrs.gb does not and stops after supposedly passing cpu test 07-jr,jp,call,ret,rst.gb
 
 Games currently do not boot as they get stuck in an infinite loop - probably related to blargg's cpu_instrs.gb issue.
+
+
+# TODO
+
+## Implement some Core features
+- [ ] GPU Sprite Rendering
+- [ ] Input handling using SDL
+- [ ] Add timing and sleeping to core while() loop so the emulator runs at its proper speed
+- [ ] Sound
+- [ ] Controls
+- [ ] Create a GUI (maybe Qt?)
+
+## Organization
+- [x] Implement Conan.io packaging for libraries
+- [x] Implement Conan.io package for this repo
+- [x] Include CMake building
+
+
+## Testing
+
+### Core feature testing and correctness
+- [ ] Memory Bank Controllers
+- [ ] Interrupt handling correctness
+- [ ] GPU background rollover testing
+- [ ] Get a game to actually boot
+
+### Create unit tests using Boost
+- [ ] Implement for blargg's cpu_instrs
+- [ ] Implement for blargg's dmg_sound
+- [ ] Implement for blargg's instr_timing
+- [ ] Implement for blargg's interrupt_time
+- [ ] Implement for blargg's oam_bug
+- [ ] Implement for blargg's mem_timing
+- [ ] Implement for blargg's mem_timing-2
+- [ ] Implement for blargg's cgb_sound
