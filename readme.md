@@ -1,7 +1,13 @@
 # GBCEmulator
 A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
-## Instructions
+## Progress
+
+The emulator currently passes all of blargg's individual cpu instruction tests, however it prematurely passes the all-in-one cpu_instrs.gb test.
+
+![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
+
+## How to build
 
 ### Prerequisites
 
@@ -11,7 +17,7 @@ A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
 ```pip install conan```
 
-### How to build
+### Building
 
 ```git clone https://github.com/joshgamer474/GBCEmulator.git```
 
@@ -25,11 +31,6 @@ A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 Drag and drop your favorite rom into the built GBCEmulator.exe
 
 
-## Progress
-
-The emulator currently passes all of blargg's individual cpu instruction tests, however it prematurely passes the all-in-one cpu_instrs.gb test.
-
-![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
 
 ## TODO
 
