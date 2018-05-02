@@ -47,16 +47,12 @@ Temporary Items
 .apdisk
 
 
-
+.gitattributes
 
 
 # Code ignores
 .vs/
-Debug/
-Release/
-GBCEmulator/Release
-GBCEmulator/Debug/
-GBCEmulator/testroms/*.gb
-GBCEmulator/testroms/*.gbc
-GBCEmulator/log*.txt
+roms/*.gb
+roms/*.gbc
+build/*
 
