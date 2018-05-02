@@ -55,4 +55,5 @@ Temporary Items
 roms/*.gb
 roms/*.gbc
 build/*
+CMakeFiles/*
 

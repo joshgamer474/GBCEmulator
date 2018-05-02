@@ -13,9 +13,16 @@ The emulator currently passes all of blargg's individual cpu instruction tests, 
 
 * Python 3.x
 * pip
-* conan.io via pip
+* Conan.io via pip
+* Conan package SDL/2.0.8@josh/stable
 
 ```pip install conan```
+
+```git clone https://github.com/joshgamer474/conan-SDL```
+
+```cd conan-SDL```
+
+```conan export conanfile.py josh/stable```
 
 ### Building
 
