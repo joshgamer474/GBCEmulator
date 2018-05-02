@@ -56,4 +56,4 @@ roms/*.gb
 roms/*.gbc
 build/*
 CMakeFiles/*
-
+test_package/blarggtests/*/source/
