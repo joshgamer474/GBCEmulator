@@ -21,7 +21,7 @@ class GBCEmulator {
 
 public:
 
-    GBCEmulator(const std::string romName);
+    GBCEmulator(const std::string romName, const std::string logName="log.txt");
     ~GBCEmulator();
 
     void set_logging_level(spdlog::level::level_enum l);
@@ -34,7 +34,7 @@ private:
     void init_SDL();
     void init_memory();
     void init_gpu();
-    void init_logging();
+    void init_logging(std::string logName);
 
     CPU *cpu;
     Memory *memory;
