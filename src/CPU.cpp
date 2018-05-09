@@ -21,6 +21,17 @@ CPU::~CPU()
 	delete memory;
 }
 
+void CPU::runNextInstruction()
+{
+    if (get_register_16(CPU::REGISTERS::PC) >= 0)
+    {
+        std::uint16_t pc = get_register_16(CPU::REGISTERS::PC);
+        runInstruction(getInstruction());
+#ifdef ENABLE_DEBUG_PRINT
+        printRegisters();
+#endif
+    }
+}
 
 /*
 	Register getter
@@ -35,7 +46,6 @@ CPU::~CPU()
 	SP    -    -    Stack Pointer
 	PC    -    -    Program Counter/Pointer
 */
-
 
 std::uint8_t CPU::get_register_8(REGISTERS reg)
 {

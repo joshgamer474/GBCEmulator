@@ -31,6 +31,8 @@ public:
 	CPU();
 	~CPU();
 
+    void runNextInstruction();
+
 	Memory *memory;
 
 	bool enable_interrupt;

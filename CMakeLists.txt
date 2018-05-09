@@ -5,6 +5,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 set(GBC_HEADERS \ 
+        src/GBCEmulator.h \ 
         src/CartridgeReader.h \ 
         src/CPU.h \ 
         src/GPU.h \ 
@@ -14,6 +15,7 @@ set(GBC_HEADERS \
         src/Tile.h)
         
 set(GBC_SOURCE \ 
+        src/main.cpp \ 
         src/GBCEmulator.cpp \ 
         src/CartridgeReader.cpp \ 
         src/CPU.cpp \ 
