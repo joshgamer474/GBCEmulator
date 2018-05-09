@@ -32,7 +32,7 @@ The emulator currently passes all of blargg's individual cpu instruction tests, 
 
 ```conan install . --install-folder build```
 
-```conan build . --install-folder build```
+```conan build . --build-folder build```
 
 ### How to use
 Drag and drop your favorite rom into the built GBCEmulator.exe
