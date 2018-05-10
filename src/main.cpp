@@ -13,7 +13,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    GBCEmulator emu(romName);
+    GBCEmulator emu(romName, romName + ".log");
     emu.run();
 
     return 0;

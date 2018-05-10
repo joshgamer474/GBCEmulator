@@ -1,5 +1,4 @@
 from conans import ConanFile, CMake
-from conans.tools import download, unzip
 import os
 
 class GBCEmulator(ConanFile):
