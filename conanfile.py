@@ -11,7 +11,7 @@ class GBCEmulator(ConanFile):
                 "arch": ["x86", "x86_64"],
                 "compiler": ["Visual Studio"]}
     options = {"shared": [True, False]}
-    default_options = "shared=True"
+    default_options = "shared=False"
     generators = "cmake"
     requires = "SDL/2.0.8@josh/stable", "spdlog/0.16.3@bincrafters/stable"
     exports_sources = "src/*", "CMakeLists.txt"
@@ -27,5 +27,8 @@ class GBCEmulator(ConanFile):
         cmake.build()
         
     def package(self):
-        self.copy("*", src="bin", dst="bin",     keep_path=False)
-    
+        self.copy("*", src="bin", dst="bin",    keep_path=False)
+        self.copy("*", src="lib", dst="lib",    keep_path=False)
+        
+    def package_info(self):
+         self.cpp_info.libs.append(self.name)

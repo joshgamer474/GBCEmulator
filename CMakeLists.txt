@@ -1,4 +1,4 @@
-PROJECT(GBCEmulator)
+PROJECT(GBCEmulator_bin)
 cmake_minimum_required(VERSION 2.8.12)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
@@ -15,7 +15,6 @@ set(GBC_HEADERS \
         src/Tile.h)
         
 set(GBC_SOURCE \ 
-        src/main.cpp \ 
         src/GBCEmulator.cpp \ 
         src/CartridgeReader.cpp \ 
         src/CPU.cpp \ 
@@ -25,11 +24,21 @@ set(GBC_SOURCE \
         src/Memory.cpp \ 
         src/Tile.cpp)
         
-find_package("SDL")
+set(GBC_RUN_SOURCE \ 
+        src/main.cpp)
 
-if(SDL_FOUND)
-    include_directories(${SDL_INCLUDE_DIRS})
+# Create GBCEmulator lib
+if(BUILD_SHARED_LIBS)
+    message("Building as SHARED")
+    add_library(GBCEmulator SHARED ${GBC_SOURCE})
+else()
+    message("Building as STATIC")
+    add_library(GBCEmulator STATIC ${GBC_SOURCE})
 endif()
+target_link_libraries(GBCEmulator ${CONAN_TARGETS})
 
-add_executable(GBCEmulator ${GBC_HEADERS} ${GBC_SOURCE})
-target_link_libraries(GBCEmulator CONAN_PKG::SDL CONAN_PKG::spdlog)
+# Create GBCEmulator executable
+add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+target_link_libraries(GBCEmulator_bin GBCEmulator ${CONAN_TARGETS})
+# Rename GBCEmulator_bin to GBCEmulator
+SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
