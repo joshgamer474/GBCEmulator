@@ -22,6 +22,8 @@ class CPU
 
 private:
 
+    void checkJoypadForInterrupt();
+
 	// Registers
 	std::vector<std::uint16_t> registers;
 	std::uint8_t instruction;
@@ -33,7 +35,7 @@ public:
 
     void runNextInstruction();
 
-	Memory *memory;
+	std::shared_ptr<Memory> memory;
 
 	bool enable_interrupt;
 	bool interrupts_enabled;

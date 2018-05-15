@@ -26,7 +26,7 @@ public:
 
     void set_logging_level(spdlog::level::level_enum l);
     void run();
-
+    void stop();
 
 private:
 
@@ -36,12 +36,10 @@ private:
     void init_gpu();
     void init_logging(std::string logName);
 
-    CPU *cpu;
-    Memory *memory;
-    CartridgeReader *cartridgeReader;
-    MBC *mbc;
-    GPU *gpu;
-    Joypad *joypad;
+    std::shared_ptr<CPU> cpu;
+    std::shared_ptr<CartridgeReader> cartridgeReader;
+    std::shared_ptr<MBC> mbc;
+    std::shared_ptr<GPU> gpu;
 
     SDL_Window *window;
     SDL_Surface *screenSurface;
@@ -50,7 +48,7 @@ private:
     std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger;
     std::uint16_t logCounter;
 
-    bool stop;
+    bool stopRunning;
     std::string logFileBaseName;
 
 };

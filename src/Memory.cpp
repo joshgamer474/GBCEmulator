@@ -9,10 +9,10 @@
 
 Memory::Memory()
 {
-	cartridgeReader = new CartridgeReader();
+    cartridgeReader = NULL;
 	mbc = NULL;
 	gpu = NULL;
-	joypad = NULL;
+	joypad = std::make_shared<Joypad>();
 
 	timer_enabled = false;
 	prev_clock_div = prev_clock_tima = curr_clock = 0;
@@ -23,9 +23,21 @@ Memory::Memory()
 
 Memory::~Memory()
 {
-	delete cartridgeReader;
+    reset();
+    logger.reset();
 }
 
+void Memory::reset()
+{
+    if (cartridgeReader)
+        cartridgeReader.reset();
+    if (mbc)
+        mbc.reset();
+    if (gpu)
+        gpu.reset();
+    if (joypad)
+        joypad.reset();
+}
 
 void Memory::initWorkRAM(bool isColorGB)
 {

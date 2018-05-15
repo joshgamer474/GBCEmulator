@@ -16,15 +16,11 @@
 #define BIT6 0x40
 #define BIT7 0x80
 
-class Memory;
-
 class Joypad
 {
 public:
 	Joypad();
 	~Joypad();
-
-	Memory *memory;
 
 	enum BUTTONS
 	{
@@ -45,6 +41,7 @@ public:
 	void check_keyboard_input(SDL_Event *e);
 
 	std::shared_ptr<spdlog::logger> logger;
+    bool hasInterrupt;
 
 private:
 

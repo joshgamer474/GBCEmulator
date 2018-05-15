@@ -31,10 +31,12 @@ public:
 	Memory();
 	~Memory();
 
-	CartridgeReader *cartridgeReader;
-	MBC *mbc;
-	GPU *gpu;
-	Joypad *joypad;
+    void reset();
+
+    std::shared_ptr<CartridgeReader> cartridgeReader;
+    std::shared_ptr<MBC> mbc;
+    std::shared_ptr<GPU> gpu;
+    std::shared_ptr<Joypad> joypad;
 
 	//char memoryMap[0xFFFF];
 

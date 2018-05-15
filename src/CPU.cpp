@@ -1,12 +1,13 @@
 #include "stdafx.h"
 #include "CPU.h"
 #include "Memory.h"
+#include "Joypad.h"
 #include "CartridgeReader.h"
 #include "Debug.h"
 
 CPU::CPU()
 {
-	memory = new Memory();
+    memory = std::make_shared<Memory>();
 
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
@@ -18,7 +19,8 @@ CPU::CPU()
 
 CPU::~CPU()
 {
-	delete memory;
+    memory.reset();
+    logger.reset();
 }
 
 void CPU::runNextInstruction()
@@ -266,6 +268,8 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 std::uint8_t CPU::getInstruction()
 {
 	// Check for interrupts
+    checkJoypadForInterrupt();
+
 	//if (interrupts_enabled & memory->interrupt_flag)
 	if (memory->interrupt_flag & memory->interrupt_enable)
 	{
@@ -3004,5 +3008,12 @@ void CPU::SWAP(CPU::REGISTERS reg)
 		ticks += 8;
 }
 
-
+void CPU::checkJoypadForInterrupt()
+{
+    if (memory->joypad->hasInterrupt)
+    {
+        memory->joypad->hasInterrupt = false;
+        memory->interrupt_flag |= INTERRUPT_JOYPAD;
+    }
+}
 

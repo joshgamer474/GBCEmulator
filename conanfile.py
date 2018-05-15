@@ -29,6 +29,8 @@ class GBCEmulator(ConanFile):
     def package(self):
         self.copy("*", src="bin", dst="bin",    keep_path=False)
         self.copy("*", src="lib", dst="lib",    keep_path=False)
+        self.copy("*.h", src="src", dst="include", keep_path=False)
         
     def package_info(self):
          self.cpp_info.libs.append(self.name)
+         self.cpp_info.includedirs.append("include")

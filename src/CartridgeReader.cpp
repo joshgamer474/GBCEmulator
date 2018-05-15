@@ -19,7 +19,7 @@ CartridgeReader::CartridgeReader(std::string filename)
 
 CartridgeReader::~CartridgeReader()
 {
-
+    logger.reset();
 }
 
 

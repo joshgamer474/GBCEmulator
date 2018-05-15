@@ -25,7 +25,7 @@ MBC::MBC()
 
 MBC::~MBC()
 {
-
+    logger.reset();
 }
 
 void MBC::MBC_init(int mbcNum)

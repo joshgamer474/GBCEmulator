@@ -41,7 +41,7 @@ GPU::GPU(SDL_Renderer *render)
 
 GPU::~GPU()
 {
-
+    logger.reset();
 }
 
 
@@ -654,7 +654,7 @@ void GPU::run()
 
 				//if (SDL_PollEvent(&e) != 0 && e.type == e.key.type && e.key.keysym.scancode != SDL_SCANCODE_UNKNOWN)
 				//{
-				//	joypad->check_keyboard_input(&e);
+				//	memory->joypad->check_keyboard_input(&e);
 				//}
 				logger->info("End Frame");
 			}

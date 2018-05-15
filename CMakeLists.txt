@@ -26,7 +26,7 @@ set(GBC_SOURCE \
         
 set(GBC_RUN_SOURCE \ 
         src/main.cpp)
-
+        
 # Create GBCEmulator lib
 if(BUILD_SHARED_LIBS)
     message("Building as SHARED")
@@ -38,7 +38,8 @@ endif()
 target_link_libraries(GBCEmulator ${CONAN_TARGETS})
 
 # Create GBCEmulator executable
-add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE} ${GBC_SOURCE} ${GBC_HEADERS})
 target_link_libraries(GBCEmulator_bin GBCEmulator ${CONAN_TARGETS})
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
+

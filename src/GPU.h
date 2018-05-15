@@ -17,7 +17,6 @@
 
 class Memory;
 class CPU;
-class Joypad;
 class Tile;
 
 class GPU
@@ -36,9 +35,8 @@ public:
 
 	void init_gbc();
 
-	CPU *cpu;
-	Memory *memory;
-	Joypad *joypad;
+	std::shared_ptr<CPU> cpu;
+    std::shared_ptr<Memory> memory;
 	bool is_color_gb;
 	int num_vram_banks;	// 1 for regular GB, 2 for GB color
 	int curr_vram_bank;

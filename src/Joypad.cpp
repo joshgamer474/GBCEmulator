@@ -1,17 +1,15 @@
 #include "stdafx.h"
 #include "Joypad.h"
-#include "Memory.h"
 #include "Debug.h"
 
 Joypad::Joypad()
 {
-	memory = NULL;
 	joypad_byte = 0;
 }
 
 Joypad::~Joypad()
 {
-
+    logger.reset();
 }
 
 
@@ -57,10 +55,7 @@ void Joypad::set_joypad_button(BUTTONS button)
 void Joypad::set_joypad_byte(std::uint8_t val)
 {
 	joypad_byte = val;
-
-	//if (memory->interrupt_enable & INTERRUPT_JOYPAD)
-	//	memory->interrupt_flag |= INTERRUPT_JOYPAD;
-	memory->interrupt_flag |= INTERRUPT_JOYPAD;
+    hasInterrupt = true;
 }
 
 std::uint8_t Joypad::get_joypad_byte()
