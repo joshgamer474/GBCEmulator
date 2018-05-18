@@ -4,11 +4,15 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 #include <GBCEmulator.h>
-#include <string>
 #include <thread>
 
 InvividualRomTest::InvividualRomTest()
 {
+}
+
+InvividualRomTest::~InvividualRomTest()
+{
+    deleteLogFile(logPath);
 }
 
 void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
@@ -18,14 +22,11 @@ void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
     romPath.make_preferred();
     romPath.append(_romName);
 
-    boost::filesystem::path logPath(logName);
+    logPath = boost::filesystem::path(logName);
     BOOST_TEST_MESSAGE("Testing rom at " << romPath.string());
 
     // Delete old log file if exists
-    if (boost::filesystem::exists(logPath))
-    {
-        boost::filesystem::remove(logPath);
-    }
+    deleteLogFile(logPath);
 
     // Create emulator obj
     BOOST_TEST_MESSAGE("Creating emulator");
@@ -68,8 +69,16 @@ void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
     }
 
     thread.join();
-
-    BOOST_ASSERT_MSG(passed == true, std::stringstream() << "Test failed: " << line);
+    
+    BOOST_REQUIRE_MESSAGE(passed == true, "Test failed: " << line);
 
     BOOST_TEST_MESSAGE("Test passed!");
+}
+
+void InvividualRomTest::deleteLogFile(boost::filesystem::path logPath)
+{
+    if (boost::filesystem::exists(logPath))
+    {
+        boost::filesystem::remove(logPath);
+    }
 }
