@@ -12,5 +12,6 @@ public:
     void deleteLogFile(boost::filesystem::path logPath);
 private:
     boost::filesystem::path logPath;
+    bool passed;
 };
 #endif

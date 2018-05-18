@@ -1,17 +1,18 @@
 #include <boost/test/unit_test.hpp>
-#include "individual_rom_test.h"
+#include "group_rom_test.h"
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/range/algorithm/count.hpp>
 #include <GBCEmulator.h>
 #include <thread>
 
-InvividualRomTest::InvividualRomTest()
+GroupRomTest::GroupRomTest()
     : passed(false)
 {
 }
 
-InvividualRomTest::~InvividualRomTest()
+GroupRomTest::~GroupRomTest()
 {
     if (passed)
     {
@@ -19,7 +20,7 @@ InvividualRomTest::~InvividualRomTest()
     }
 }
 
-void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
+void GroupRomTest::operator()(std::string _romPath, std::string _romName, int numOfIndividualTests)
 {
     std::string logName = _romName + ".log";
     boost::filesystem::path romPath = boost::filesystem::path(_romPath);
@@ -44,27 +45,19 @@ void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
     });
 
     // Check log to see if test is finished
-    bool finished, passed;
+    bool finished;
     std::string line;
-    finished = passed = false;
+    finished = false;
     while (!finished)
     {
         boost::filesystem::ifstream logFile(logPath);
         while (logFile)
         {
             std::getline(logFile, line);
-            if (boost::contains(line, "Passed"))
+            if (boost::contains(line, "ok") || boost::contains(line, "Failed"))
             {
                 emu.stop();
                 finished = true;
-                passed = true;
-                break;
-            }
-            else if (boost::contains(line, "Failed"))
-            {
-                emu.stop();
-                finished = true;
-                passed = false;
                 break;
             }
         }
@@ -73,16 +66,31 @@ void InvividualRomTest::operator()(std::string _romPath, std::string _romName)
     }
 
     thread.join();
-    
+
+    // Check to see if all of the individual tests passed
+    passed = allTestsPassed(line, numOfIndividualTests);
     BOOST_REQUIRE_MESSAGE(passed == true, "Test failed: " << line);
 
     BOOST_TEST_MESSAGE("Test passed!");
 }
 
-void InvividualRomTest::deleteLogFile(boost::filesystem::path logPath)
+void GroupRomTest::deleteLogFile(boost::filesystem::path logPath)
 {
     if (boost::filesystem::exists(logPath))
     {
         boost::filesystem::remove(logPath);
     }
+}
+
+bool GroupRomTest::allTestsPassed(std::string lastLogLine, int numOfIndividualTests)
+{
+    int numOfOccurances = 0; 
+    std::size_t pos = pos = lastLogLine.find("ok", 0);;
+    while (pos != std::string::npos)
+    {
+        pos = lastLogLine.find("ok", ++pos);
+        numOfOccurances++;
+    }
+
+    return numOfIndividualTests == numOfOccurances;
 }

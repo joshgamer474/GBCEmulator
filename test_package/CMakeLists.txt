@@ -5,13 +5,16 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 set(UNIT_TEST_TEMPLATE_HEADERS \ 
+        src/group_rom_test.h \ 
         src/individual_rom_test.h)
 
 set(UNIT_TEST_TEMPLATE_SOURCE \ 
+        src/group_rom_test.cpp \ 
         src/individual_rom_test.cpp)      
 
 set(UNIT_TEST_SOURCE \ 
         src/test_unit_test.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/cpu_instrs.cpp \ 
         src/blargg_unit_tests/cpu_instrs/01-special.cpp \ 
         src/blargg_unit_tests/cpu_instrs/02-interrupts.cpp \ 
         src/blargg_unit_tests/cpu_instrs/03-op_sp,hl.cpp \ 
