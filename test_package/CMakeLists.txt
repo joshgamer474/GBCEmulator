@@ -12,7 +12,17 @@ set(UNIT_TEST_TEMPLATE_SOURCE \
 
 set(UNIT_TEST_SOURCE \ 
         src/test_unit_test.cpp \ 
-        src/blargg_unit_tests/cpu_instrs/01-special.cpp)
+        src/blargg_unit_tests/cpu_instrs/01-special.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/02-interrupts.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/03-op_sp,hl.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/04-op_r,imm.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/05-op_rp.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/06-ld_r,r.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/07-jr,jp,call,ret,rst.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/08-misc_instrs.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/09-op_r,r.cpp \ 
+        src/blargg_unit_tests/cpu_instrs/10-bit_ops.cpp \ 
+        "src/blargg_unit_tests/cpu_instrs/11-op_a,(hl).cpp")
 
 
 find_package("boost")
