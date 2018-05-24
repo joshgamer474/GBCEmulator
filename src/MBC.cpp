@@ -234,7 +234,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 			}
 
 			// Don't use ROM banks 0x00, 0x20, 0x40, or 0x60
-			if (mbc_num == 1 || mbc_num == 3 && 
+			if ((mbc_num == 1 || mbc_num) == 3 && 
 				((val & 0x1F) == 0x00 ||
 				(val & 0x1F) == 0x20 ||
 				(val & 0x1F) == 0x40 ||
