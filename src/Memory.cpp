@@ -452,15 +452,20 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 	std::uint8_t divider_reg = timer[0];
 	std::uint16_t timer_counter = timer[1];
 	curr_clock = ticks;
-	if (curr_clock - prev_clock_div >= (clock_speed / TIMER_DIV_RATE))
+    std::uint64_t clock_div_rate = clock_speed / TIMER_DIV_RATE;
+    std::uint64_t clock_diff = curr_clock - prev_clock_div;
+
+    while (clock_diff >= clock_div_rate)
 	{
 		divider_reg++;
-		prev_clock_div = curr_clock;
+        prev_clock_div = curr_clock - (clock_diff - clock_div_rate);
+        clock_diff = curr_clock - prev_clock_div;
+
 		timer[0] = divider_reg;
 	}
 
 	// Update 0xFF05
-	if (timer_enabled && curr_clock - prev_clock_tima >= clock_frequency)
+    if (timer_enabled && curr_clock - prev_clock_tima >= (clock_speed / clock_frequency))
 	{
 		timer_counter++;
 		if (timer_counter > 0xFF)

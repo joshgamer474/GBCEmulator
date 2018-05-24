@@ -60,7 +60,7 @@ public:
 	// Timer variables
 	bool timer_enabled;
 	std::uint64_t prev_clock_div, curr_clock, prev_clock_tima;
-	std::uint16_t clock_frequency;
+	std::uint32_t clock_frequency;
 	
 	void initWorkRAM(bool isColorGB);
 	void initROMBanks();
