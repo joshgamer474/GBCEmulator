@@ -62,7 +62,7 @@ void GroupRomTest::operator()(std::string _romPath, std::string _romName, int nu
             }
         }
 
-        boost::this_thread::sleep(boost::posix_time::milliseconds(300));
+        boost::this_thread::sleep(boost::posix_time::milliseconds(500));
     }
 
     thread.join();

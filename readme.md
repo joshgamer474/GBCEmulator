@@ -70,7 +70,7 @@ Games currently do not boot as they get stuck in an infinite loop - probably rel
 - [ ] Get a game to actually boot
 
 ### Create unit tests using Boost
-- [ ] Implement for blargg's cpu_instrs
+- [x] Implement for blargg's cpu_instrs
 - [ ] Implement for blargg's dmg_sound
 - [ ] Implement for blargg's instr_timing
 - [ ] Implement for blargg's interrupt_time
