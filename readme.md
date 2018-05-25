@@ -11,6 +11,7 @@ The emulator currently passes all of blargg's cpu instruction tests.
 
 ### Prerequisites
 
+* CMake
 * Python 3.x
 * pip
 * Conan.io via pip
@@ -52,6 +53,7 @@ Games currently do not boot as they get stuck in an infinite instruction loop.
 - [ ] Sound
 - [ ] Controls
 - [ ] Create a GUI (maybe Qt?)
+- [ ] Linux build support
 
 ## Organization
 - [x] Implement Conan.io packaging for libraries
