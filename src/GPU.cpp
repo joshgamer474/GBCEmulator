@@ -623,7 +623,7 @@ void GPU::run()
 			lcd_y++;
 
 			// Check if frame rendering has completed, start VBLANK interrupt
-			if (lcd_y == 143)
+			if (lcd_y == 144)
 			{
 				//if (memory->interrupt_enable & INTERRUPT_VBLANK)
 				//	memory->interrupt_flag |= INTERRUPT_VBLANK;
