@@ -7,8 +7,8 @@ MBC::MBC()
 	rom_banking_mode = true;
 	ram_banking_mode = false;
 	external_ram_enabled = false;
-	curr_rom_bank = 0;
-	curr_ram_bank = 0;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
 
 	num_rom_banks = 2;
 	num_ram_banks = 1;
@@ -33,8 +33,8 @@ void MBC::MBC_init(int mbcNum)
 	rom_banking_mode = true;
 	ram_banking_mode = false;
 	external_ram_enabled = false;
-	curr_rom_bank = 0;
-	curr_ram_bank = 0;
+	curr_rom_bank = 1;
+	curr_ram_bank = 1;
 
 	mbc_num = mbcNum;
 
@@ -51,8 +51,8 @@ void MBC::MBC_init(int mbcNum)
 		rom_banking_mode = true;
 		ram_banking_mode = false;
 		external_ram_enabled = false;
-		curr_rom_bank = 0;
-		curr_ram_bank = 0;
+		curr_rom_bank = 1;
+		curr_ram_bank = 1;
 
 		num_rom_banks = 2;
 		num_ram_banks = 1;

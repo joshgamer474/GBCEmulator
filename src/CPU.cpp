@@ -342,7 +342,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (startLogging)
 	{
 		//startLogging = false;
-		//logger->set_level(spdlog::level::trace);
+		logger->set_level(spdlog::level::trace);
 		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
 		int a = 0;
 	}
@@ -1324,7 +1324,7 @@ void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 // ADC A, d8
 void CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 {
-	logger->trace("ADD A, 0x{0:x}", val);
+	logger->trace("ADC A, 0x{0:x}", val);
 
 	// Get reg->value
 	std::uint8_t r, result, carryFlag;
