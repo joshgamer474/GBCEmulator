@@ -219,8 +219,8 @@ void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val)
 		{
 		case 0: color_val = 255; break;
 		case 1: color_val = 192; break;
-		case 3: color_val = 96; break;
-		case 4: color_val = 0; break;
+		case 2: color_val = 96; break;
+		case 3: color_val = 0; break;
 		}
 		palette[i] = { color_val, color_val, color_val, 255 };
 	}
