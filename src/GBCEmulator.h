@@ -1,3 +1,7 @@
+#ifndef SDL_MAIN_HANDLED
+#define SDL_MAIN_HANDLED
+#endif
+
 #ifndef GBCEMULATOR_H
 #define GBCEMULATOR_H
 
@@ -16,17 +20,25 @@
 #include "CartridgeReader.h"
 #include "Debug.h"
 #include <spdlog/spdlog.h>
+extern "C" {
+#include <SDL.h>
+}
+
 
 class GBCEmulator {
 
 public:
 
     GBCEmulator(const std::string romName, const std::string logName="log.txt");
-    ~GBCEmulator();
+    virtual ~GBCEmulator();
 
     void set_logging_level(spdlog::level::level_enum l);
     void run();
     void stop();
+    bool frame_is_ready();
+    SDL_Color * get_frame();
+
+    SDL_Window *window;
 
 private:
 
@@ -41,7 +53,7 @@ private:
     std::shared_ptr<MBC> mbc;
     std::shared_ptr<GPU> gpu;
 
-    SDL_Window *window;
+    SDL_GLContext glContext;
     SDL_Surface *screenSurface;
     SDL_Renderer *renderer;
 

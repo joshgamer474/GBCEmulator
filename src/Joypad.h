@@ -1,4 +1,5 @@
 #pragma once
+
 #ifndef JOYPAD_H
 #define JOYPAD_H
 

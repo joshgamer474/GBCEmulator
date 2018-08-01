@@ -26,9 +26,11 @@ GPU::GPU(SDL_Renderer *render)
 
 	gpu_mode = GPU_MODE_VRAM;
 
+#ifdef SDL_DRAW
 	renderer = render;
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	game_screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
+#endif
 
 	background_palette_index = 0;
 	sprite_palette_index = 0;
@@ -36,6 +38,8 @@ GPU::GPU(SDL_Renderer *render)
 	bg_tile_map_select_method = false;
 	auto_increment_background_palette_index = false;
 	auto_increment_sprite_palette_index = false;
+
+    frame_is_ready = false;
 }
 
 
@@ -587,6 +591,7 @@ void GPU::renderLine()
 
 void GPU::display()
 {
+#ifdef SDL_DRAW
 #ifdef DEBUG
 	// Render partial screen with debug info
 	//SDL_Rect game_screen_rect = { 0, 0, SCREEN_PIXEL_W * 2, SCREEN_PIXEL_H * 2 };
@@ -601,6 +606,7 @@ void GPU::display()
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, game_screen, NULL, NULL);
 	SDL_RenderPresent(renderer);
+#endif
 #endif
 }
 
@@ -648,6 +654,7 @@ void GPU::run()
 
 			if (lcd_y > 153)
 			{
+                frame_is_ready = true;
 				display();
 				lcd_y = 0;
 				gpu_mode = GPU_MODE_OAM;
@@ -736,4 +743,9 @@ void GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_bloc
 		tile = &bg_tiles[tile_block_num][tile_num];
 		tile->updateRawData(byte_pos % 16, val);
 	}
+}
+
+const SDL_Color * GPU::getFrame()
+{
+    return frame;
 }

@@ -5,7 +5,6 @@
 
 #include <vector>
 #include <SDL.h>
-//#include "SDL/SDL_ttf.h"
 #include <spdlog/spdlog.h>
 
 #define VRAM_SIZE 0x2000
@@ -72,6 +71,17 @@ public:
 	void renderLineTwo();
 	void display();
 	void updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
+    void set_lcd_control(unsigned char lcd_control);
+    void set_lcd_status(unsigned char lcd_status);
+    void set_lcd_status_mode_flag(GPU_MODE);
+    void set_lcd_status_coincidence_flag(bool flag);
+    void printFrame();
+    const SDL_Color * getFrame();
+
+    // Reading and writing methods
+    std::uint8_t readByte(std::uint16_t pos);
+    void setByte(std::uint16_t pos, std::uint8_t val);
+
 
 	/*
 		LCD Registers
@@ -119,12 +129,6 @@ public:
 	// LCD Status Register objects
 	bool enable_lcd_y_compare_interrupt;
 
-	void set_lcd_control(unsigned char lcd_control);
-	void set_lcd_status(unsigned char lcd_status);
-	void set_lcd_status_mode_flag(GPU_MODE);
-	void set_lcd_status_coincidence_flag(bool flag);
-	void printFrame();
-
 
 	/*
 		Input handling
@@ -140,10 +144,6 @@ public:
 
 	std::shared_ptr<spdlog::logger> logger;
 
-	/*
-		Reading and writing methods
-	*/
-	std::uint8_t readByte(std::uint16_t pos);
-	void setByte(std::uint16_t pos, std::uint8_t val);
+    bool frame_is_ready;
 };
 #endif

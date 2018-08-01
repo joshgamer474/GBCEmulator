@@ -1,0 +1,31 @@
+PROJECT(GBCEmulator_qt)
+cmake_minimum_required(VERSION 2.8.12)
+
+
+# Find includes in corresponding build directories
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+# Instruct CMake to run moc automatically when needed
+set(CMAKE_AUTOMOC ON)
+# Create code from a list of Qt designer ui files
+set(CMAKE_AUTOUIC ON)
+
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup(TARGETS)
+
+find_package(Qt5 REQUIRED Widgets)
+
+set(QT_HEADERS \ 
+        src/mainwindow.h
+        src/emuwindow.h)
+        
+set(QT_SOURCE \ 
+        src/mainwindow.cpp
+        src/emuwindow.cpp)
+        
+set(QT_RUN_SOURCE \ 
+        src/main.cpp)
+
+add_executable(GBCEmulator_qt WIN32 ${QT_RUN_SOURCE} ${QT_SOURCE} ${QT_HEADERS})
+include_directories(${CONAN_INCLUDE_DIRS})
+target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(GBCEmulator_qt ${CONAN_LIB_DIRS} CONAN_PKG::GBCEmulator Qt5::Widgets)
