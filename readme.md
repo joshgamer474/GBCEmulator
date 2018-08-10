@@ -35,7 +35,11 @@ The emulator currently passes all of blargg's cpu instruction tests.
 
 ```git clone https://github.com/joshgamer474/GBCEmulator.git```
 
-```cd GBCEmulator/qt_wrap```
+```cd GBCEmulator```
+
+```conan export conanfile.py josh/stable```
+
+```cd qt_wrap```
 
 ```conan install . --install-folder build```
 
