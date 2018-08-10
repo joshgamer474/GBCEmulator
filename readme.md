@@ -21,7 +21,7 @@ The emulator currently passes all of blargg's cpu instruction tests.
 
 ```conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan```
 
-### Building
+## Building
 
 ```git clone https://github.com/joshgamer474/GBCEmulator.git```
 
