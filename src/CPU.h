@@ -1,12 +1,10 @@
-#pragma once
+#ifndef CPU_H
+#define CPU_H
 
 #include <cstdint>
 #include <vector>
 #include <string>
 #include <spdlog/spdlog.h>
-
-#ifndef CPU_H
-#define CPU_H
 
 #define CLOCK_SPEED 4194304				// Hz/CPU cycles
 #define CLOCK_SPEED_GBC_MAX 8400000
@@ -248,6 +246,10 @@ public:
 	uint8_t getByteFromMemory(std::uint16_t addr);
 	void setByteToMemory(uint16_t addr, uint8_t val);
 
+    std::string getOpcodeString(uint8_t opcode);
+    std::string getOpcodeStringCB(uint8_t opcode);
+
+    uint8_t getInstructionSize(uint8_t opcode);
 };
 
 #endif

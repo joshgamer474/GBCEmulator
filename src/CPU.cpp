@@ -3017,3 +3017,477 @@ void CPU::checkJoypadForInterrupt()
     }
 }
 
+std::string CPU::getOpcodeString(uint8_t opcode)
+{
+    std::string ret = "";
+    std::string temp = "";
+    uint8_t upper8 = (opcode & 0xF0) >> 4;
+    uint8_t lower8 = opcode & 0x0F;
+
+    int regPattern1, regPattern2;
+    regPattern1 = (opcode / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
+    regPattern2 = (opcode & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
+
+    switch (opcode)
+    {
+    case 0x00: ret = "NOP"; break;
+    case 0x10: ret = "STOP 0"; break;
+    case 0x76: ret = "HALT"; break;
+    case 0xCB: ret = "PREFIX CB, " + getOpcodeStringCB(getByteFromMemory(get_register_16(PC) + 1)); break;
+    case 0xF3: ret = "DI"; break;
+    case 0xFB: ret = "EI"; break;
+    case 0xC3: ret = "JP a16"; break;
+    case 0x07: ret = "RLCA"; break;
+    case 0x17: ret = "RLA"; break;
+    case 0x27: ret = "DAA"; break;
+    case 0x37: ret = "SCF"; break;
+    case 0x08: ret = "LD (a16), SP"; break;
+    case 0xE8: ret = "ADD SP, r8"; break;
+    case 0xF8: ret = "LD HL, SP+r8"; break;
+    case 0xC9: ret = "RET"; break;
+    case 0xD9: ret = "RETI"; break;
+    case 0xE9: ret = "JP (HL)"; break;
+    case 0xF9: ret = "LD SP, HL"; break;
+    case 0xEA: ret = "LD (a16), A"; break;
+    case 0xFA: ret = "LD A, (a16)"; break;
+    case 0xCE: ret = "ADC A, d8"; break;
+    case 0xDE: ret = "SBC A, d8"; break;
+    case 0xEE: ret = "XOR d8"; break;
+    case 0xFE: ret = "CP d8"; break;
+    case 0x0F: ret = "RRCA"; break;
+    case 0x1F: ret = "RRA"; break;
+    case 0x2F: ret = "CPL"; break;
+    case 0x3F: ret = "CCF"; break;
+
+    default:
+        // Row matching, opcodes 0x40 - 0xBF
+        switch (upper8)
+        {
+        case 0x04:
+        case 0x05:
+        case 0x06:
+        case 0x07:
+            ret = "LD " + REGISTERS_STR[regPattern1] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+
+        case 0x08:
+            if (lower8 <= 0x07)
+            {
+                ret = "ADD A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+            else
+            {
+                ret = "ADC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+            
+        case 0x09:
+            if (lower8 <= 0x07)
+            {
+                ret = "SUB " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+            else
+            {
+                ret = "SBC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+
+        case 0x0A:
+            if (lower8 <= 0x07)
+            {
+                ret = "AND " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+            else
+            {
+                ret = "XOR " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+
+        case 0x0B:
+            if (lower8 <= 0x07)
+            {
+                ret = "OR " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+            else
+            {
+                ret = "CP " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+            }
+        } // end switch(upper8)
+
+
+        // Column matching
+        switch (lower8)
+        {
+        case 0x00:
+            if (upper8 >= 0x2 && upper8 <= 0x3)
+            {
+                ret = "JR " + FLAGTYPES_STR[upper8 - 2] + ", r8"; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "RET " + FLAGTYPES_STR[upper8 - 0xC]; break;
+            }
+            else if (upper8 == 0xE)
+            {
+                ret = "LDH (a8), A"; break;
+            }
+            else if (upper8 == 0xF)
+            {
+                ret = "LDH A, (a8)"; break;
+            }
+
+        case 0x01:
+            if (upper8 <= 0x2)
+            {
+                ret = "LD " + REGISTERS_STR[upper8] + ", d16"; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "LD SP, d16"; break;
+            }
+            else if (upper8 >= 0xC)
+            {
+                ret = "POP " + REGISTERS_STR[upper8]; break;
+            }
+
+        case 0x02:
+            if (upper8 <= 0x1)
+            {
+                ret = "LD (" + REGISTERS_STR[upper8] + temp + "), A"; break;
+            }
+            else if (upper8 >= 0x2 && upper8 <= 0x3)
+            {
+
+                if (upper8 == 0x2)
+                {
+                    temp = "+";
+                }
+                else if (upper8 == 0x3)
+                {
+                    temp = "-";
+                }
+                ret = "LD (HL" + temp + "), A"; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "JP " + REGISTERS_STR[upper8 - 0xC] + ", a16"; break;
+            }
+            else if (upper8 == 0xE)
+            {
+                ret = "LD (C), A"; break;
+            }
+            else if (upper8 == 0xF)
+            {
+                ret = "LD A, (C)"; break;
+            }
+
+        case 0x03:
+            if (upper8 <= 0x2)
+            {
+                ret = "INC " + REGISTERS_STR[upper8]; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "INC SP"; break;
+            }
+
+        case 0x04:
+            if (upper8 <= 0x2)
+            {
+                ret = "INC " + REGISTERS_STR[CPU::REGISTERS::B + (2 * upper8)]; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "INC (HL)"; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xC] + ", a16"; break;
+            }
+
+        case 0x05:
+            if (upper8 <= 0x2)
+            {
+                ret = "DEC " + REGISTERS_STR[CPU::REGISTERS::B + (2 * upper8)]; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "DEC (HL)"; break;
+            }
+            else if (upper8 >= 0xC)
+            {
+                ret = "PUSH " + REGISTERS_STR[upper8 - 0xC]; break;
+            }
+
+        case 0x06:
+            if (upper8 <= 0x2)
+            {
+                ret = "LD " + REGISTERS_STR[upper8] + ", d8"; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "LD (HL), d8"; break;
+            }
+            else
+            {
+                switch (upper8)
+                {
+                case 0xC: ret = "ADD A, d8"; break;
+                case 0xD: ret = "SUB d8"; break;
+                case 0xE: ret = "AND d8"; break;
+                case 0xF: ret = "OR d8"; break;
+                }
+            }
+
+        case 0x07:
+            if (upper8 >= 0x0C)
+            {
+                ret = "RST " + std::to_string(upper8 - 0xC) + "0H"; break;
+            }
+
+        case 0x08:
+            if (upper8 == 0x1)
+            {
+                ret = "JR r8"; break;
+            }
+            else if (upper8 >= 0x2 && upper8 <= 0x3)
+            {
+                ret = "JR " + FLAGTYPES_STR[upper8] + ", r8"; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "RET " + FLAGTYPES_STR[upper8 - 0xA]; break;
+            }
+
+        case 0x09:
+            if (upper8 >= 0 && upper8 <= 0x2)
+            {
+                ret = "ADD HL, " + REGISTERS_STR[upper8]; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "ADD HL, SP"; break;
+            }
+
+        case 0x0A:
+            if (upper8 >= 0 && upper8 <= 0x1)
+            {
+                ret = "LD A, (" + REGISTERS_STR[upper8] + ")"; break;
+            }
+            else if (upper8 >= 0x2 && upper8 <= 0x3)
+            {
+                if (upper8 == 0x2)
+                {
+                    temp = "+";
+                }
+                else if (upper8 == 0x3)
+                {
+                    temp = "-";
+                }
+                ret = "LD A, (HL" + temp + ")"; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "JP " + FLAGTYPES_STR[upper8 - 0xA] + ", a16"; break;
+            }
+
+        case 0x0B:
+            if (upper8 >= 0 && upper8 <= 0x2)
+            {
+                ret = "DEC " + REGISTERS_STR[upper8]; break;
+            }
+            else if (upper8 == 0x3)
+            {
+                ret = "DEC SP"; break;
+            }
+
+        case 0x0C:
+            if (upper8 >= 0 && upper8 <= 0x3)
+            {
+                ret = "INC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
+            }
+            else if (upper8 >= 0xC && upper8 <= 0xD)
+            {
+                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", a16"; break;
+            }
+
+        case 0x0D:
+            if (upper8 >= 0 && upper8 <= 0x3)
+            {
+                ret = "DEC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
+            }
+            else if (upper8 == 0xC)
+            {
+                ret = "CALL a16"; break;
+            }
+
+        case 0x0E:
+            if (upper8 >= 0 && upper8 <= 0x3)
+            {
+                ret = "LD " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)] + ", d8"; break;
+            }
+
+        case 0x0F:
+            if (upper8 >= 0xC)
+            {
+                ret = "RST " + std::to_string(upper8 - 0xC) + "8H"; break;
+            }
+        } // end switch(lower8)
+    }
+
+    return ret;
+}
+
+std::string CPU::getOpcodeStringCB(uint8_t opcode)
+{
+    std::string ret = "";
+    std::string temp = "";
+    int tempint = 0;
+    uint8_t upper8 = (opcode & 0xF0) >> 4;
+    uint8_t lower8 = opcode & 0x0F;
+
+    int regPattern1, regPattern2;
+    regPattern1 = (opcode / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
+    regPattern2 = (opcode & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
+
+    // Create std::string temp to be appended to std::string ret
+    if (opcode >= 0x40)
+    {
+        tempint = (2 * (upper8 - 0x4)) % 8;
+
+        if (lower8 >= 0x8)
+        {
+            tempint += 1;
+        }
+        temp = std::to_string(tempint) + ", ";
+    }
+
+    // Append register to temp
+    temp += REGISTERS_STR[REGISTERS::B + regPattern2];
+
+    // Row matching
+    switch (upper8)
+    {
+    case 0x00:
+        if (lower8 <= 0x7)
+        {
+            ret = "RLC " + temp; break;
+        }
+        else if (lower8 >= 0x8)
+        {
+            ret = "RRC " + temp; break;
+        }
+
+    case 0x01:
+        if (lower8 <= 0x7)
+        {
+            ret = "RL " + temp; break;
+        }
+        else if (lower8 >= 0x8)
+        {
+            ret = "RR " + temp; break;
+        }
+
+    case 0x02:
+        if (lower8 <= 0x7)
+        {
+            ret = "SLA " + temp; break;
+        }
+        else if (lower8 >= 0x8)
+        {
+            ret = "SRA " + temp; break;
+        }
+
+    case 0x03:
+        if (lower8 <= 0x7)
+        {
+            ret = "SWAP " + temp; break;
+        }
+        else if (lower8 >= 0x8)
+        {
+            ret = "SRL " + temp; break;
+        }
+
+    case 0x04:
+    case 0x05:
+    case 0x06:
+    case 0x07:
+        ret = "BIT " + temp; break;
+
+    case 0x08:
+    case 0x09:
+    case 0x0A:
+    case 0x0B:
+        ret = "RES " + temp; break;
+
+    case 0x0C:
+    case 0x0D:
+    case 0x0E:
+    case 0x0F:
+        ret = "SET " + temp; break;
+
+    default:
+        ret = "UNKNOWN"; break;
+
+    }// end switch(upper8)
+
+    return ret;
+}
+
+uint8_t CPU::getInstructionSize(uint8_t opcode)
+{
+    uint8_t instructionLength = 0;
+
+    switch (opcode)
+    {
+        // d16, a16
+    case 0x01:
+    case 0x11:
+    case 0x21:
+    case 0x31:
+    case 0x08:
+    case 0xC2:
+    case 0xC3:
+    case 0xC4:
+    case 0xCA:
+    case 0xCC:
+    case 0xCD:
+    case 0xD2:
+    case 0xD4:
+    case 0xDA:
+    case 0xDC:
+    case 0xEA:
+    case 0xFA:
+        instructionLength = 3; break;
+
+        // a8, d8, r8, CB
+    case 0x06:
+    case 0x16:
+    case 0x26:
+    case 0x36:
+    case 0x0E:
+    case 0x1E:
+    case 0x2E:
+    case 0x3E:
+    case 0xC6:
+    case 0xD6:
+    case 0xE6:
+    case 0xF6:
+    case 0xCE:
+    case 0xDE:
+    case 0xEE:
+    case 0xFE:
+    case 0xE0:
+    case 0xF0:
+    case 0x20:
+    case 0x30:
+    case 0x18:
+    case 0x28:
+    case 0x38:
+    case 0xE8:
+    case 0xF8:
+    case 0xCB:
+        instructionLength = 2; break;
+
+    default:
+        instructionLength = 1;
+    }
+
+    return instructionLength;
+}

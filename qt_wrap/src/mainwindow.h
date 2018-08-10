@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <src/emuwindow.h>
+#include <src/emuview.h>
 #include <src/debuggerwindow.h>
 
 namespace Ui {
@@ -21,11 +21,10 @@ public:
 private:
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);
-    void resizeEvent(QResizeEvent *);
 
     Ui::MainWindow *ui;
     std::shared_ptr<DebuggerWindow> debuggerWindow;
-    std::shared_ptr<EmuWindow> emuWindow;
+    std::shared_ptr<EmuView> emuView;
 };
 
 #endif // MAINWINDOW_H

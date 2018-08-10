@@ -5,6 +5,7 @@
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include <QGraphicsView>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -13,12 +14,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    emuWindow = std::make_shared<EmuWindow>(this, ui->graphicsView);
-    ui->graphicsView->setScene(emuWindow->emuScene);
+    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
+    ui->graphicsView->hide();
 
     connect(ui->actionOpen_Debugger, &QAction::triggered, [&]()
     {
-        debuggerWindow = std::make_shared<DebuggerWindow>(this, emuWindow);
+        debuggerWindow = std::make_shared<DebuggerWindow>(this, emuView);
     });
 }
 
@@ -29,20 +30,26 @@ MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    emuWindow = std::make_shared<EmuWindow>(this, ui->graphicsView);
-    ui->graphicsView->setScene(emuWindow->emuScene);
+    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
 
     connect(ui->actionOpen_Debugger, &QAction::triggered, [&]()
     {
-        debuggerWindow = std::make_shared<DebuggerWindow>(this, emuWindow);
+        if (debuggerWindow)
+        {
+            debuggerWindow->show();
+        }
+        else
+        {
+            debuggerWindow = std::make_shared<DebuggerWindow>(this, emuView);
+        }
     });
 }
 
 MainWindow::~MainWindow()
 {
-    if (emuWindow)
+    if (emuView)
     {
-        emuWindow.reset();
+        emuView.reset();
     }
 
     delete ui;
@@ -60,12 +67,20 @@ void MainWindow::dropEvent(QDropEvent * e)
 {
     for (const QUrl & url : e->mimeData()->urls())
     {
-        QString filename = url.toLocalFile();
-        emuWindow->setupEmulator(filename.toStdString());
-    }
-}
+        ui->graphicsView->show();
 
-void MainWindow::resizeEvent(QResizeEvent * e)
-{
-    ui->graphicsView->resize(e->size());
+        QString filename = url.toLocalFile();
+
+        if (debuggerWindow)
+        {
+            emuView->setupEmulator(filename.toStdString(), true);   // Run in debug mode
+            debuggerWindow->initEmulatorConnections(emuView->emu);
+        }
+        else
+        {
+            emuView->setupEmulator(filename.toStdString());         // Run in normal mode
+            emuView->runEmulator();
+        }
+        emuView->connectEmulatorSignals();
+    }
 }

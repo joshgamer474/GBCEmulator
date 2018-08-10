@@ -25,19 +25,28 @@ extern "C" {
 }
 
 
-class GBCEmulator {
+class GBCEmulator
+{
 
 public:
 
-    GBCEmulator(const std::string romName, const std::string logName="log.txt");
+    GBCEmulator(const std::string romName, const std::string logName="log.txt", bool debugMode=false);
     virtual ~GBCEmulator();
 
     void set_logging_level(spdlog::level::level_enum l);
     void run();
+    void runNextInstruction();
+    void runTo(uint16_t pc);
     void stop();
+    void setStopRunning(bool val);
     bool frame_is_ready();
     SDL_Color * get_frame();
+    std::shared_ptr<CPU> get_CPU();
+    std::vector<uint8_t> get_memory_map();
 
+    bool ranInstruction;
+    bool debugMode;
+    bool isInitialized;
     SDL_Window *window;
 
 private:

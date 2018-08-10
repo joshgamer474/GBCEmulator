@@ -4,20 +4,28 @@
 #include <QDragEnterEvent>
 #include <QMimeData>
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
-    :   QObject(parent),
-        emuView(graphicsView),
-        emuScene(new QGraphicsScene(this))
+EmuView::EmuView(QObject * parent)
+    : QGraphicsScene(parent)
 {
+
+}
+
+EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
+    :   QGraphicsScene(parent),
+        emuView(graphicsView)
+{
+    emuView->setScene(this);
+
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
 }
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
-    :   QObject(parent),
-        emuView(graphicsView),
-        emuScene(new QGraphicsScene(this))
+    : QGraphicsScene(parent),
+        emuView(graphicsView)
 {
+    emuView->setScene(this);
+
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
     setupEmulator(filename);
@@ -28,28 +36,50 @@ EmuView::~EmuView()
     if (emu)
     {
         emu->stop();
-        thread.join();
+        if (thread)
+        {
+            thread->join();
+        }
         emu.reset();
     }
 }
 
-void EmuView::setupEmulator(std::string filename)
+void EmuView::setupEmulator(std::string filename, bool debugMode)
 {
     if (emu)
     {
         emu->stop();
-        thread.join();
+        thread->join();
         emu.reset();
     }
 
-    emu = std::make_shared<GBCEmulator>(filename, filename + ".log");
+    emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
 }
 
 void EmuView::runEmulator()
 {
-    thread = std::thread([&]()
+    if (thread)
+    {
+        thread->join();
+        thread.reset();
+    }
+
+    thread = std::make_shared<std::thread>([&]()
     {
         emu->run();
+    });
+}
+
+void EmuView::runTo(uint16_t next_pc)
+{
+    if (thread)
+    {
+        thread->join();
+        thread.reset();
+    }
+    thread = std::make_shared<std::thread>([&]()
+    {
+        emu->runTo(next_pc);
     });
 }
 
@@ -63,10 +93,9 @@ void EmuView::connectEmulatorSignals()
             frame = QImage((unsigned char *)emu->get_frame(), SCREEN_PIXEL_W, SCREEN_PIXEL_H, QImage::Format_ARGB32);
             QPixmap pixels = QPixmap::fromImage(frame);
             pixels = pixels.scaled(pixels.size() * scaleFrameToFit());
-            emuScene->clear();
-            emuScene->addPixmap(pixels);
-            emuScene->setSceneRect(pixels.rect());
-            emuScene->fitInView
+            this->clear();
+            this->addPixmap(pixels);
+            this->setSceneRect(pixels.rect());
         }
     });
     frameCheckTimer.start(1);
@@ -86,4 +115,9 @@ uint8_t EmuView::scaleFrameToFit()
 
     // Return smallest scale ratio
     return (widthScale > heightScale) ? heightScale : widthScale;
+}
+
+QGraphicsScene* EmuView::getThis()
+{
+    return this;
 }

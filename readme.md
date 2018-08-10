@@ -19,11 +19,7 @@ The emulator currently passes all of blargg's cpu instruction tests.
 
 ```pip install conan```
 
-```git clone https://github.com/joshgamer474/conan-SDL```
-
-```cd conan-SDL```
-
-```conan export conanfile.py josh/stable```
+```conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan```
 
 ### Building
 
@@ -35,13 +31,25 @@ The emulator currently passes all of blargg's cpu instruction tests.
 
 ```conan build . --build-folder build```
 
+## Building Qt wrapped GBCEmulator
+
+```git clone https://github.com/joshgamer474/GBCEmulator.git```
+
+```cd GBCEmulator/qt_wrap```
+
+```conan install . --install-folder build```
+
+```conan build . --build-folder build```
+
 ### How to use
-Drag and drop your favorite rom into the built GBCEmulator.exe
+Drag and drop your favorite rom into the built GBCEmulator.exe or into GBCEmulator_qt.exe
 
 
 ## Issues
 
-Games currently do not boot as they get stuck in an infinite instruction loop.
+Most Games currently do not boot as they get stuck in an infinite instruction loop.
+
+Dr. Mario currently boots (!).
 
 
 # TODO

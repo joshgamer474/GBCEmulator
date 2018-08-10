@@ -18,6 +18,9 @@ Memory::Memory()
 	prev_clock_div = prev_clock_tima = curr_clock = 0;
 	clock_frequency = 0;
 
+    interrupt_flag = false;
+    interrupt_enable = false;
+
 	initWorkRAM(false);
 }
 

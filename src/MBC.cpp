@@ -174,7 +174,7 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
-		return romBanks[curr_rom_bank][pos - 0x4000];
+		return romBanks[curr_rom_bank % num_rom_banks][pos - 0x4000];
 
 		// External RAM
 	case 0xA000:
@@ -202,44 +202,59 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 		// 0x0000 - 0x1FFF : Set RAM enable
 		if ((pos & 0xF000) < 0x2000)
 		{
-			if ((val & 0x0F) == 0x0A)
-				external_ram_enabled = true;
-			else
-				external_ram_enabled = false;
+            if ((val & 0x0F) == 0x0A)
+            {
+                external_ram_enabled = true;
+            }
+            else
+            {
+                external_ram_enabled = false;
+            }
 		}
 		else
 		{
 		// 0x2000 - 0x3FFF : Set ROM bank number
 
-			if (mbc_num == 1)
-				curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
-			else if (mbc_num == 2 && (pos & 0x0100) > 0)
-				curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
-			else if (mbc_num == 3)
+            if (mbc_num == 1)
+            {
+                curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
+            }
+            else if (mbc_num == 2 && (pos & 0x0100) > 0)
+            {
+                curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
+            }
+            else if (mbc_num == 3)
 			{
 				curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
 
 				// Write the RAM bank number to this address (?) http://gbdev.gg8.se/wiki/articles/MBC3
-				romBanks[curr_rom_bank][pos] = curr_ram_bank;
+				romBanks[curr_rom_bank % num_rom_banks][pos] = curr_ram_bank;
 
 			}
 			
-			
-			if (mbc_num == 5)
-			{
-				if ((pos & 0xF000) < 0x3000)
-					curr_rom_bank = (curr_rom_bank & 0x0100) | val;	// Set lower 8 bits of ROM bank number
-				else
-					curr_rom_bank = (curr_rom_bank & 0x00FF) | ((val & 0x01) << 8);// Set upper bit of ROM bank number
-			}
+            if (mbc_num == 5)
+            {
+                if ((pos & 0xF000) < 0x3000)
+                {
+                    curr_rom_bank = (curr_rom_bank & 0x0100) | val;	// Set lower 8 bits of ROM bank number
+                }
+                else
+                {
+                    curr_rom_bank = (curr_rom_bank & 0x00FF) | ((val & 0x01) << 8);// Set upper bit of ROM bank number
+                }
+            }
 
 			// Don't use ROM banks 0x00, 0x20, 0x40, or 0x60
-			if ((mbc_num == 1 || mbc_num) == 3 && 
-				((val & 0x1F) == 0x00 ||
-				(val & 0x1F) == 0x20 ||
-				(val & 0x1F) == 0x40 ||
-				(val & 0x1F) == 0x60))
-				curr_rom_bank += 1;
+            if ((mbc_num == 1 || mbc_num) == 3 &&
+                ((val & 0x1F) == 0x00 ||
+                (val & 0x1F) == 0x20 ||
+                (val & 0x1F) == 0x40 ||
+                (val & 0x1F) == 0x60))
+            {
+                curr_rom_bank += 1;
+            }
+
+            curr_rom_bank %= curr_rom_bank;
 		}
 		break;
 
@@ -258,12 +273,12 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 			// Set upper bits of ROM bank number
 			if (rom_banking_mode && mbc_num == 1)
 			{
-				curr_rom_bank = (curr_rom_bank & 0x001F) | ((val & 0x03) << 5);
+				curr_rom_bank = ((curr_rom_bank & 0x001F) | ((val & 0x03) << 5)) % num_rom_banks;
 			}
 			else	// Set RAM bank number 
 			{
 				/// TODO: MBC3 RTC Register select
-				curr_ram_bank = (val & 0x0F);
+				curr_ram_bank = (val & 0x0F) % num_ram_banks;
 			}
 		}
 		else
@@ -298,7 +313,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xB000:
 
 		/// Currently not supporting MBC2
-		ramBanks[curr_ram_bank][pos - 0xA000] = val;
+		ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
 		break;
 
 
