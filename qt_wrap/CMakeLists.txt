@@ -37,19 +37,22 @@ set(GBC_SOURCE
 
 set(QT_UIS
     src/mainwindow.ui
-    src/debuggerwindow.ui)
+    src/debuggerwindow.ui
+    src/vramwindow.ui)
         
 set(QT_HEADERS
     src/mainwindow.h
     src/emuview.h
     src/debuggerwindow.h
-    src/hexwidget.h)
+    src/hexwidget.h
+    src/vramwindow.h)
         
 set(QT_SOURCE
     src/mainwindow.cpp
     src/emuview.cpp
     src/debuggerwindow.cpp
-    src/hexwidget.cpp)
+    src/hexwidget.cpp
+    src/vramwindow.cpp)
         
 set(QT_RUN_SOURCE
     src/main.cpp) 

@@ -40,6 +40,7 @@ GPU::GPU(SDL_Renderer *render)
 	auto_increment_sprite_palette_index = false;
 
     frame_is_ready = false;
+    bg_tiles_updated = false;
 }
 
 
@@ -331,10 +332,14 @@ void GPU::renderLineTwo()
 	// Which line of pixels to use in the tiles
 	int y = (lcd_y + scroll_y) & 0x07;
 
-	if (lcd_y == 0)
-		y_roll_over = 0;
-	else if (y == 0)
-		y_roll_over++;
+    if (lcd_y == 0)
+    {
+        y_roll_over = 0;
+    }
+    else if (y == 0)
+    {
+        y_roll_over++;
+    }
 
 	// Where in the tile line to start
 	int x = scroll_x & 0x07;
@@ -355,43 +360,14 @@ void GPU::renderLineTwo()
 	unsigned char *pixel_row = NULL;
 	std::uint8_t tile_block_num;
 
-	// Find which tile block should be used
-	if (bg_tile_data_select_method == 1)
-	{
-		if (use_tile_num < 128)
-		{
-			tile_block_num = 0;
-		}
-		else
-		{
-			tile_block_num = 1;
-		}
-	}
-	else
-	{
-		if (use_tile_num < 128)
-		{
-			tile_block_num = 2;
-		}
-		else
-		{
-			tile_block_num = 1;
-		}
-	}
+    // Find which tile block should be used
+    tile_block_num = getTileBlockNum(use_tile_num);
 
-	// Get the tile
-	if (use_tile_num < 128)
-	{
-		tile = &bg_tiles[tile_block_num][use_tile_num];
-	}
-	else
-	{
-		tile = &bg_tiles[tile_block_num][use_tile_num - 128];
-	}
+    // Get the tile
+    tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
 	// Get pixel row from tile
 	tile->getPixelRow(y, &pixel_row);
-
 
 	std::uint16_t tile_x_roll_over = actual_screen_tile_num + (SCREEN_PIXEL_W / 8);
 	std::uint16_t max_tile_x_roll_over = ((y_tile_offset + y_roll_over) * 32) + 31;
@@ -409,10 +385,11 @@ void GPU::renderLineTwo()
 			if (pixel_row != NULL)
 			{
 				frame[i + (lcd_y * SCREEN_PIXEL_W)] = bg_palette_color[pixel_row[x]];
-
-				//if (pixel_row[x] != 0)
-				//	logger->info("yo");
 			}
+            else
+            {
+                logger->warn("pixel_row == NULL..");
+            }
 
 			x++;
 
@@ -438,15 +415,11 @@ void GPU::renderLineTwo()
 				use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];		// Get tile number from tile map
 				actual_screen_tile_num = map_tile_num_offset - original_tile_map_offset;
 
+                // Find which tile block should be used
+                tile_block_num = getTileBlockNum(use_tile_num);
+
 				// Get the tile
-				if (use_tile_num < 128)
-				{
-					tile = &bg_tiles[tile_block_num][use_tile_num];
-				}
-				else
-				{
-					tile = &bg_tiles[tile_block_num][use_tile_num - 128];
-				}
+                tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
 				// Get pixel row from tile
 				tile->getPixelRow(y, &pixel_row);
@@ -454,6 +427,50 @@ void GPU::renderLineTwo()
 		}
 
 	}
+}
+
+uint8_t GPU::getTileBlockNum(int use_tile_num)
+{
+    uint8_t tile_block_num = 0;
+
+    if (bg_tile_data_select_method == 1)
+    {
+        if (use_tile_num < 128)
+        {
+            tile_block_num = 0;
+        }
+        else
+        {
+            tile_block_num = 1;
+        }
+    }
+    else
+    {
+        if (use_tile_num < 128)
+        {
+            tile_block_num = 2;
+        }
+        else
+        {
+            tile_block_num = 1;
+        }
+    }
+    return tile_block_num;
+}
+
+Tile * GPU::getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num)
+{
+    Tile * tile;
+
+    if (use_tile_num < 128)
+    {
+        tile = &bg_tiles[tile_block_num][use_tile_num];
+    }
+    else
+    {
+        tile = &bg_tiles[tile_block_num][use_tile_num - 128];
+    }
+    return tile;
 }
 
 void GPU::renderLine()
@@ -742,10 +759,17 @@ void GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_bloc
 		tile_num = std::floor(byte_pos / NUM_BYTES_PER_TILE);
 		tile = &bg_tiles[tile_block_num][tile_num];
 		tile->updateRawData(byte_pos % 16, val);
+        bg_tiles_updated = true;
 	}
 }
 
 const SDL_Color * GPU::getFrame()
 {
     return frame;
+}
+
+const std::vector<std::vector<Tile>> & GPU::getBGTiles()
+{
+    bg_tiles_updated = false;
+    return bg_tiles;
 }

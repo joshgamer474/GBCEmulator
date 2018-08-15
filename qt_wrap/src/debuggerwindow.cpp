@@ -6,7 +6,8 @@
 DebuggerWindow::DebuggerWindow(QWidget *parent)
     :   QMainWindow(parent),
         ui(new Ui::DebuggerWindow),
-        hexWidget(new HexWidget(parent))
+        hexWidget(new HexWidget(parent)),
+        vramWindow(NULL)
 {
     ui->setupUi(this);
     ui->scrollArea->setWidget(hexWidget);
@@ -18,6 +19,7 @@ DebuggerWindow::DebuggerWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
     :   QMainWindow(parent),
         ui(new Ui::DebuggerWindow),
         hexWidget(new HexWidget(parent)),
+        vramWindow(NULL),
         emuView(emu)
 {
     ui->setupUi(this);
@@ -82,6 +84,19 @@ void DebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _emu)
             updateRegisterLabels();
             updateHexWidget();
             hexWidget->setCursor(cpu->get_register_16(CPU::PC));
+
+            if (vramWindow)
+            {
+                if (!vramWindow->gpu && emu)
+                {
+                    vramWindow->setGPU(emu->get_GPU());
+                }
+
+                if (vramWindow->gpu && vramWindow->gpu->bg_tiles_updated)
+                {
+                    vramWindow->updateTileViews();
+                }
+            }
         }
     });
     updateGUITimer.start(1);
@@ -172,6 +187,17 @@ void DebuggerWindow::connectToolbarButtons()
         {
             ui->lineEdit_RunTo->setText("Invalid position!");
         }
+    });
+
+    // Connect open VRAM Viewer button
+    connect(ui->actionOpenVRAMViewer, &QAction::triggered, [&]()
+    {
+        if (vramWindow)
+        {
+            delete vramWindow;
+        }
+
+        vramWindow = new VRAMWindow(this, emuView);
     });
 }
 

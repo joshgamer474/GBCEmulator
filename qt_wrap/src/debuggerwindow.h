@@ -6,6 +6,7 @@
 #include <src/emuview.h>
 #include <hexwidget.h>
 #include <CPU.h>
+#include <vramwindow.h>
 
 namespace Ui {
     class DebuggerWindow;
@@ -37,6 +38,7 @@ private:
 
     Ui::DebuggerWindow *ui;
     HexWidget *hexWidget;
+    VRAMWindow *vramWindow;
     std::shared_ptr<EmuView> emuView;
     std::shared_ptr<GBCEmulator> emu;
     std::shared_ptr<CPU> cpu;

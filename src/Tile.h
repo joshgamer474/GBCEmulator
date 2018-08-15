@@ -20,10 +20,10 @@ public:
 	Tile();
 	~Tile();
 
-	void updateRawData(std::uint8_t pos, std::uint8_t val);
-	void updatePixelRow(std::uint8_t row_num);
-	void getPixelRow(std::uint8_t row_num, unsigned char **row);
-
+	void updateRawData(uint8_t pos, uint8_t val);
+	void updatePixelRow(uint8_t row_num);
+	void getPixelRow(uint8_t row_num, unsigned char **row);
+    uint8_t getPixel(uint8_t row, uint8_t column);
 };
 
 

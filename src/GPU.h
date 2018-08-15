@@ -78,6 +78,11 @@ public:
     void printFrame();
     const SDL_Color * getFrame();
 
+    const std::vector<std::vector<Tile>> & getBGTiles();
+    const std::vector<int> & getUpdatedBGTileIndexes();
+    uint8_t getTileBlockNum(int use_tile_num);
+    Tile * getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num);
+
     // Reading and writing methods
     std::uint8_t readByte(std::uint16_t pos);
     void setByte(std::uint16_t pos, std::uint8_t val);
@@ -145,5 +150,6 @@ public:
 	std::shared_ptr<spdlog::logger> logger;
 
     bool frame_is_ready;
+    bool bg_tiles_updated;
 };
 #endif
