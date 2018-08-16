@@ -191,9 +191,9 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF44:	lcd_y = 0; break;				// Read only - Writing to this register resets the counter
 			case 0xFF45:	lcd_y_compare = val; break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
-			case 0xFF47:	bg_palette = val; set_color_palette(bg_palette_color, val); break;
-			case 0xFF48:	object_pallete0 = val; set_color_palette(object_palette0_color, val); break;
-			case 0xFF49:	object_pallete1 = val; set_color_palette(object_palette1_color, val); break;
+			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
+			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val); break;
+			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val); break;
 			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
 			case 0xFF4F:	curr_vram_bank = (val & 0x01); break;
@@ -350,8 +350,10 @@ void GPU::renderLineTwo()
 	tile_map_offset += (y_roll_over * 32);
 
 	map_tile_num_offset = tile_map_offset + tile_offset;				// Get offset of tile map
-	if (map_tile_num_offset >= original_tile_map_offset + 1024)			// Do a y-row rollover
-		map_tile_num_offset -= 1024;
+    if (map_tile_num_offset >= original_tile_map_offset + 1024)			// Do a y-row rollover
+    {
+        map_tile_num_offset -= 1024;
+    }
 	use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];		// Get tile number from tile map
 	actual_screen_tile_num = map_tile_num_offset - original_tile_map_offset;
 	logger->info("actual_screen_tile_num = {}", actual_screen_tile_num);
@@ -378,6 +380,7 @@ void GPU::renderLineTwo()
 		logger->info("yo");
 	}
 
+    // Draw row of pixels for background
 	if (bg_display_enable)
 	{
 		for (int i = 0; i < SCREEN_PIXEL_W; i++)
@@ -427,6 +430,59 @@ void GPU::renderLineTwo()
 		}
 
 	}
+
+    std::uint8_t color;
+
+    // Draw row of object pixels on top of the background
+    if (object_display_enable)
+    {
+        std::uint8_t curr_sprite;
+        std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
+        bool below_background, sprite_y_flip, sprite_x_flip, sprite_palette_num;
+
+        for (int i = 0; i < object_attribute_memory.size(); i += 4)
+        {
+            curr_sprite = i % 4;
+            sprite_y = object_attribute_memory[i] - 16;
+            sprite_x = object_attribute_memory[i + 1] - 8;
+            sprite_tile_num = object_attribute_memory[i + 2];
+            byte3 = object_attribute_memory[i + 3];
+
+            below_background    = byte3 & 0x80;
+            sprite_y_flip       = byte3 & 0x40;
+            sprite_x_flip       = byte3 & 0x20;
+            sprite_palette_num  = byte3 & 0x10;
+
+            // Check to see if sprite is rendered on current line
+            if (sprite_y <= lcd_y && (sprite_y + 8) > lcd_y)
+            {
+
+                // Find which tile block should be used
+                tile_block_num = getTileBlockNum(sprite_tile_num);
+
+                // Get the tile
+                tile = getTileFromBGTiles(tile_block_num, sprite_tile_num);
+
+                // Draw row of pixels
+                for (int x = 0; x < 8; x++)
+                {
+                    if ((sprite_x + x) >= 0 && (sprite_x + x) < SCREEN_PIXEL_W && !below_background)
+                    {
+                        color = tile->getPixel(y, x);
+
+                        if (sprite_palette_num == 0)
+                        {
+                            frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[color];
+                        }
+                        else
+                        {
+                            frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[color];
+                        }
+                    }
+                } // end for(x)
+            } // end if(y)
+        } //end for(sprite)
+    } // end if(object_display_enable)
 }
 
 uint8_t GPU::getTileBlockNum(int use_tile_num)
