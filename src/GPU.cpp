@@ -192,8 +192,8 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF45:	lcd_y_compare = val; break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
-			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val); break;
-			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val); break;
+			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val, true); break;
+			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val, true); break;
 			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
 			case 0xFF4F:	curr_vram_bank = (val & 0x01); break;
@@ -214,12 +214,22 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 }
 
 
-void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val)
+void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_transparant)
 {
 	unsigned char color_val = 0;
+    unsigned char alpha = 255;
 
 	for (int i = 0; i < 4; i++)
 	{
+        if (i == 0 && zero_is_transparant)
+        {   // First two bits (i == 0) for object_palettes are transparent, e.g. alpha = max
+            alpha = 0;
+        }
+        else
+        {
+            alpha = 255;
+        }
+
 		switch ((val >> (i * 2)) & 3)
 		{
 		case 0: color_val = 255; break;
@@ -227,7 +237,7 @@ void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val)
 		case 2: color_val = 96; break;
 		case 3: color_val = 0; break;
 		}
-		palette[i] = { color_val, color_val, color_val, 255 };
+		palette[i] = { color_val, color_val, color_val, alpha };
 	}
 }
 

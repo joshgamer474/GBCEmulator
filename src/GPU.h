@@ -45,7 +45,7 @@ public:
 	SDL_Color bg_palette_color[4];
 	SDL_Color object_palette0_color[4];
 	SDL_Color object_palette1_color[4];
-	void set_color_palette(SDL_Color *palette, std::uint8_t val);
+	void set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_transparent = false);
 
 
 	struct TILE
