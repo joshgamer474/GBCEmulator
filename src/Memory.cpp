@@ -364,7 +364,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			// 0xFFFF : Interrupt Enable Register
 			/// TODO:
 			/*
-				 Bit 0: V-Blank  Interrupt Enable  (INT 40h)  (1=Enable)
+			 Bit 0: V-Blank  Interrupt Enable  (INT 40h)  (1=Enable)
 			 Bit 1: LCD STAT Interrupt Enable  (INT 48h)  (1=Enable)
 			 Bit 2: Timer    Interrupt Enable  (INT 50h)  (1=Enable)
 			 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
@@ -474,7 +474,7 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 		if (timer_counter > 0xFF)
 		{
 			timer_counter = timer[2];
-			interrupt_flag |= 0x04;
+			interrupt_flag |= INTERRUPT_TIMER;
 		}
 		prev_clock_tima = curr_clock;
 		timer[1] = (timer_counter & 0xFF);

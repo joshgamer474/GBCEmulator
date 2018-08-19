@@ -21,6 +21,7 @@ public:
 private:
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);
+    void keyPressEvent(QKeyEvent *);
 
     Ui::MainWindow *ui;
     std::shared_ptr<DebuggerWindow> debuggerWindow;

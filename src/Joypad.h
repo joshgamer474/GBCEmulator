@@ -23,7 +23,7 @@ public:
 	Joypad();
 	~Joypad();
 
-	enum BUTTONS
+	enum BUTTON
 	{
 		DOWN,
 		UP,
@@ -36,7 +36,7 @@ public:
 		NONE
 	};
 
-	void set_joypad_button(BUTTONS button);
+	void set_joypad_button(BUTTON button);
 	void set_joypad_byte(std::uint8_t val);
 	std::uint8_t get_joypad_byte();
 	void check_keyboard_input(SDL_Event *e);

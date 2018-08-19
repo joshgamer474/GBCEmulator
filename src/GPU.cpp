@@ -712,10 +712,8 @@ void GPU::run()
 			lcd_y++;
 
 			// Check if frame rendering has completed, start VBLANK interrupt
-			if (lcd_y == 144)
+			if (lcd_y >= 144)
 			{
-				//if (memory->interrupt_enable & INTERRUPT_VBLANK)
-				//	memory->interrupt_flag |= INTERRUPT_VBLANK;
 				memory->interrupt_flag |= INTERRUPT_VBLANK;
 				gpu_mode = GPU_MODE_VBLANK;
 			}
@@ -776,10 +774,14 @@ void GPU::run()
 		break;
 	}
 
-	if (lcd_y == lcd_y_compare)
-		set_lcd_status_coincidence_flag(true);
-	else
-		set_lcd_status_coincidence_flag(false);
+    if (lcd_y == lcd_y_compare)
+    {
+        set_lcd_status_coincidence_flag(true);
+    }
+    else
+    {
+        set_lcd_status_coincidence_flag(false);
+    }
 
 	if (gpu_mode != GPU_MODE_NONE)
 		set_lcd_status_mode_flag((GPU_MODE)gpu_mode);

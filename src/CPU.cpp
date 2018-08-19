@@ -270,7 +270,6 @@ std::uint8_t CPU::getInstruction()
 	// Check for interrupts
     checkJoypadForInterrupt();
 
-	//if (interrupts_enabled & memory->interrupt_flag)
 	if (memory->interrupt_flag & memory->interrupt_enable)
 	{
 		if (interrupts_enabled)

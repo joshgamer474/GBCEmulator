@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <string>
 #include <GBCEmulator.h>
+#include <Joypad.h>
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
@@ -82,5 +83,27 @@ void MainWindow::dropEvent(QDropEvent * e)
             emuView->runEmulator();
         }
         emuView->connectEmulatorSignals();
+    }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent * e)
+{
+    if (!emuView || !emuView->emu)
+    {
+        return;
+    }
+
+    switch (e->key())
+    {
+    case Qt::Key_W: emuView->emu->set_joypad_button(Joypad::UP); break;
+    case Qt::Key_S: emuView->emu->set_joypad_button(Joypad::DOWN); break;
+    case Qt::Key_A: emuView->emu->set_joypad_button(Joypad::LEFT); break;
+    case Qt::Key_D: emuView->emu->set_joypad_button(Joypad::RIGHT); break;
+    case Qt::Key_Z: emuView->emu->set_joypad_button(Joypad::A); break;
+    case Qt::Key_X: emuView->emu->set_joypad_button(Joypad::B); break;
+    case Qt::Key_N: emuView->emu->set_joypad_button(Joypad::START); break;
+    case Qt::Key_M: emuView->emu->set_joypad_button(Joypad::SELECT); break;
+    default:
+        break;
     }
 }

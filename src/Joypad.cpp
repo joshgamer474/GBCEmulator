@@ -13,13 +13,13 @@ Joypad::~Joypad()
 }
 
 
-void Joypad::set_joypad_button(BUTTONS button)
+void Joypad::set_joypad_button(BUTTON button)
 {
 	std::uint8_t val = 0;
 
 	if (button <= RIGHT)
 	{
-		val |= BIT5;
+		val |= BIT4;
 	}
 	else
 	{
@@ -65,7 +65,7 @@ std::uint8_t Joypad::get_joypad_byte()
 
 void Joypad::check_keyboard_input(SDL_Event *e)
 {
-	BUTTONS b = NONE;
+	BUTTON b = NONE;
 	if (e->key.keysym.sym == SDLK_RIGHT)
 		b = RIGHT;
 	else if (e->key.keysym.sym == SDLK_LEFT)
