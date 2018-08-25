@@ -421,6 +421,8 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 
 void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 {
+	uint32_t old_clock_frequency = clock_frequency;
+
 	switch (addr)
 	{
 	case 0xFF04:
@@ -445,6 +447,12 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 		// Bit 2
 		timer_enabled = (val & 0x04);
+
+		// Reset timer when TIMA clock_frequncy gets updated
+		if (old_clock_frequency != clock_frequency)
+		{
+			prev_clock_tima = curr_clock;
+		}
 	}
 }
 
@@ -452,7 +460,7 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 {
 	// Update 0xFF04
-	std::uint8_t divider_reg = timer[0];
+	std::uint8_t & divider_reg = timer[0];
 	std::uint16_t timer_counter = timer[1];
 	curr_clock = ticks;
     std::uint64_t clock_div_rate = clock_speed / TIMER_DIV_RATE;
@@ -463,8 +471,6 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 		divider_reg++;
         prev_clock_div = curr_clock - (clock_diff - clock_div_rate);
         clock_diff = curr_clock - prev_clock_div;
-
-		timer[0] = divider_reg;
 	}
 
 	// Update 0xFF05

@@ -254,7 +254,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
                 curr_rom_bank += 1;
             }
 
-            curr_rom_bank %= curr_rom_bank;
+            curr_rom_bank %= num_rom_banks;
 		}
 		break;
 

@@ -22,7 +22,7 @@ class GBCEmulator_qt(ConanFile):
         lib_dest = os.getenv("CONAN_IMPORT_PATH", "lib")
         self.copy("Qt*.dll", src="bin", dst=bin_dest)
         self.copy("SDL*.dll", src="bin", dst=bin_dest)
-        self.copy("qwindows.dll", src="plugins/platforms", dst=bin_dest + os.sep + "platforms")
+        self.copy("qwindows*.dll", src="plugins/platforms", dst=bin_dest + os.sep + "platforms")
         if self.options.shared == False:
             self.copy("*.lib", src="lib", dst=lib_dest)
         self.keep_imports = True

@@ -29,6 +29,10 @@ void CPU::runNextInstruction()
     {
         std::uint16_t pc = get_register_16(CPU::REGISTERS::PC);
         runInstruction(getInstruction());
+
+		// Update timer
+		memory->updateTimer(this->ticks, CLOCK_SPEED);
+
 #ifdef ENABLE_DEBUG_PRINT
         printRegisters();
 #endif
@@ -3065,8 +3069,18 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x04:
         case 0x05:
         case 0x06:
+			ret = "LD " + REGISTERS_STR[regPattern1] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+			break;
         case 0x07:
-            ret = "LD " + REGISTERS_STR[regPattern1] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+			if (lower8 <= 0x05)
+			{
+				ret = "LD (HL), " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+			}
+			else
+			{
+				ret = "LD A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+			}
+			break;
 
         case 0x08:
             if (lower8 <= 0x07)
@@ -3142,7 +3156,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
             else if (upper8 >= 0xC)
             {
-                ret = "POP " + REGISTERS_STR[upper8]; break;
+                ret = "POP " + REGISTERS_STR[upper8 - 0xC]; break;
             }
 
         case 0x02:
@@ -3232,6 +3246,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
                 case 0xE: ret = "AND d8"; break;
                 case 0xF: ret = "OR d8"; break;
                 }
+				break;
             }
 
         case 0x07:
@@ -3297,30 +3312,42 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
 
         case 0x0C:
-            if (upper8 >= 0 && upper8 <= 0x3)
+            if (upper8 >= 0 && upper8 <= 0x2)
             {
                 ret = "INC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
             }
+			else if (upper8 == 0x3)
+			{
+				ret = "INC A"; break;
+			}
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
                 ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", a16"; break;
             }
 
         case 0x0D:
-            if (upper8 >= 0 && upper8 <= 0x3)
+            if (upper8 >= 0 && upper8 <= 0x2)
             {
                 ret = "DEC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
             }
+			else if (upper8 == 0x3)
+			{
+				ret = "DEC A"; break;
+			}
             else if (upper8 == 0xC)
             {
                 ret = "CALL a16"; break;
             }
 
         case 0x0E:
-            if (upper8 >= 0 && upper8 <= 0x3)
+            if (upper8 >= 0 && upper8 <= 0x2)
             {
                 ret = "LD " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)] + ", d8"; break;
-            }
+			}
+			else if (upper8 == 0x3)
+			{
+				ret = "LD A, d8"; break;
+			}
 
         case 0x0F:
             if (upper8 >= 0xC)
