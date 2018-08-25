@@ -4,6 +4,8 @@
 #include "Joypad.h"
 #include "CartridgeReader.h"
 #include "Debug.h"
+#include <iomanip>
+#include <sstream>
 
 CPU::CPU()
 {
@@ -1085,18 +1087,37 @@ void CPU::setByteToMemory(uint16_t addr, uint8_t val)
 	memory->setByte(addr, val);
 }
 
-
-
-uint16_t CPU::getNextTwoBytes()
+// Assumes that PC has not already been incremented
+uint8_t CPU::peekNextByte()
 {
-	std::uint16_t d16 = 0x0000;
-	d16 |= getByteFromMemory(PC);
-	registers[PC]++;
-	d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(PC)) << 8) & 0xFF00);
-	registers[PC]++;
-	return d16;
+    return getByteFromMemory(get_register_16(PC) + 1);
 }
 
+// Assumes that PC has not already been incremented
+int8_t CPU::peekNextByteSigned()
+{
+    return static_cast<int8_t>(getByteFromMemory(get_register_16(PC) + 1));
+}
+
+// Assumes that PC has not already been incremented
+uint16_t CPU::peekNextTwoBytes()
+{
+    std::uint16_t d16 = 0x0000;
+    d16 |= getByteFromMemory(get_register_16(PC) + 1);
+    d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(get_register_16(PC) + 2)) << 8) & 0xFF00);
+    return d16;
+}
+
+// Assumes that PC has already been incremented
+uint16_t CPU::getNextTwoBytes()
+{
+    std::uint16_t d16 = 0x0000;
+    d16 |= getByteFromMemory(PC);
+    registers[PC]++;
+    d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(PC)) << 8) & 0xFF00);
+    registers[PC]++;
+    return d16;
+}
 
 
 
@@ -3039,24 +3060,24 @@ std::string CPU::getOpcodeString(uint8_t opcode)
     case 0xCB: ret = "PREFIX CB, " + getOpcodeStringCB(getByteFromMemory(get_register_16(PC) + 1)); break;
     case 0xF3: ret = "DI"; break;
     case 0xFB: ret = "EI"; break;
-    case 0xC3: ret = "JP a16"; break;
+    case 0xC3: ret = "JP " + numToHex(peekNextTwoBytes()); break;
     case 0x07: ret = "RLCA"; break;
     case 0x17: ret = "RLA"; break;
     case 0x27: ret = "DAA"; break;
     case 0x37: ret = "SCF"; break;
-    case 0x08: ret = "LD (a16), SP"; break;
-    case 0xE8: ret = "ADD SP, r8"; break;
-    case 0xF8: ret = "LD HL, SP+r8"; break;
+    case 0x08: ret = "LD (" + numToHex(peekNextTwoBytes()) + "), SP"; break;
+    case 0xE8: ret = "ADD SP, " + numToHex(peekNextByteSigned()); break;
+    case 0xF8: ret = "LD HL, SP+" + numToHex(peekNextByteSigned()); break;
     case 0xC9: ret = "RET"; break;
     case 0xD9: ret = "RETI"; break;
     case 0xE9: ret = "JP (HL)"; break;
     case 0xF9: ret = "LD SP, HL"; break;
-    case 0xEA: ret = "LD (a16), A"; break;
-    case 0xFA: ret = "LD A, (a16)"; break;
-    case 0xCE: ret = "ADC A, d8"; break;
-    case 0xDE: ret = "SBC A, d8"; break;
-    case 0xEE: ret = "XOR d8"; break;
-    case 0xFE: ret = "CP d8"; break;
+    case 0xEA: ret = "LD (" + numToHex(peekNextTwoBytes()) + "), A"; break;
+    case 0xFA: ret = "LD A, (" + numToHex(peekNextTwoBytes()) + ")"; break;
+    case 0xCE: ret = "ADC A, " + numToHex(peekNextByte()); break;
+    case 0xDE: ret = "SBC A, " + numToHex(peekNextByte()); break;
+    case 0xEE: ret = "XOR " + numToHex(peekNextByte()); break;
+    case 0xFE: ret = "CP " + numToHex(peekNextByte()); break;
     case 0x0F: ret = "RRCA"; break;
     case 0x1F: ret = "RRA"; break;
     case 0x2F: ret = "CPL"; break;
@@ -3130,7 +3151,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x00:
             if (upper8 >= 0x2 && upper8 <= 0x3)
             {
-                ret = "JR " + FLAGTYPES_STR[upper8 - 2] + ", r8"; break;
+                ret = "JR " + FLAGTYPES_STR[upper8 - 2] + ", " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
             }
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
@@ -3138,21 +3159,21 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
             else if (upper8 == 0xE)
             {
-                ret = "LDH (a8), A"; break;
+                ret = "LD (0xFF00 + " + numToHex(peekNextByte()) + "), A"; break;
             }
             else if (upper8 == 0xF)
             {
-                ret = "LDH A, (a8)"; break;
+                ret = "LD A, (0xFF00 + " + numToHex(peekNextByte()) + ")"; break;
             }
 
         case 0x01:
             if (upper8 <= 0x2)
             {
-                ret = "LD " + REGISTERS_STR[upper8] + ", d16"; break;
+                ret = "LD " + REGISTERS_STR[upper8] + ", " + numToHex(peekNextTwoBytes()); break;
             }
             else if (upper8 == 0x3)
             {
-                ret = "LD SP, d16"; break;
+                ret = "LD SP, " + numToHex(peekNextTwoBytes()); break;
             }
             else if (upper8 >= 0xC)
             {
@@ -3162,7 +3183,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x02:
             if (upper8 <= 0x1)
             {
-                ret = "LD (" + REGISTERS_STR[upper8] + temp + "), A"; break;
+                ret = "LD (" + REGISTERS_STR[upper8] + "), A"; break;
             }
             else if (upper8 >= 0x2 && upper8 <= 0x3)
             {
@@ -3179,7 +3200,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
-                ret = "JP " + REGISTERS_STR[upper8 - 0xC] + ", a16"; break;
+                ret = "JP " + REGISTERS_STR[upper8 - 0xC] + ", " + numToHex(peekNextTwoBytes()); break;
             }
             else if (upper8 == 0xE)
             {
@@ -3211,7 +3232,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
-                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xC] + ", a16"; break;
+                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xC] + ", " + numToHex(peekNextTwoBytes()); break;
             }
 
         case 0x05:
@@ -3231,20 +3252,20 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x06:
             if (upper8 <= 0x2)
             {
-                ret = "LD " + REGISTERS_STR[upper8] + ", d8"; break;
+                ret = "LD " + REGISTERS_STR[upper8] + ", " + numToHex(peekNextByte()); break;
             }
             else if (upper8 == 0x3)
             {
-                ret = "LD (HL), d8"; break;
+                ret = "LD (HL), " + numToHex(peekNextByte()); break;
             }
             else
             {
                 switch (upper8)
                 {
-                case 0xC: ret = "ADD A, d8"; break;
-                case 0xD: ret = "SUB d8"; break;
-                case 0xE: ret = "AND d8"; break;
-                case 0xF: ret = "OR d8"; break;
+                case 0xC: ret = "ADD A, " + numToHex(peekNextByte()); break;
+                case 0xD: ret = "SUB "  + numToHex(peekNextByte()); break;
+                case 0xE: ret = "AND "  + numToHex(peekNextByte()); break;
+                case 0xF: ret = "OR "   + numToHex(peekNextByte()); break;
                 }
 				break;
             }
@@ -3258,11 +3279,11 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x08:
             if (upper8 == 0x1)
             {
-                ret = "JR r8"; break;
+                ret = "JR " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
             }
             else if (upper8 >= 0x2 && upper8 <= 0x3)
             {
-                ret = "JR " + FLAGTYPES_STR[upper8] + ", r8"; break;
+                ret = "JR " + FLAGTYPES_STR[upper8] + ", " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
             }
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
@@ -3298,7 +3319,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             }
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
-                ret = "JP " + FLAGTYPES_STR[upper8 - 0xA] + ", a16"; break;
+                ret = "JP " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes()); break;
             }
 
         case 0x0B:
@@ -3322,7 +3343,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
 			}
             else if (upper8 >= 0xC && upper8 <= 0xD)
             {
-                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", a16"; break;
+                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes());; break;
             }
 
         case 0x0D:
@@ -3336,17 +3357,17 @@ std::string CPU::getOpcodeString(uint8_t opcode)
 			}
             else if (upper8 == 0xC)
             {
-                ret = "CALL a16"; break;
+                ret = "CALL " + numToHex(peekNextTwoBytes());; break;
             }
 
         case 0x0E:
             if (upper8 >= 0 && upper8 <= 0x2)
             {
-                ret = "LD " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)] + ", d8"; break;
+                ret = "LD " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)] + ", " + numToHex(peekNextByte()); break;
 			}
 			else if (upper8 == 0x3)
 			{
-				ret = "LD A, d8"; break;
+				ret = "LD A, " + numToHex(peekNextByte()); break;
 			}
 
         case 0x0F:
@@ -3516,4 +3537,32 @@ uint8_t CPU::getInstructionSize(uint8_t opcode)
     }
 
     return instructionLength;
+}
+
+template <typename T>
+std::string CPU::numToHex(T number)
+{
+    std::stringstream stream;
+    stream << "0x"
+        << std::setfill('0') << std::setw(sizeof(T) * 2)
+        << std::uppercase
+        << std::hex;
+
+    if (sizeof(T) == 1)
+    {
+        if (std::is_unsigned<T>::value)
+        {
+            stream << static_cast<unsigned int>(number);
+        }
+        else
+        {
+            stream << static_cast<int>(number);
+        }
+    }
+    else
+    {
+        stream << number;
+    }
+
+    return stream.str();
 }

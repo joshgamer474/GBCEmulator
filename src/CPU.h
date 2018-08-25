@@ -213,8 +213,10 @@ public:
 	void POP(CPU::REGISTERS reg);
 	void PUSH(CPU::REGISTERS reg);
 
+    uint8_t peekNextByte();
+    int8_t peekNextByteSigned();
 	uint16_t getNextTwoBytes();
-
+    uint16_t peekNextTwoBytes();
 
 	/*
 		Prefix CB Opcodes
@@ -250,6 +252,9 @@ public:
     std::string getOpcodeStringCB(uint8_t opcode);
 
     uint8_t getInstructionSize(uint8_t opcode);
+    
+    template <typename T>
+    std::string numToHex(T number);
 };
 
 #endif
