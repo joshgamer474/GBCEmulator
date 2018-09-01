@@ -21,6 +21,8 @@ public:
     DebuggerWindow(QWidget *parent, std::shared_ptr<EmuView> emu);
     virtual ~DebuggerWindow();
 
+    void showEvent(QShowEvent * e);
+    void hideEvent(QHideEvent * e);
     void initEmulatorConnections(std::shared_ptr<GBCEmulator> emu);
     void connectToolbarButtons();
 
@@ -44,6 +46,7 @@ private:
     std::shared_ptr<CPU> cpu;
     QTimer updateGUITimer;
     uint16_t pc, next_pc;
+    bool isHidden;
 };
 
 #endif

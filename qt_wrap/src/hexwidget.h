@@ -16,7 +16,8 @@ public:
     void setData(const std::vector<uint8_t> & bytes);
     QSize getFullWidgetSize();
     void paintEvent(QPaintEvent *);
-    void setCursor(size_t pos);
+    void setCursor(size_t pc_pos);
+    void updateScrollBarLine(size_t pc_pos);
 
 private:
     QByteArray data;

@@ -7,7 +7,8 @@ DebuggerWindow::DebuggerWindow(QWidget *parent)
     :   QMainWindow(parent),
         ui(new Ui::DebuggerWindow),
         hexWidget(new HexWidget(parent)),
-        vramWindow(NULL)
+        vramWindow(NULL),
+        isHidden(false)
 {
     ui->setupUi(this);
     ui->scrollArea->setWidget(hexWidget);
@@ -64,6 +65,18 @@ DebuggerWindow::~DebuggerWindow()
     delete ui;
 }
 
+void DebuggerWindow::showEvent(QShowEvent * e)
+{
+    isHidden = false;
+    QWidget::showEvent(e);
+}
+
+void DebuggerWindow::hideEvent(QHideEvent * e)
+{
+    isHidden = true;
+    QWidget::hideEvent(e);
+}
+
 void DebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _emu)
 {
     emu = _emu;
@@ -78,6 +91,12 @@ void DebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _emu)
     // Setup updateGUITimer to update GUI when the emulator is running
     connect(&updateGUITimer, &QTimer::timeout, [&]()
     {
+        // Prevent updating debug window's GUI when it isn't being shown
+        if (isHidden)
+        {
+            return;
+        }
+
         if (cpu && emu->ranInstruction)
         {
             emu->ranInstruction = false;

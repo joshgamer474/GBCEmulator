@@ -43,7 +43,18 @@ void HexWidget::setData(const std::vector<uint8_t> & bytes)
 void HexWidget::setCursor(size_t pos)
 {
     cursor_pos = pos;
+    updateScrollBarLine(pos);
     viewport()->update();
+}
+
+void HexWidget::updateScrollBarLine(size_t pos)
+{
+    size_t scroll_bar_line = pos / 16;
+
+    // Give some scroll line buffer so the cursor isn't always in the top line
+    scroll_bar_line -= 2;
+
+    verticalScrollBar()->setValue(scroll_bar_line);
 }
 
 void HexWidget::paintEvent(QPaintEvent * e)
