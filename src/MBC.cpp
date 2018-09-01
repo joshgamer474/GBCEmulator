@@ -135,7 +135,22 @@ void MBC::MBC3_init()
 
 void MBC::MBC5_init()
 {
+    rom_banking_mode = true;
+    ram_banking_mode = true;
+    external_ram_enabled = true;
+    curr_rom_bank = 1;
+    curr_ram_bank = 1;
 
+    num_rom_banks = 0x01FF;
+    num_ram_banks = 0x0F;
+
+    romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
+    ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
+
+    setFromTo(&rom_from_to, 0x4000, 0x7FFF);
+    setFromTo(&ram_from_to, 0xA000, 0xBFFF);
+
+    mbc_num = 5;
 }
 
 
@@ -238,9 +253,13 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
                 {
                     curr_rom_bank = (curr_rom_bank & 0x0100) | val;	// Set lower 8 bits of ROM bank number
                 }
-                else
+                else if (pos >= 0x3000 && pos <= 0x3FFF)
                 {
                     curr_rom_bank = (curr_rom_bank & 0x00FF) | ((val & 0x01) << 8);// Set upper bit of ROM bank number
+                }
+                else if (pos >= 0x4000 && pos <= 0x5FFF)
+                {
+                    curr_ram_bank = (val & 0x0F);
                 }
             }
 
