@@ -291,7 +291,6 @@ std::uint8_t CPU::getInstruction()
 				{
 					mask = ~mask;
 					memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-					memory->interrupt_enable &= mask;
 					PUSH(PC);
 					registers[PC] = interrupt_table[i];
 					logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);

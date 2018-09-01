@@ -37,15 +37,21 @@ public:
 	};
 
 	void set_joypad_button(BUTTON button);
+    void release_joypad_button(BUTTON button);
 	void set_joypad_byte(std::uint8_t val);
 	std::uint8_t get_joypad_byte();
 	void check_keyboard_input(SDL_Event *e);
+    uint8_t unsetBit(uint8_t byte, uint8_t bitToUnset);
+    bool bitIsUnset(uint8_t byte, uint8_t bitSet);
+    bool buttonIsDirectionKey(BUTTON b);
+    bool buttonIsButtonKey(BUTTON b);
 
 	std::shared_ptr<spdlog::logger> logger;
     bool hasInterrupt;
 
 private:
 
-	unsigned char joypad_byte;
+	uint8_t joypad_byte;
+    uint8_t joypad_state;
 };
 #endif

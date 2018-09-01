@@ -45,6 +45,7 @@ public:
     std::shared_ptr<GPU> get_GPU();
     std::vector<uint8_t> get_memory_map();
     void set_joypad_button(Joypad::BUTTON button);
+    void release_joypad_button(Joypad::BUTTON button);
 
     bool ranInstruction;
     bool debugMode;

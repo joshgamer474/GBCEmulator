@@ -20,7 +20,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->actionOpen_Debugger, &QAction::triggered, [&]()
     {
-        debuggerWindow = std::make_shared<DebuggerWindow>(this, emuView);
+        if (!debuggerWindow)
+        {
+            debuggerWindow = std::make_shared<DebuggerWindow>(this, emuView);
+        }
     });
 }
 
@@ -101,8 +104,30 @@ void MainWindow::keyPressEvent(QKeyEvent * e)
     case Qt::Key_D: emuView->emu->set_joypad_button(Joypad::RIGHT); break;
     case Qt::Key_Z: emuView->emu->set_joypad_button(Joypad::A); break;
     case Qt::Key_X: emuView->emu->set_joypad_button(Joypad::B); break;
-    case Qt::Key_N: emuView->emu->set_joypad_button(Joypad::START); break;
-    case Qt::Key_M: emuView->emu->set_joypad_button(Joypad::SELECT); break;
+    case Qt::Key_N: emuView->emu->set_joypad_button(Joypad::SELECT); break;
+    case Qt::Key_M: emuView->emu->set_joypad_button(Joypad::START); break;
+    default:
+        break;
+    }
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent * e)
+{
+    if (!emuView || !emuView->emu)
+    {
+        return;
+    }
+
+    switch (e->key())
+    {
+    case Qt::Key_W: emuView->emu->release_joypad_button(Joypad::UP); break;
+    case Qt::Key_S: emuView->emu->release_joypad_button(Joypad::DOWN); break;
+    case Qt::Key_A: emuView->emu->release_joypad_button(Joypad::LEFT); break;
+    case Qt::Key_D: emuView->emu->release_joypad_button(Joypad::RIGHT); break;
+    case Qt::Key_Z: emuView->emu->release_joypad_button(Joypad::A); break;
+    case Qt::Key_X: emuView->emu->release_joypad_button(Joypad::B); break;
+    case Qt::Key_N: emuView->emu->release_joypad_button(Joypad::SELECT); break;
+    case Qt::Key_M: emuView->emu->release_joypad_button(Joypad::START); break;
     default:
         break;
     }

@@ -16,7 +16,7 @@ Memory::Memory()
 
 	timer_enabled = false;
 	prev_clock_div = prev_clock_tima = curr_clock = 0;
-	clock_frequency = 0;
+	clock_frequency = 4096;
 
     interrupt_flag = false;
     interrupt_enable = false;
@@ -288,8 +288,8 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			
 			if (pos == 0xFF00)
 			{
-				// 0xFF0 : Gamepad
-				joypad->set_joypad_byte(val);
+				// 0xFF00 : Gamepad
+				joypad->set_joypad_byte(val & 0xF0);    // First four bits are read-only
 			}
 			else if (pos < 0xFF04)
 			{
@@ -370,7 +370,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
 			 Bit 4: Joypad   Interrupt Enable  (INT 60h)  (1=Enable)
 			*/
-			interrupt_enable = val;
+            interrupt_enable = val;
 		}
 		else
 		{
@@ -383,11 +383,6 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 
 	}
-
-
-
-
-	//cartridgeReader->setByte(pos, val);
 }
 
 
@@ -422,17 +417,21 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 {
 	uint32_t old_clock_frequency = clock_frequency;
+    bool old_timer_enabled = timer_enabled;
 
 	switch (addr)
 	{
+        // DIV - Divider Register
 	case 0xFF04:
 		timer[addr - 0xFF04] = 0x00;
 		break;
 
+        // TIMA, TMA - Timer Counter, Timer Modulo
 	case 0xFF05: case 0xFF06:
 		timer[addr - 0xFF04] = val;
 		break;
 
+        // TAC - Timer Control
 	case 0xFF07:
 		timer[addr - 0xFF04] = val;
 
@@ -448,8 +447,9 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 		// Bit 2
 		timer_enabled = (val & 0x04);
 
-		// Reset timer when TIMA clock_frequncy gets updated
-		if (old_clock_frequency != clock_frequency)
+		// Reset timer when TIMA clock_frequncy gets updated or when Timer gets enabled
+		if (old_clock_frequency != clock_frequency ||
+            (old_timer_enabled == false && timer_enabled == true))
 		{
 			prev_clock_tima = curr_clock;
 		}
@@ -459,22 +459,24 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 {
-	// Update 0xFF04
 	std::uint8_t & divider_reg = timer[0];
 	std::uint16_t timer_counter = timer[1];
 	curr_clock = ticks;
-    std::uint64_t clock_div_rate = clock_speed / TIMER_DIV_RATE;
-    std::uint64_t clock_diff = curr_clock - prev_clock_div;
+    std::uint64_t clock_div_rate    = clock_speed / TIMER_DIV_RATE;
+    std::uint64_t clock_tima_rate   = clock_speed / clock_frequency;
+    std::uint64_t clock_div_diff = curr_clock - prev_clock_div;
+    std::uint64_t clock_tima_diff = curr_clock - prev_clock_tima;
 
-    while (clock_diff >= clock_div_rate)
+    // Update 0xFF04 - DIV
+    while (clock_div_diff >= clock_div_rate)
 	{
 		divider_reg++;
-        prev_clock_div = curr_clock - (clock_diff - clock_div_rate);
-        clock_diff = curr_clock - prev_clock_div;
+        prev_clock_div = curr_clock - (clock_div_diff - clock_div_rate);
+        clock_div_diff = curr_clock - prev_clock_div;
 	}
 
-	// Update 0xFF05
-    if (timer_enabled && curr_clock - prev_clock_tima >= (clock_speed / clock_frequency))
+	// Update 0xFF05 - TIMA
+    while (timer_enabled && clock_tima_diff >= clock_tima_rate)
 	{
 		timer_counter++;
 		if (timer_counter > 0xFF)
@@ -482,7 +484,9 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 			timer_counter = timer[2];
 			interrupt_flag |= INTERRUPT_TIMER;
 		}
-		prev_clock_tima = curr_clock;
-		timer[1] = (timer_counter & 0xFF);
+		//prev_clock_tima = curr_clock;
+        prev_clock_tima += clock_tima_rate;
+        clock_tima_diff = curr_clock - prev_clock_tima;
+        timer[1] = timer_counter & 0xFF;
 	}
 }
