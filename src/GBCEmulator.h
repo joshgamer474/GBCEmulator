@@ -6,8 +6,8 @@
 #define GBCEMULATOR_H
 
 #include <windows.h>
-
 #include "stdafx.h"
+#include <chrono>
 #include <fstream>
 #include <iterator>
 #include <vector>
@@ -46,6 +46,7 @@ public:
     std::vector<uint8_t> get_memory_map();
     void set_joypad_button(Joypad::BUTTON button);
     void release_joypad_button(Joypad::BUTTON button);
+    void setTimePerFrame(double d);
 
     bool ranInstruction;
     bool debugMode;
@@ -59,7 +60,9 @@ private:
     void init_memory();
     void init_gpu();
     void init_logging(std::string logName);
-
+    void waitToRunInstruction();
+    std::chrono::duration<double> getCurrentTime();
+ 
     std::shared_ptr<CPU> cpu;
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;
@@ -75,6 +78,10 @@ private:
     bool stopRunning;
     std::string logFileBaseName;
 
+    uint64_t ticksPerFrame;
+    uint64_t ticksRan;
+    std::chrono::duration<double> timeSpentOnTicks;
+    std::chrono::duration<double> timePerFrame;
 };
 
 #endif
