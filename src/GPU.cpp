@@ -14,6 +14,8 @@ GPU::GPU(SDL_Renderer *render)
 	num_vram_banks = 1;
 	curr_vram_bank = 0;
 	ticks = 0;
+    last_ticks = 0;
+    lcd_display_enable = false;
 
 	lcd_control = NULL;
 
@@ -34,6 +36,12 @@ GPU::GPU(SDL_Renderer *render)
 
 	background_palette_index = 0;
 	sprite_palette_index = 0;
+    scroll_x = 0;
+    scroll_y = 0;
+    lcd_y = 0;
+    lcd_y_compare = 0;
+    y_roll_over = 0;
+    bg_display_enable = 0;
 	bg_tile_data_select_method = false;
 	bg_tile_map_select_method = false;
 	auto_increment_background_palette_index = false;
@@ -63,12 +71,25 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 	case 0x8000:
 	case 0x9000:
 
+        if (lcd_status & 0x03 == GPU_MODE_VRAM)
+        {
+            logger->info("CPU cannot access VRAM when GPU is using VRAM, blocking CPU read");
+            return 0xFF;
+        }
+
 		return vram_banks[curr_vram_bank][pos - 0x8000];
 
 	case 0xF000:
 
 		if (pos < 0xFF00)
 		{
+            if (lcd_status & 0x03 == GPU_MODE_OAM ||
+                lcd_status & 0x03 == GPU_MODE_VRAM)
+            {
+                logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+                return 0xFF;
+            }
+
 			// 0xFE00 - 0xFE9F : Sprite RAM (OAM)
 			return object_attribute_memory[pos - 0xFE00];
 		}
@@ -185,7 +206,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			switch (pos)
 			{
 			case 0xFF40:	set_lcd_control(val); break;
-			case 0xFF41:	lcd_status = val; break;
+			case 0xFF41:	lcd_status = val & 0xFC; break; // First 2 bits are read-only
 			case 0xFF42:	scroll_y = val; break;
 			case 0xFF43:	scroll_x = val; break;
 			case 0xFF44:	lcd_y = 0; break;				// Read only - Writing to this register resets the counter
@@ -294,23 +315,30 @@ void GPU::set_lcd_status(unsigned char lcdStatus)
 
 void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 {
-	lcd_status &= 0xFC;
-	if (mode != GPU_MODE_NONE)
-		lcd_status |= mode;
+    // Clear bits 0 and 1
+    lcd_status &= 0xFC;
 
-	switch (mode)
-	{
-	case GPU_MODE_OAM: lcd_status |= BIT5; break;
-	case GPU_MODE_VBLANK: lcd_status |= BIT4; break;
-	case GPU_MODE_HBLANK: lcd_status |= BIT3; break;
-	}
+    // Set bits 0 and 1
+    if (mode != GPU_MODE_NONE)
+    {
+        lcd_status |= mode;
+    }
+
+    // Set LCD Interrupts enabled
+    switch (mode)
+    {
+    case GPU_MODE_OAM:      lcd_status |= BIT5; break;
+    case GPU_MODE_VBLANK:   lcd_status |= BIT4; break;
+    case GPU_MODE_HBLANK:   lcd_status |= BIT3; break;
+    }
 }
 
 void GPU::set_lcd_status_coincidence_flag(bool flag)
 {
 	if (flag)
 	{
-		lcd_status |= 0x04;
+        lcd_status |= BIT2;
+		lcd_status |= BIT4;
 		memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
 	}
 	else
@@ -385,11 +413,6 @@ void GPU::renderLineTwo()
 	std::uint16_t max_tile_x_roll_over = ((y_tile_offset + y_roll_over) * 32) + 31;
 	std::uint16_t max_tile_y_roll_over = bg_tile_map_select.end - bg_tile_map_select.start;
 
-	if (lcd_y == 0 && actual_screen_tile_num == 480)
-	{
-		logger->info("yo");
-	}
-
     // Draw row of pixels for background
 	if (bg_display_enable)
 	{
@@ -441,6 +464,12 @@ void GPU::renderLineTwo()
 
 	}
 
+
+    if (window_display_enable)
+    {
+        uint8_t yo = 0;
+    }
+
     std::uint8_t color;
 
     // Draw row of object pixels on top of the background
@@ -448,7 +477,10 @@ void GPU::renderLineTwo()
     {
         std::uint8_t curr_sprite;
         std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
-        bool below_background, sprite_y_flip, sprite_x_flip, sprite_palette_num;
+        uint8_t pixel_x, pixel_y;
+        bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
+
+        y = 0; // Reset start pixel value
 
         for (int i = 0; i < object_attribute_memory.size(); i += 4)
         {
@@ -458,14 +490,16 @@ void GPU::renderLineTwo()
             sprite_tile_num = object_attribute_memory[i + 2];
             byte3 = object_attribute_memory[i + 3];
 
-            below_background    = byte3 & 0x80;
+            object_behind_bg    = byte3 & 0x80;
             sprite_y_flip       = byte3 & 0x40;
             sprite_x_flip       = byte3 & 0x20;
             sprite_palette_num  = byte3 & 0x10;
 
-            // Check to see if sprite is rendered on current line
-            if (sprite_y <= lcd_y && (sprite_y + 8) > lcd_y)
+            // Check to see if sprite is rendered on current line (Y position)
+            if (sprite_y <= lcd_y && (sprite_y + object_size) > lcd_y)
             {
+                // Find out which row of the sprite to use for this line
+                y = lcd_y - sprite_y;
 
                 // Find which tile block should be used
                 tile_block_num = getTileBlockNum(sprite_tile_num);
@@ -476,23 +510,58 @@ void GPU::renderLineTwo()
                 // Draw row of pixels
                 for (int x = 0; x < 8; x++)
                 {
-                    if ((sprite_x + x) >= 0 && (sprite_x + x) < SCREEN_PIXEL_W && !below_background)
+                    // Check to make sure sprite X position isn't out of bounds
+                    if ((sprite_x + x) > SCREEN_PIXEL_W)
                     {
-                        color = tile->getPixel(y, x);
+                        continue;
+                    }
 
-                        if (sprite_palette_num == 0)
+                    // Check if pixel should be drawn due to object_behind_bg flag
+                    if (object_behind_bg)
+                    {
+                        // Get current pixel in frame
+                        auto curr_frame_pixel = frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)];
+
+                        // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
+                        if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
                         {
-                            frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[color];
+                            continue;
                         }
-                        else
-                        {
-                            frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[color];
-                        }
+                    }
+
+                    pixel_x = x;
+                    pixel_y = y;
+
+                    if (sprite_y_flip)
+                    {   // Vertically mirrored
+                        pixel_y = object_size - y;
+                    }
+                    else if (sprite_x_flip)
+                    {   // Horizontally mirrored
+                        pixel_x = 7 - x;
+                    }
+
+                    // Get color for current pixel in object
+                    color = tile->getPixel(pixel_y, pixel_x);
+
+                    if (color == 0)
+                    {
+                        continue;   // Color 0 == transparent == don't display
+                    }
+
+                    if (sprite_palette_num == 0)
+                    {
+                        frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[color];
+                    }
+                    else
+                    {
+                        frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[color];
                     }
                 } // end for(x)
             } // end if(y)
         } //end for(sprite)
     } // end if(object_display_enable)
+
 }
 
 uint8_t GPU::getTileBlockNum(int use_tile_num)
@@ -774,17 +843,12 @@ void GPU::run()
 		break;
 	}
 
-    if (lcd_y == lcd_y_compare)
-    {
-        set_lcd_status_coincidence_flag(true);
-    }
-    else
-    {
-        set_lcd_status_coincidence_flag(false);
-    }
+    set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
 
-	if (gpu_mode != GPU_MODE_NONE)
-		set_lcd_status_mode_flag((GPU_MODE)gpu_mode);
+    if (gpu_mode != GPU_MODE_NONE)
+    {
+        set_lcd_status_mode_flag((GPU_MODE)gpu_mode);
+    }
 }
 
 
@@ -840,4 +904,19 @@ const std::vector<std::vector<Tile>> & GPU::getBGTiles()
 {
     bg_tiles_updated = false;
     return bg_tiles;
+}
+
+bool GPU::SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b)
+{
+    if (a.r == b.r &&
+        a.b == b.b &&
+        a.g == b.g &&
+        a.a == b.a)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

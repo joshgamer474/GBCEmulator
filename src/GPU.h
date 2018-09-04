@@ -13,6 +13,7 @@
 
 #define SCREEN_PIXEL_H 144
 #define SCREEN_PIXEL_W 160
+#define SCREEN_FRAMERATE 60
 
 class Memory;
 class CPU;
@@ -22,6 +23,7 @@ class GPU
 {
 
 private:
+    bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
 
 	std::vector<std::vector<unsigned char>> vram_banks;
 	std::vector<unsigned char> object_attribute_memory;
