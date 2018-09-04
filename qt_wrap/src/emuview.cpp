@@ -54,6 +54,10 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
     }
 
     emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
+
+#ifdef QT_DEBUG
+    emu->setTimePerFrame(0);
+#endif
 }
 
 void EmuView::runEmulator()
@@ -98,7 +102,7 @@ void EmuView::connectEmulatorSignals()
             this->setSceneRect(pixels.rect());
         }
     });
-    frameCheckTimer.start(1);
+    frameCheckTimer.start((1.0 / SCREEN_FRAMERATE) * 1000);
 }
 
 bool EmuView::checkNewFrame()
