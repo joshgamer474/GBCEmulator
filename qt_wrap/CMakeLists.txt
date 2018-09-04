@@ -1,7 +1,6 @@
 PROJECT(GBCEmulator_qt)
 cmake_minimum_required(VERSION 2.8.12)
 
-
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed
@@ -13,7 +12,6 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 find_package(Qt5 REQUIRED Widgets)
-
 
 set(GBC_HEADERS
     ../src/GBCEmulator.h
@@ -59,13 +57,23 @@ set(QT_RUN_SOURCE
 
 qt5_wrap_ui(QT_UI_GENERATED_HEADERS ${QT_UIS})
     
-add_executable(GBCEmulator_qt WIN32 
+add_executable(GBCEmulator_qt WIN32
     ${QT_RUN_SOURCE}
     ${QT_SOURCE}
     ${QT_HEADERS}
     ${QT_UI_GENERATED_HEADERS}
     ${GBC_SOURCE}
     ${GBC_HEADERS})
-include_directories(${CONAN_INCLUDE_DIRS} "src/")
+    
+include_directories(${CONAN_INCLUDE_DIRS}
+    "src/"
+    ${CONAN_INCLUDE_DIRS_QT}/QtCore
+    ${CONAN_INCLUDE_DIRS_QT}/QtGui
+    ${CONAN_INCLUDE_DIRS_QT}/QtWidgets)
+    
 target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(GBCEmulator_qt ${CONAN_LIB_DIRS} CONAN_PKG::GBCEmulator Qt5::Widgets)
+
+target_link_libraries(GBCEmulator_qt
+    ${CONAN_LIB_DIRS}
+    ${CONAN_LIB_DIRS_GBCEMULATOR}
+    Qt5::Widgets)

@@ -55,6 +55,7 @@ Temporary Items
 .vscode/
 roms/
 build/*
-qt_wrap/build/
+qt_wrap/*/
 CMakeFiles/*
 test_package/blarggtests/*/source/
+*.log
