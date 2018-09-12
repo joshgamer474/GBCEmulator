@@ -33,6 +33,11 @@ public:
     QImage frame;
     QTimer frameCheckTimer;
     std::shared_ptr<std::thread> thread;
+
+private:
+    int hashImage(const QImage & p);
+
+    int prevHash;
 };
 
 #endif

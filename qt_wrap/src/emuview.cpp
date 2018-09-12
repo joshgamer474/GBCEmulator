@@ -5,14 +5,16 @@
 #include <QMimeData>
 
 EmuView::EmuView(QObject * parent)
-    : QGraphicsScene(parent)
+    : QGraphicsScene(parent),
+        prevHash(0)
 {
 
 }
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
     :   QGraphicsScene(parent),
-        emuView(graphicsView)
+        emuView(graphicsView),
+        prevHash(0)
 {
     emuView->setScene(this);
 
@@ -22,7 +24,8 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
     : QGraphicsScene(parent),
-        emuView(graphicsView)
+        emuView(graphicsView),
+        prevHash(0)
 {
     emuView->setScene(this);
 
@@ -100,6 +103,16 @@ void EmuView::connectEmulatorSignals()
             this->clear();
             this->addPixmap(pixels);
             this->setSceneRect(pixels.rect());
+
+            //int hash = hashImage(frame);
+
+            //if (hash != prevHash && emu->get_CPU()->get_register_16(CPU::PC) > 0x0100)
+            //{   // New frame/changed frame
+            //    int a = 0;
+            //    //emu->get_CPU()->startLogging = true;
+            //}
+
+            //prevHash = hash;
         }
     });
     frameCheckTimer.start((1.0 / SCREEN_FRAMERATE) * 1000);
@@ -124,4 +137,20 @@ uint8_t EmuView::scaleFrameToFit()
 QGraphicsScene* EmuView::getThis()
 {
     return this;
+}
+
+int EmuView::hashImage(const QImage & image)
+{
+    int hash = 0;
+    for (int y = 0; y < image.height(); y++)
+    {
+        for (int x = 0; x < image.width(); x++)
+        {
+            const QRgb pixel = image.pixel(x, y);
+            hash += pixel;
+            hash += (hash << 10);
+            hash ^= (hash >> 6);
+        }
+    }
+    return hash;
 }
