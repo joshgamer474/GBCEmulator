@@ -235,6 +235,18 @@ std::vector<uint8_t> GBCEmulator::get_memory_map()
     return memory_map;
 }
 
+std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uint16_t end_pos)
+{
+    std::vector<uint8_t> partial_memory_map;
+    partial_memory_map.reserve(end_pos - start_pos);
+
+    for (uint16_t i = start_pos; i < end_pos; i++)
+    {
+        partial_memory_map.push_back(cpu->memory->readByte(i));
+    }
+    return partial_memory_map;
+}
+
 void GBCEmulator::set_joypad_button(Joypad::BUTTON button)
 {
     if (cpu->memory->joypad)

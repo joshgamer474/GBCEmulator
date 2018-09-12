@@ -33,7 +33,7 @@ signals:
 
 private:
     void updateRegisterLabels();
-    void updateHexWidget();
+    void updateHexWidget(bool getFullMemoryMap = false);
 
     template<typename T>
     QString makeQStringHex(T number, int num_digits = 4);

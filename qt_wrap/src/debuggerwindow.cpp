@@ -84,7 +84,7 @@ void DebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _emu)
     if (emu)
     {
         cpu = emu->get_CPU();
-        updateHexWidget();
+        updateHexWidget(true);
         hexWidget->setCursor(cpu->get_register_16(CPU::PC));
     }
 
@@ -234,10 +234,35 @@ void DebuggerWindow::updateRegisterLabels()
     ui->label_Instruction_Value->setText("0x" + makeQStringHex(instruc, 2) + " : " + intrucTrans);
 }
 
-void DebuggerWindow::updateHexWidget()
+void DebuggerWindow::updateHexWidget(bool getFullMemoryMap)
 {
-    const std::vector<uint8_t> memoryMap = emu->get_memory_map();
-    hexWidget->setData(memoryMap);
+    std::vector<uint8_t> memoryMap;
+
+    if (getFullMemoryMap)
+    {   // Get full memory map
+        memoryMap = emu->get_memory_map();
+        hexWidget->setData(memoryMap);
+    }
+    else
+    {   // Get partial memory map to save on resources
+        int topLineIndex    = hexWidget->getTopLineIndex();
+        int bottomLineIndex = hexWidget->getBottomLineIndex();
+        uint32_t start_pos  = topLineIndex * BYTES_PER_LINE;
+        uint32_t end_pos    = bottomLineIndex * BYTES_PER_LINE;
+        
+        if (start_pos > 0xFFFF)
+        {
+            start_pos = 0xFFFF;
+        }
+        if (end_pos > 0xFFFF)
+        {
+            end_pos = 0xFFFF;
+        }
+
+        memoryMap = emu->get_partial_memory_map(start_pos, end_pos);
+
+        hexWidget->updateData(memoryMap, start_pos, end_pos);
+    }
 }
 
 template<typename T>

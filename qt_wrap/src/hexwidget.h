@@ -14,10 +14,13 @@ public:
 
     void clear();
     void setData(const std::vector<uint8_t> & bytes);
+    void updateData(const std::vector<uint8_t> & partial_bytes, uint16_t start_pos, uint16_t end_pos);
     QSize getFullWidgetSize();
     void paintEvent(QPaintEvent *);
     void setCursor(size_t pc_pos);
     void updateScrollBarLine(size_t pc_pos);
+    int getTopLineIndex();
+    int getBottomLineIndex();
 
 private:
     QByteArray data;

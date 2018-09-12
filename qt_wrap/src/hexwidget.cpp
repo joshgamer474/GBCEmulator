@@ -40,6 +40,13 @@ void HexWidget::setData(const std::vector<uint8_t> & bytes)
     data_updated = true;
 }
 
+void HexWidget::updateData(const std::vector<uint8_t> & partial_bytes, uint16_t start_pos, uint16_t end_pos)
+{
+    QByteArray partialData = QByteArray(reinterpret_cast<const char*>(partial_bytes.data()), partial_bytes.size());
+    data.replace(start_pos, end_pos - start_pos, partialData);
+    data_updated = true;
+}
+
 void HexWidget::setCursor(size_t pos)
 {
     cursor_pos = pos;
@@ -75,17 +82,9 @@ void HexWidget::paintEvent(QPaintEvent * e)
     QPainter p(viewport());
     QRect eRect = e->rect();
 
-    // Get shown viewport size and fullscreen size if everything were displayed
-    QSize shownSize = viewport()->size();
-    QSize fullSize = getFullWidgetSize();
-
-    // Setup scroll step size and scroll bar's range
-    verticalScrollBar()->setPageStep(shownSize.height() / byte_height);
-    verticalScrollBar()->setRange(0, (fullSize.height() - shownSize.height()) / byte_height);
-
     // Get which line the viewport is showing as its top line, calculate bottom line index
-    int topLineIndex = verticalScrollBar()->value();
-    int bottomLineIndex = topLineIndex + (shownSize.height() / byte_height);
+    int topLineIndex    = getTopLineIndex();
+    int bottomLineIndex = getBottomLineIndex();
 
     // Draw Hex Offset header at top of viewport (00, 01, 02, 03, ..., 0F)
     p.fillRect(hex_offset_column_x, 0, (byte_width + PIXEL_SPACE) * BYTES_PER_LINE, byte_height, Qt::darkGray);
@@ -136,4 +135,26 @@ void HexWidget::paintEvent(QPaintEvent * e)
         draw_x += byte_width + PIXEL_SPACE;
         counter++;
     }
+}
+
+int HexWidget::getTopLineIndex()
+{
+    return verticalScrollBar()->value();
+}
+
+int HexWidget::getBottomLineIndex()
+{
+    // Get shown viewport size and fullscreen size if everything were displayed
+    QSize shownSize = viewport()->size();
+    QSize fullSize = getFullWidgetSize();
+
+    // Setup scroll step size and scroll bar's range
+    verticalScrollBar()->setPageStep(shownSize.height() / byte_height);
+    verticalScrollBar()->setRange(0, (fullSize.height() - shownSize.height()) / byte_height);
+
+    // Get which line the viewport is showing as its top line, calculate bottom line index
+    int topLineIndex = getTopLineIndex();
+    int bottomLineIndex = topLineIndex + (shownSize.height() / byte_height);
+
+    return bottomLineIndex;
 }
