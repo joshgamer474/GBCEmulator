@@ -363,7 +363,7 @@ void GPU::renderLineTwo()
 
 	std::uint16_t tile_offset, x_tile_offset, y_tile_offset;
 	std::uint16_t actual_screen_tile_num = 0;
-	x_tile_offset = (scroll_x >> 3);
+	x_tile_offset = (scroll_x / 8);
 	y_tile_offset = (scroll_y / 8);
 	tile_offset = x_tile_offset + (y_tile_offset * 32);
 
@@ -536,7 +536,8 @@ void GPU::renderLineTwo()
                     {   // Vertically mirrored
                         pixel_y = object_size - y;
                     }
-                    else if (sprite_x_flip)
+
+                    if (sprite_x_flip)
                     {   // Horizontally mirrored
                         pixel_x = 7 - x;
                     }
