@@ -593,7 +593,7 @@ void GPU::drawOAMLine()
         {
             // Check for case of object_size = 16, ie sprite size is 8x16
             // Then check if we should be using the next sprite 8x8 sprite to draw
-            if ((sprite_y + object_size) - lcd_y <= 8)
+            if (object_size == 16 && (sprite_y + object_size) - lcd_y <= 8)
             {
                 sprite_tile_num++;
             }
