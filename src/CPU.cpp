@@ -13,10 +13,11 @@ CPU::CPU()
 
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
-	enable_interrupt = false;
+	interrupt_master_enable = false;
 	interrupts_enabled = false;
 	is_halted = false;
 	is_stopped = false;
+    halt_do_not_increment_pc = false;
 }
 
 CPU::~CPU()
@@ -228,18 +229,7 @@ void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<std::uin
 */
 void CPU::printRegisters()
 {
-	//std::string s;
-
-	//printf("------------------------------\n");
-	//printf("\tRegisters\n");
-	//printf("------------------------------\n");
-	//for (int i = 0; i < NUM_OF_REGISTERS; i++)
-	//{
-	//	printf("%s: %#04x\n", getRegisterString((CPU::REGISTERS) i).c_str(), get_register_16((CPU::REGISTERS) i));
-	//}
-	//printf("\n");
-
-	logger->info("Registers - BC: 0x{0:x}\tDE: 0x{1:x}\tHL: 0x{2:x}\tAF: 0x{3:x}\tSP: 0x{4:x}\tPC: 0x{5:x}",
+	logger->trace("Registers - BC: 0x{0:x}\tDE: 0x{1:x}\tHL: 0x{2:x}\tAF: 0x{3:x}\tSP: 0x{4:x}\tPC: 0x{5:x}",
 		get_register_16(BC),
 		get_register_16(DE),
 		get_register_16(HL),
@@ -270,63 +260,76 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 	Instruction Methods
 */
 
+void CPU::handleInterrupt()
+{
+    // Disable IME
+    interrupt_master_enable = false;
+
+    // Find out which interrupt should be processed
+    std::uint8_t mask = 0x01;
+    for (int i = 0; i < 5; i++)
+    {
+        if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
+        {
+            mask = ~mask;
+            //memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+            memory->interrupt_flag = 0xE0;
+
+            // PUSH PC after HALT
+            PUSH(PC);
+            registers[PC] = interrupt_table[i];
+            logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);
+            ticks += 4; // "It takes 20 clocks to dispatch an interrupt" TCAGBD.pdf
+            break;
+        }
+        mask = mask << 1;
+    }
+}
+
 // Get instruction from Ram[PC]
 std::uint8_t CPU::getInstruction()
 {
 	// Check for interrupts
     checkJoypadForInterrupt();
 
-	if (memory->interrupt_flag & memory->interrupt_enable)
-	{
-		if (interrupts_enabled)
-		{
-			interrupts_enabled = false;
+    bool canUseInterrupt = memory->interrupt_flag & memory->interrupt_enable & 0x1F;
 
-			std::uint8_t mask = 0x01;
+    if (interrupt_master_enable)
+    {
+        if (is_halted && canUseInterrupt == false)
+        {   // Execute HALT normally
+            registers[PC]--;            // Repeatedly HALT until canUseInterrupt == true
+        }
+        else if (is_halted && canUseInterrupt)
+        {
+            // Break out of HALT
+            is_halted = false;
+            ticks += 4;
 
-			// Find out which interrupt should be processed
-			for (int i = 0; i < 5; i++)
-			{
-				if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
-				{
-					mask = ~mask;
-					memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-					
-                    if (is_halted && enable_interrupt == false)
-                    {
-                        is_halted = false;
-                        interrupts_enabled = true;
-                        break;  // Skip interrupt
-                    }
-                    
-                    PUSH(PC);
-					registers[PC] = interrupt_table[i];
-					logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);
-					break;
-				}
-				mask = mask << 1;
-			}
-		}
-		else if (interrupts_enabled == false && is_halted)
-		{
-			registers[PC]--;
-		}
-	}
-
-	if (enable_interrupt)
-	{
-		interrupts_enabled = true;
-		enable_interrupt = false;
-	}
-
-	if (is_halted && memory->interrupt_flag == 0x00)
-	{
-		registers[PC]--;
-	}
-	else if (is_halted && memory->interrupt_flag)
-	{
-		is_halted = false;
-	}
+            // Parse which interrupt to use, push PC, set PC to interrupt
+            handleInterrupt();
+        }
+        else if (canUseInterrupt)
+        {
+            // Parse which interrupt to use, push PC, set PC to interrupt
+            handleInterrupt();
+        }
+    }
+    else
+    {   // interrupt_master_enable == false
+        if (is_halted && canUseInterrupt == false)
+        {   // Execute HALT normally
+            registers[PC]--;        // Repeatedly HALT until canUseInterrupt == true
+        }
+        else if (is_halted && canUseInterrupt)
+        {   // HALT bug
+            startLogging = true;
+            logger->info("HALT bug triggered, PC: 0x{0:x}", registers[PC]);
+            logger->info("No mask - IE: 0x{0:x}, IF: 0x{1:x}", memory->interrupt_flag, memory->interrupt_enable);
+            is_halted = false;
+            halt_do_not_increment_pc = true;
+        }
+    }
 
 	return getByteFromMemory(get_register_16(PC));
 }
@@ -336,8 +339,8 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	std::uint8_t a8, d8, parenA8, flagType;
 	std::int8_t r8;
 	std::uint16_t a16, d16, addr, hlVal;
+    int regPattern1, regPattern2;
 
-	int regPattern1, regPattern2;
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
@@ -347,7 +350,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		memory->cartridgeReader->is_bios = false;
 		printRegisters();
 		logger->info("Done running bootstrap, moving on to cartridge");
-		startLogging = true;
+		//startLogging = true;
 	}
 
 
@@ -355,10 +358,17 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	{
 		//startLogging = false;
 		//logger->set_level(spdlog::level::trace);
-		//logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
 	}
 
-	registers[PC]++;
+    if (halt_do_not_increment_pc)
+    {
+        halt_do_not_increment_pc = false;   // Do not increment PC
+    }
+    else
+    {
+        registers[PC]++;
+    }
 
 	switch (instruc)
 	{
@@ -1975,10 +1985,7 @@ void CPU::RET(CPU::FLAGTYPES flagType)
 void CPU::RETI()
 {
 	logger->trace("RETI");
-
-	interrupts_enabled = true;
-	enable_interrupt = false;
-
+	interrupt_master_enable = true;
 	RET(CPU::FLAGTYPES::NONE);
 }
 
@@ -1991,7 +1998,7 @@ void CPU::RETI()
 void CPU::enable_interrupts()
 {
 	logger->trace("EI");
-	enable_interrupt = true;
+	interrupt_master_enable = true;
 	ticks += 4;
 }
 
@@ -1999,8 +2006,7 @@ void CPU::enable_interrupts()
 void CPU::disable_interrupts()
 {
 	logger->trace("DI");
-	enable_interrupt = false;
-	interrupts_enabled = false;
+	interrupt_master_enable = false;
 	ticks += 4;
 }
 

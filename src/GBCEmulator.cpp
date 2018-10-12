@@ -15,8 +15,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
     init_logging(logName);
     set_logging_level(spdlog::level::trace);
-    gpu->logger->set_level(spdlog::level::warn);
-    cpu->logger->set_level(spdlog::level::warn);
+    gpu->logger->set_level(spdlog::level::info);
+    cpu->logger->set_level(spdlog::level::info);
     logCounter = 0;
 
     read_rom(romName);

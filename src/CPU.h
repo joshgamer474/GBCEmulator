@@ -35,9 +35,10 @@ public:
 
 	std::shared_ptr<Memory> memory;
 
-	bool enable_interrupt;
+	bool interrupt_master_enable;
 	bool interrupts_enabled;
 	bool is_halted;
+    bool halt_do_not_increment_pc;
 	bool is_stopped;
 	std::uint64_t ticks;
 	bool startLogging = false;
@@ -63,6 +64,7 @@ public:
 	/*
 		Interrupt stuff
 	*/
+    void handleInterrupt();
 	unsigned char interrupt_table[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
 	/*

@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QTimer>
+#include <QPixmap>
 #include <memory>
 #include <thread>
 
@@ -25,17 +26,20 @@ public:
     void runEmulator();
     void runTo(uint16_t pc);
     void connectEmulatorSignals();
+    void initFrame();
     bool checkNewFrame();
     uint8_t scaleFrameToFit();
 
     std::shared_ptr<GBCEmulator> emu;
     QGraphicsView  *emuView;
-    QImage frame;
+    std::unique_ptr<QImage> frame;
+    QPixmap frame_pixmap;
     QTimer frameCheckTimer;
     std::shared_ptr<std::thread> thread;
 
 private:
     int hashImage(const QImage & p);
+    void updateScene();
 
     int prevHash;
 };

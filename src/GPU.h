@@ -15,6 +15,11 @@
 #define SCREEN_PIXEL_W 160
 #define SCREEN_FRAMERATE 60
 
+#define TOTAL_SCREEN_PIXEL_H 256
+#define TOTAL_SCREEN_PIXEL_W 256
+#define TOTAL_SCREEN_TILE_H 32
+#define TOTAL_SCREEN_TILE_W 32
+
 class Memory;
 class CPU;
 class Tile;
@@ -44,6 +49,7 @@ public:
 	std::uint64_t ticks, last_ticks;
 
 	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+    std::vector<SDL_Color> bg_frame;
 	SDL_Color bg_palette_color[4];
 	SDL_Color object_palette0_color[4];
 	SDL_Color object_palette1_color[4];
@@ -69,8 +75,13 @@ public:
 
 	void init_color_gb();
 	void run();
-	void renderLine();
-	void renderLineTwo();
+    void renderLine();
+    void drawBackgroundLine();
+    void drawWindowLine();
+    void drawOAMLine();
+    uint16_t getTileMapNumber(uint8_t pixel_x, uint8_t pixel_y);
+    void renderFullBackgroundMap();
+    void drawShownBackgroundArea();
 	void display();
 	void updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
     void set_lcd_control(unsigned char lcd_control);
@@ -80,9 +91,10 @@ public:
     void printFrame();
     const SDL_Color * getFrame();
 
-    const std::vector<std::vector<Tile>> & getBGTiles();
+    std::vector<std::vector<Tile>> getBGTiles();
     const std::vector<int> & getUpdatedBGTileIndexes();
     uint8_t getTileBlockNum(int use_tile_num);
+    uint8_t getSpriteTileBlockNum(int use_tile_num);
     Tile * getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num);
 
     // Reading and writing methods
@@ -153,5 +165,6 @@ public:
 
     bool frame_is_ready;
     bool bg_tiles_updated;
+    bool lcd_status_interrupt_signal;
 };
 #endif

@@ -3,14 +3,17 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <QTimer>
+#include <memory>
 #include <ui_vramwindow.h>
 #include <src/emuview.h>
-#include <memory>
 #include <GPU.h>
 
 namespace Ui {
     class VRAMWindow;
 }
+
+#define TOTAL_NUM_TILES 384
 
 class VRAMWindow : public QMainWindow
 {
@@ -23,12 +26,14 @@ public:
 
     void initColorTable();
     void setGPU(std::shared_ptr<GPU>);
+    void initBackgroundMap();
     void updateTileViews();
 
     std::shared_ptr<GPU> gpu;
 
 private:
     void initTileViews();
+    void initBackgroundMapImage();
     void mousePressEvent(QMouseEvent * e);
     void showEvent(QShowEvent * e);
 
@@ -36,6 +41,9 @@ private:
     std::shared_ptr<EmuView> emuView;
     QList<QLabel *> tileViews;
     QVector<QRgb> colorTable;
+    std::unique_ptr<QLabel> bgImageLabel;
+    std::unique_ptr<QImage> bgImage;
+    QTimer bgTimer;
 };
 
 #endif

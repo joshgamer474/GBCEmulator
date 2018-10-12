@@ -4,7 +4,8 @@
 
 Tile::Tile()
 {
-
+    raw_data.resize(16);
+    pixels.resize(8 * 8);
 }
 
 Tile::~Tile()
@@ -34,20 +35,8 @@ void Tile::updatePixelRow(uint8_t row_num)
 		{
 			color = ((second_byte >> (7 - x)) & 0x01) << 1;
 			color += ((first_byte >> (7 - x)) & 0x01);
-			pixels[row_num][x] = color;
+			pixels[x + (row_num * 8)] = color;
 		}
-	}
-}
-
-void Tile::getPixelRow(uint8_t row_num, unsigned char **row)
-{
-	if (row_num < 8)
-	{
-		*row = pixels[row_num];
-	}
-	else
-	{
-		*row = NULL;
 	}
 }
 
@@ -55,10 +44,15 @@ uint8_t Tile::getPixel(uint8_t row, uint8_t column)
 {
     if (row < 8 && column < 8)
     {
-        return pixels[row][column];
+        return pixels[column + (row * 8)];
     }
     else
     {
         return 0;
     }
+}
+
+std::vector<uint8_t> Tile::getRawPixelData()
+{
+    return pixels;
 }

@@ -3,6 +3,7 @@
 #ifndef TILE_H
 #define TILE_H
 #include <cstdint>
+#include <vector>
 
 #define NUM_BG_TILES_PER_BLOCK 128
 #define NUM_BG_TILE_BLOCKS 3
@@ -10,20 +11,20 @@
 
 class Tile
 {
-private:
-
-	unsigned char raw_data[16];
-	unsigned char pixels[8][8];
-
 public:
-
 	Tile();
 	~Tile();
 
 	void updateRawData(uint8_t pos, uint8_t val);
-	void updatePixelRow(uint8_t row_num);
-	void getPixelRow(uint8_t row_num, unsigned char **row);
     uint8_t getPixel(uint8_t row, uint8_t column);
+    std::vector<uint8_t> getRawPixelData();
+
+    std::vector<uint8_t> pixels;
+
+private:
+    void updatePixelRow(uint8_t row_num);
+
+    std::vector<uint8_t> raw_data;
 };
 
 

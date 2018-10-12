@@ -61,6 +61,8 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 #ifdef QT_DEBUG
     emu->setTimePerFrame(0);
 #endif
+
+    initFrame();
 }
 
 void EmuView::runEmulator()
@@ -84,10 +86,19 @@ void EmuView::runTo(uint16_t next_pc)
         thread->join();
         thread.reset();
     }
+
     thread = std::make_shared<std::thread>([&]()
     {
         emu->runTo(next_pc);
     });
+}
+
+void EmuView::initFrame()
+{
+    // Create QImage frame
+    frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(), SCREEN_PIXEL_W, SCREEN_PIXEL_H, QImage::Format_ARGB32);
+
+    updateScene();
 }
 
 void EmuView::connectEmulatorSignals()
@@ -97,12 +108,7 @@ void EmuView::connectEmulatorSignals()
     {
         if (checkNewFrame())
         {
-            frame = QImage((unsigned char *)emu->get_frame(), SCREEN_PIXEL_W, SCREEN_PIXEL_H, QImage::Format_ARGB32);
-            QPixmap pixels = QPixmap::fromImage(frame);
-            pixels = pixels.scaled(pixels.size() * scaleFrameToFit());
-            this->clear();
-            this->addPixmap(pixels);
-            this->setSceneRect(pixels.rect());
+            updateScene();
 
             //int hash = hashImage(frame);
 
@@ -153,4 +159,16 @@ int EmuView::hashImage(const QImage & image)
         }
     }
     return hash;
+}
+
+void EmuView::updateScene()
+{
+    // Create new QPixmap from QImage
+    frame_pixmap = QPixmap::fromImage(*frame);
+    frame_pixmap = frame_pixmap.scaled(frame_pixmap.size() * scaleFrameToFit());
+
+    // Refresh QGraphicsScene
+    this->clear();
+    this->addPixmap(frame_pixmap);
+    this->setSceneRect(frame_pixmap.rect());
 }

@@ -331,7 +331,8 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 				Bit 3: Serial   Interrupt Request (INT 58h)  (1=Request)
 				Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
 				*/
-				interrupt_flag = val;
+				interrupt_flag = 0xE0 | val;
+                //interrupt_flag = val;
 			}
 			else if (pos < 0xFF10)
 			{
@@ -370,7 +371,8 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
 			 Bit 4: Joypad   Interrupt Enable  (INT 60h)  (1=Enable)
 			*/
-            interrupt_enable = val;
+            interrupt_enable = 0xE0 | val;
+            //interrupt_enable = val;
 		}
 		else
 		{
@@ -404,6 +406,8 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 
 	source_addr = (static_cast<std::uint16_t>(start_address) << 8);
 	dest_addr = 0xFE00;
+
+    logger->info("Performing OAM DMA from starting source: {x}", source_addr);
 
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
 	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)
@@ -476,7 +480,8 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 	}
 
 	// Update 0xFF05 - TIMA
-    while (timer_enabled && clock_tima_diff >= clock_tima_rate)
+    //while (timer_enabled && clock_tima_diff >= clock_tima_rate)
+    if (timer_enabled && clock_tima_diff >= clock_tima_rate)
 	{
 		timer_counter++;
 		if (timer_counter > 0xFF)

@@ -18,7 +18,11 @@ public:
     MainWindow(QWidget *parent, int argc, char *argv[]);
     ~MainWindow();
 
+public Q_SLOTS:
+    void openDebuggerWindow();
+
 private:
+    void connectSignalsSlots();
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);
     void keyPressEvent(QKeyEvent *);

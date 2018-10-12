@@ -28,6 +28,8 @@ VRAMWindow::VRAMWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
     }
 
     initTileViews();
+    initBackgroundMap();
+    initBackgroundMapImage();
 
     this->show();
 }
@@ -59,26 +61,72 @@ void VRAMWindow::setGPU(std::shared_ptr<GPU> g)
         gpu.reset();
     }
     gpu = g;
+
+    // Initialize background label and image
+    if (!bgImageLabel)
+    {
+        initBackgroundMap();
+    }
+
+    if (!bgImage)
+    {
+        initBackgroundMapImage();
+    }
 }
 
 void VRAMWindow::initTileViews()
 {
-    int total_num_of_tiles = 384;
-
     tileViews.clear();
-    tileViews.reserve(total_num_of_tiles);
+    tileViews.reserve(TOTAL_NUM_TILES);
 
     // First Tile set in VRAM
-    for (int i = 0; i < total_num_of_tiles; i++)
+    for (int i = 0; i < TOTAL_NUM_TILES; i++)
     {
         tileViews.push_back(new QLabel(this));
         ui->gridLayout->addWidget(tileViews[i], i / 16, i % 16);
     }
 }
 
+void VRAMWindow::initBackgroundMap()
+{
+    if (bgImageLabel)
+    {
+        return;
+    }
+
+    bgImageLabel = std::make_unique<QLabel>(this);
+    ui->verticalLayout->addWidget(bgImageLabel.get());
+
+    // Connect QTimer for background map updating to lambda function
+    connect(&bgTimer, &QTimer::timeout, [this]()
+    {
+        bgImageLabel->setPixmap(QPixmap::fromImage(*bgImage));
+    });
+}
+
+void VRAMWindow::initBackgroundMapImage()
+{
+    // Only create QImage once
+    if (bgImage || !gpu || !bgImageLabel)
+    {
+        return;
+    }
+
+    initColorTable();
+
+    // Create QImage from raw data
+    bgImage = std::make_unique<QImage>((unsigned char *)gpu->bg_frame.data(), 256, 256, QImage::Format_RGBA8888);
+
+    // Set QImage to QLabel
+    bgImageLabel->setPixmap(QPixmap::fromImage(*bgImage));
+
+    // Start QTimer to update/refresh QLabel
+    bgTimer.start((1.0 / SCREEN_FRAMERATE) * 1000);
+}
+
 void VRAMWindow::updateTileViews()
 {
-    std::vector<std::vector<Tile>> tiles = gpu->getBGTiles();
+    std::vector<std::vector<Tile>> & tiles = gpu->getBGTiles();
     initColorTable();
 
     int tileCounter = 0;
@@ -86,29 +134,20 @@ void VRAMWindow::updateTileViews()
     {
         for (auto & tile : tileBlock)
         {
-            QImage image(8, 8, QImage::Format::Format_Indexed8);
-            uint8_t row, column;
-            uint8_t pixel_val;
+            // Create QImage from raw pixel data
+            QImage image((unsigned char *)(tile.pixels.data()), 8, 8, QImage::Format::Format_Indexed8);
+
+            // Set QImage's color table
             image.setColorTable(colorTable);
-            for (uint8_t i = 0; i < 64; i++)
-            {
-                row     = i / 8;
-                column  = i % 8;
-                pixel_val = tile.getPixel(row, column);
-                image.setPixel(column, row, pixel_val);
-            }
-            
+
             // Scale image
             image = image.scaled(8 * 2, 8 * 2, Qt::KeepAspectRatio);
 
-            //image.save(QString::number(tileCounter) + ".bmp", "BMP");
-
+            // Update QLabel's QImage
             tileViews[tileCounter]->setPixmap(QPixmap::fromImage(image));
             tileCounter++;
         }
-
     }
-
 }
 
 void VRAMWindow::mousePressEvent(QMouseEvent * e)

@@ -16,6 +16,7 @@ GPU::GPU(SDL_Renderer *render)
 	ticks = 0;
     last_ticks = 0;
     lcd_display_enable = false;
+    lcd_status_interrupt_signal = false;
 
 	lcd_control = NULL;
 
@@ -25,6 +26,8 @@ GPU::GPU(SDL_Renderer *render)
 
 	background_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
 	sprite_palette_data.resize(PALETTE_DATA_SIZE);
+
+    bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
 
 	gpu_mode = GPU_MODE_VRAM;
 
@@ -206,11 +209,11 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			switch (pos)
 			{
 			case 0xFF40:	set_lcd_control(val); break;
-			case 0xFF41:	lcd_status = val & 0xFC; break; // First 2 bits are read-only
+            case 0xFF41:	set_lcd_status(val); break;
 			case 0xFF42:	scroll_y = val; break;
 			case 0xFF43:	scroll_x = val; break;
-			case 0xFF44:	lcd_y = 0; break;				// Read only - Writing to this register resets the counter
-			case 0xFF45:	lcd_y_compare = val; break;
+			case 0xFF44:	if (lcd_display_enable == false) lcd_y = 0; break;				// Read only - Writing to this register resets the counter
+			case 0xFF45:	lcd_y_compare = val; set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare); break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
 			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val, true); break;
@@ -289,23 +292,29 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
 		gpu_mode = GPU_MODE_VBLANK;
 		set_lcd_status_mode_flag((GPU_MODE) gpu_mode);
+        ticks = 0;
 	}
 	else if ((old_lcd_display_enable == false && lcd_display_enable == true)
 		|| (old_lcd_display_enable == true && lcd_display_enable == true))
 	{
 		lcd_y = 0;
 		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
+        ticks = 0;
 	}
 }
 
 void GPU::set_lcd_status(unsigned char lcdStatus)
 {
-	lcd_status = lcdStatus;
+	lcd_status = lcdStatus & 0xF8;  // First 3 bits are read-only
 
-	if (lcd_status & 0x40)
-		enable_lcd_y_compare_interrupt = true;
-	else
-		enable_lcd_y_compare_interrupt = false;
+    if (lcd_status & BIT6)
+    {
+        enable_lcd_y_compare_interrupt = true;
+    }
+    else
+    {
+        enable_lcd_y_compare_interrupt = false;
+    }
 
 	if (lcd_status & 0x20) gpu_mode = GPU_MODE_OAM;
 	if (lcd_status & 0x10) gpu_mode = GPU_MODE_VBLANK;
@@ -335,15 +344,33 @@ void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 
 void GPU::set_lcd_status_coincidence_flag(bool flag)
 {
-	if (flag)
-	{
+    // Update lcd_status' lcd_y == lcd_y_compare bit
+    if (flag)
+    {
         lcd_status |= BIT2;
-		lcd_status |= BIT4;
-		memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
-	}
-	else
+    }
+    else
+    {
+        lcd_status &= 0xFB;
+    }
+
+    if (lcd_display_enable == false)
+    {
+        lcd_status_interrupt_signal = 0;
+    }
+
+    // Check if an interrupt flag should be enabled
+	if (((lcd_status & BIT2) && enable_lcd_y_compare_interrupt)
+        || (gpu_mode == GPU_MODE_HBLANK && (lcd_status & BIT3))
+        || (gpu_mode == GPU_MODE_VBLANK && ((lcd_status & BIT4) || (lcd_status & BIT5)))
+        || (gpu_mode == GPU_MODE_OAM    && (lcd_status & BIT5)))
 	{
-		lcd_status &= 0xFB;
+        // Only trigger interrupt when going from low to high
+        if (lcd_status_interrupt_signal == 0)
+        {
+            lcd_status_interrupt_signal = 1;
+            memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
+        }
 	}
 }
 
@@ -354,215 +381,332 @@ void GPU::getTile(int tile_num, int line_num, TILE *tile)
 	tile->b1 = vram_banks[curr_vram_bank][pos + 1];
 }
 
-
-void GPU::renderLineTwo()
+// Draws the 256x256 pixel Background to bg_frame[]
+void GPU::renderFullBackgroundMap()
 {
-	// VRAM offset for which set of tiles to use
-	int tile_map_offset = bg_tile_map_select.start - 0x8000;
-	std::uint16_t original_tile_map_offset = tile_map_offset;
+    int tile_map_offset = bg_tile_map_select.start - 0x8000;
+    int tile_offset = 0;
+    int tile_offset_save = 0;
+    int map_tile_num_offset = 0;
+    int use_tile_num = 0;
 
-	std::uint16_t tile_offset, x_tile_offset, y_tile_offset;
-	std::uint16_t actual_screen_tile_num = 0;
-	x_tile_offset = (scroll_x / 8);
-	y_tile_offset = (scroll_y / 8);
-	tile_offset = x_tile_offset + (y_tile_offset * 32);
+    Tile *tile;
+    std::uint8_t tile_block_num;
+    uint16_t row_pixel_offset;
 
-	// Which line of pixels to use in the tiles
-	int y = (lcd_y + scroll_y) & 0x07;
-
-    if (lcd_y == 0)
+    for (uint16_t tile_map_pos = 0; tile_map_pos < bg_tile_map_select.end - bg_tile_map_select.start + 1; tile_map_pos++)
     {
-        y_roll_over = 0;
-    }
-    else if (y == 0)
-    {
-        y_roll_over++;
-    }
+        map_tile_num_offset = tile_map_offset + tile_map_pos;
 
-	// Where in the tile line to start
-	int x = scroll_x & 0x07;
+        // Get tile number from tile map
+        use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
 
-	int map_tile_num_offset, use_tile_num;
+        // Find which tile block should be used
+        tile_block_num = getTileBlockNum(use_tile_num);
 
-	// Increase row of tiles to use
-	tile_map_offset += (y_roll_over * 32);
+        // Get the tile
+        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
-	map_tile_num_offset = tile_map_offset + tile_offset;				// Get offset of tile map
-    if (map_tile_num_offset >= original_tile_map_offset + 1024)			// Do a y-row rollover
-    {
-        map_tile_num_offset -= 1024;
-    }
-	use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];		// Get tile number from tile map
-	actual_screen_tile_num = map_tile_num_offset - original_tile_map_offset;
-	logger->info("actual_screen_tile_num = {}", actual_screen_tile_num);
+        row_pixel_offset = ((tile_map_pos / 32) * 8 * 256);
 
-	Tile *tile;
-	unsigned char *pixel_row = NULL;
-	std::uint8_t tile_block_num;
+        for (uint8_t row = 0; row < 8; row++)
+        {
+            uint16_t use_row = (row * 256) + row_pixel_offset; // (0..65535)
 
-    // Find which tile block should be used
-    tile_block_num = getTileBlockNum(use_tile_num);
-
-    // Get the tile
-    tile = getTileFromBGTiles(tile_block_num, use_tile_num);
-
-	// Get pixel row from tile
-	tile->getPixelRow(y, &pixel_row);
-
-	std::uint16_t tile_x_roll_over = actual_screen_tile_num + (SCREEN_PIXEL_W / 8);
-	std::uint16_t max_tile_x_roll_over = ((y_tile_offset + y_roll_over) * 32) + 31;
-	std::uint16_t max_tile_y_roll_over = bg_tile_map_select.end - bg_tile_map_select.start;
-
-    // Draw row of pixels for background
-	if (bg_display_enable)
-	{
-		for (int i = 0; i < SCREEN_PIXEL_W; i++)
-		{
-			if (pixel_row != NULL)
-			{
-				frame[i + (lcd_y * SCREEN_PIXEL_W)] = bg_palette_color[pixel_row[x]];
-			}
-            else
+            for (uint8_t col = 0; col < 8; col++)
             {
-                logger->warn("pixel_row == NULL..");
+                uint8_t use_col = col + ((tile_map_pos * 8) & 255); // (0..255)
+
+                // Set pixel in frame
+                bg_frame[use_col + use_row] = bg_palette_color[tile->getPixel(row, col)];
+            }
+        }
+    }
+
+    drawShownBackgroundArea();
+}
+
+// Draws a rectangle using SCX and SCY to show the area 
+// that is displayed of the Background bg_frame
+void GPU::drawShownBackgroundArea()
+{
+    uint8_t start_x = scroll_x;
+    uint8_t start_y = scroll_y;
+
+    SDL_Color black = { 0, 0, 0, 0 };
+
+    uint16_t top_line_offset, bottom_line_offset, left_line_offset, right_line_offset;
+
+    // Draw horizontal lines
+    for (uint8_t i = 0; i < SCREEN_PIXEL_W; i++)
+    {   // Calculate line offsets
+        top_line_offset     = start_x + i + (start_y * 256);
+        bottom_line_offset  = start_x + i + ((start_y + SCREEN_PIXEL_H) * 256);
+
+        // Check if x + i rolled over
+        if (start_x + i >= 256)
+        {   // Make sure the horizontal line rollover will be on the same horizontal y-offset
+            top_line_offset    -= 256;
+            bottom_line_offset -= 256;
+        }
+
+        // Draw lines
+        bg_frame[top_line_offset]       = black;
+        bg_frame[bottom_line_offset]    = black;
+    }
+
+    // Draw vertical lines
+    for (uint8_t i = 0; i < SCREEN_PIXEL_H; i++)
+    {   // Calculate line offsets
+        left_line_offset = start_x + ((start_y + i) * 256);
+        right_line_offset = start_x + SCREEN_PIXEL_W + ((start_y + i) * 256);
+
+        // Draw lines
+        bg_frame[left_line_offset] = black;
+        bg_frame[right_line_offset] = black;
+    }
+}
+
+void GPU::drawBackgroundLine()
+{
+    Tile * tile;
+
+    // Calculate which row of the Tile we're in (0..7)
+    uint8_t curr_tile_row = (lcd_y + scroll_y) & 0x07;
+
+    // Get VRAM offset for which set of tiles to use
+    uint16_t tile_map_vram_offset = bg_tile_map_select.start - 0x8000;
+
+    uint8_t use_pixel_x = scroll_x;
+    uint8_t use_pixel_y = scroll_y + lcd_y;     // Will rollover naturally due to uint8 (0..255)
+
+    uint16_t frame_y = lcd_y * SCREEN_PIXEL_W;
+
+    // Draw scanline
+    for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
+    {
+        // Get tile offset in tile_map
+        uint16_t tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
+
+        // Get tile number from tile map
+        uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+
+        // Find which tile memory block should be used
+        std::uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+
+        // Get the tile
+        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
+
+        // Calculate which col of the Tile we're in (0..7)
+        uint8_t curr_tile_col = (scroll_x + frame_x) & 0x07;
+
+        // Get pixel
+        uint8_t pixel = tile->getPixel(curr_tile_row, curr_tile_col);
+
+        // Draw pixel
+        frame[frame_x + frame_y] = bg_palette_color[pixel];
+
+        use_pixel_x++;                           // Will rollover naturally due to uint8 (0..255)
+    }
+}
+
+void GPU::drawWindowLine()
+{
+    Tile * tile;
+
+    // Calculate which row of the Tile we're in (0..7)
+    uint8_t curr_tile_row = (lcd_y + window_y_pos) & 0x07;
+
+    // Get VRAM offset for which set of tiles to use
+    uint16_t tile_map_vram_offset = window_tile_map_display_select.start - 0x8000;
+
+    uint8_t use_pixel_x = window_x_pos - 7;
+    uint8_t use_pixel_y = window_y_pos + lcd_y;     // Will rollover naturally due to uint8 (0..255)
+
+    uint16_t frame_y = lcd_y * SCREEN_PIXEL_W;
+
+    if (window_x_pos - 7 >= SCREEN_PIXEL_W || window_y_pos >= SCREEN_PIXEL_H)
+    {
+        return;
+    }
+
+    // Draw scanline
+    for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
+    {
+        // Get tile in tile_map
+        uint16_t tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
+
+        // Get tile number from tile map
+        uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+
+        // Find which tile memory block should be used
+        std::uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+
+        // Get the tile
+        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
+
+        // Calculate which col of the Tile we're in (0..7)
+        uint8_t curr_tile_col = (scroll_x + frame_x) & 0x07;
+
+        // Get pixel
+        uint8_t pixel = tile->getPixel(curr_tile_row, curr_tile_col);
+
+        // Draw pixel
+        frame[frame_x + frame_y] = bg_palette_color[pixel];
+
+        use_pixel_x++;                           // Will rollover naturally due to uint8 (0..255)
+    }
+}
+
+void GPU::drawOAMLine()
+{
+    Tile * tile;
+    std::uint8_t curr_sprite;
+    std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
+    uint8_t pixel_x, pixel_y;
+    uint8_t tile_vram_bank_num;
+    uint8_t sprite_palette_num_cgb;
+    bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
+
+    pixel_x = pixel_y = 0;
+
+    for (int i = 0; i < object_attribute_memory.size(); i += 4)
+    {
+        // Parse current sprite's 4 bytes of data
+        curr_sprite     = i % 4;
+        sprite_y        = object_attribute_memory[i] - 16;
+        sprite_x        = object_attribute_memory[i + 1] - 8;
+        sprite_tile_num = object_attribute_memory[i + 2];
+        byte3           = object_attribute_memory[i + 3];
+
+        object_behind_bg    = byte3 & 0x80;
+        sprite_y_flip       = byte3 & 0x40;
+        sprite_x_flip       = byte3 & 0x20;
+        sprite_palette_num  = byte3 & 0x10; // Non CGB Mode only
+
+        // CGB Mode only
+        tile_vram_bank_num      = (byte3 & 0x08) >> 3;
+        sprite_palette_num_cgb  = byte3 & 0x07;
+
+        // Check to see if sprite is rendered on current line (Y position)
+        if (sprite_y <= lcd_y && (sprite_y + object_size) > lcd_y)
+        {
+            // Check for case of object_size = 16, ie sprite size is 8x16
+            // Then check if we should be using the next sprite 8x8 sprite to draw
+            if ((sprite_y + object_size) - lcd_y <= 8)
+            {
+                sprite_tile_num++;
             }
 
-			x++;
+            // Find which tile block should be used
+            //uint8_t tile_block_num = getTileBlockNum(sprite_tile_num);
+            uint8_t tile_block_num = getSpriteTileBlockNum(sprite_tile_num);
 
-			// Move on to the next tile to the right
-			if (x == 8)
-			{
-				x = 0;
-				tile_offset += 1;
+            // Get the tile
+            tile = getTileFromBGTiles(tile_block_num, sprite_tile_num);
 
-				if (tile_offset > max_tile_x_roll_over)
-				{
-					tile_offset = ((y_tile_offset + y_roll_over) * 32);	// Do an X roll over
-				}
-				if (tile_offset > max_tile_y_roll_over)
-				{
-					tile_offset -= max_tile_y_roll_over;				// Do a Y roll over
-				}
-
-
-				map_tile_num_offset = tile_map_offset + tile_offset;				// Get offset of tile map
-				if (map_tile_num_offset >= original_tile_map_offset + 1024)			// Do a y-row rollover
-					map_tile_num_offset -= 1024;
-				use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];		// Get tile number from tile map
-				actual_screen_tile_num = map_tile_num_offset - original_tile_map_offset;
-
-                // Find which tile block should be used
-                tile_block_num = getTileBlockNum(use_tile_num);
-
-				// Get the tile
-                tile = getTileFromBGTiles(tile_block_num, use_tile_num);
-
-				// Get pixel row from tile
-				tile->getPixelRow(y, &pixel_row);
-			}
-		}
-
-	}
-
-
-    if (window_display_enable)
-    {
-        uint8_t yo = 0;
-    }
-
-    std::uint8_t color;
-
-    // Draw row of object pixels on top of the background
-    if (object_display_enable)
-    {
-        std::uint8_t curr_sprite;
-        std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
-        uint8_t pixel_x, pixel_y;
-        bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
-
-        y = 0; // Reset start pixel value
-
-        for (int i = 0; i < object_attribute_memory.size(); i += 4)
-        {
-            curr_sprite = i % 4;
-            sprite_y = object_attribute_memory[i] - 16;
-            sprite_x = object_attribute_memory[i + 1] - 8;
-            sprite_tile_num = object_attribute_memory[i + 2];
-            byte3 = object_attribute_memory[i + 3];
-
-            object_behind_bg    = byte3 & 0x80;
-            sprite_y_flip       = byte3 & 0x40;
-            sprite_x_flip       = byte3 & 0x20;
-            sprite_palette_num  = byte3 & 0x10;
-
-            // Check to see if sprite is rendered on current line (Y position)
-            if (sprite_y <= lcd_y && (sprite_y + object_size) > lcd_y)
+            // Draw row of pixels
+            for (uint8_t x = 0; x < 8; x++)
             {
-                // Find out which row of the sprite to use for this line
-                y = lcd_y - sprite_y;
-
-                // Find which tile block should be used
-                tile_block_num = getTileBlockNum(sprite_tile_num);
-
-                // Get the tile
-                tile = getTileFromBGTiles(tile_block_num, sprite_tile_num);
-
-                // Draw row of pixels
-                for (int x = 0; x < 8; x++)
+                // Check to make sure sprite X position isn't out of bounds
+                if ((sprite_x + x) > SCREEN_PIXEL_W)
                 {
-                    // Check to make sure sprite X position isn't out of bounds
-                    if ((sprite_x + x) > SCREEN_PIXEL_W)
+                    continue;
+                }
+
+                // Check if pixel should be drawn due to object_behind_bg flag
+                if (object_behind_bg)
+                {
+                    // Get current pixel in frame
+                    auto curr_frame_pixel = frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)];
+
+                    // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
+                    if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
                     {
                         continue;
                     }
+                }
 
-                    // Check if pixel should be drawn due to object_behind_bg flag
-                    if (object_behind_bg)
+                // Find out which col of the sprite to use for this pixel
+                pixel_x = x;
+                // Find out which row of the sprite to use for this line
+                pixel_y = lcd_y - sprite_y;
+
+                // Check if sprite needs to be drawn flipped
+                if (sprite_y_flip)
+                {   // Vertically mirrored
+                    pixel_y = object_size - pixel_y;
+                }
+
+                if (sprite_x_flip)
+                {   // Horizontally mirrored
+                    pixel_x = 7 - pixel_x;
+                }
+
+                if (object_size == 16)
+                {
+                    if (pixel_y >= 8)
                     {
-                        // Get current pixel in frame
-                        auto curr_frame_pixel = frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)];
-
-                        // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
-                        if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
-                        {
-                            continue;
-                        }
+                        pixel_y -= 8;
                     }
+                }
 
-                    pixel_x = x;
-                    pixel_y = y;
+                // Get color for current pixel in object
+                uint8_t pixel_color = tile->getPixel(pixel_y, pixel_x);
 
-                    if (sprite_y_flip)
-                    {   // Vertically mirrored
-                        pixel_y = object_size - y;
-                    }
+                if (pixel_color == 0)
+                {
+                    continue;   // Color 0 == transparent == don't display
+                }
 
-                    if (sprite_x_flip)
-                    {   // Horizontally mirrored
-                        pixel_x = 7 - x;
-                    }
+                // Draw sprite pixel to frame
+                if (sprite_palette_num == 0)
+                {
+                    frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
+                }
+                else
+                {
+                    frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
+                }
 
-                    // Get color for current pixel in object
-                    color = tile->getPixel(pixel_y, pixel_x);
+            } // end for(x)
+        } // end if(y)
+    } //end for(sprite)
+}
 
-                    if (color == 0)
-                    {
-                        continue;   // Color 0 == transparent == don't display
-                    }
+void GPU::renderLine()
+{
+    if (bg_display_enable)
+    {
+        drawBackgroundLine();
+    }
 
-                    if (sprite_palette_num == 0)
-                    {
-                        frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[color];
-                    }
-                    else
-                    {
-                        frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[color];
-                    }
-                } // end for(x)
-            } // end if(y)
-        } //end for(sprite)
-    } // end if(object_display_enable)
+    if (window_display_enable)
+    {
+        drawWindowLine();
+    }
 
+    if (object_display_enable)
+    {
+        drawOAMLine();
+    }
+}
+
+uint16_t GPU::getTileMapNumber(uint8_t pixel_x, uint8_t pixel_y)
+{
+    // Calculate Tile row
+    uint8_t tile_row = pixel_y / 8;
+
+    // Calculate Tile column
+    uint8_t tile_col = pixel_x / 8;
+
+    // Get actual tile number for wanted row
+    uint16_t tile_row_num = tile_row * 32;
+
+    // Get actual tile number offset (include col offset)
+    uint16_t tile_num = tile_row_num + tile_col;
+
+    return tile_num;
 }
 
 uint8_t GPU::getTileBlockNum(int use_tile_num)
@@ -594,6 +738,11 @@ uint8_t GPU::getTileBlockNum(int use_tile_num)
     return tile_block_num;
 }
 
+uint8_t GPU::getSpriteTileBlockNum(int use_tile_num)
+{
+    return use_tile_num / 128;
+}
+
 Tile * GPU::getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num)
 {
     Tile * tile;
@@ -608,139 +757,6 @@ Tile * GPU::getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num)
     }
     return tile;
 }
-
-void GPU::renderLine()
-{
-	// VRAM offset for which set of tiles to use
-	int tile_map_offset = bg_tile_map_select.start - 0x8000;
-
-	// Which tile to start with in the map line
-	std::uint16_t tile_offset, x_tile_offset, y_tile_offset;
-	x_tile_offset = (scroll_x >> 3);
-	y_tile_offset = (scroll_y / 8);
-	tile_offset = x_tile_offset + (y_tile_offset * 32);
-	std::uint16_t original_tile_offset = tile_offset;
-	std::uint16_t actual_tile_num = 0;
-
-	// Which line of pixels to use in the tiles
-	int y = (lcd_y + scroll_y) & 0x07;
-
-	if (lcd_y == 0)
-		y_roll_over = 0;
-	else if (y == 0)
-		y_roll_over++;
-
-	// Where in the tile line to start
-	int x = scroll_x & 0x07;
-
-	int use_tile_num, map_tile_num_offset, map_tile_num;
-	std::uint8_t color;
-	TILE tile;
-
-	// Which line of tiles to use
-	tile_map_offset += (y_roll_over * 32);
-
-	map_tile_num_offset = tile_map_offset + tile_offset;
-	use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
-	actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
-	
-	std::uint16_t tile_x_roll_over = actual_tile_num + (SCREEN_PIXEL_W / 8);
-	std::uint16_t max_tile_x_roll_over = ((y_tile_offset + y_roll_over) * 32) + 31;
-	std::uint16_t max_tile_y_roll_over = bg_tile_map_select.end - bg_tile_map_select.start;
-
-	//printf("actual_tile_num = %i, tile_x_roll_over = %i, tile_map_offset = %i, tile_offset = %i\n", actual_tile_num, tile_x_roll_over, tile_map_offset, tile_offset);
-	getTile(use_tile_num, y, &tile);
-
-	if (bg_display_enable)
-	{
-		for (int i = 0; i < SCREEN_PIXEL_W; i++)
-		{
-			actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
-			//printf("tile_mape_offset + tile_offset = %i, Using tile num: %i\n", tile_map_offset + tile_offset, (tile_map_offset + tile_offset) - (bg_tile_map_select.start - 0x8000));
-
-			color = ((tile.b1 >> (6 - x)) & 0x02) | ((tile.b0 >> (7 - x)) & 0x01);
-			frame[i + (lcd_y * SCREEN_PIXEL_W)] = bg_palette_color[color];
-
-			x++;
-			if (x == 8)
-			{
-				x = 0;
-				tile_offset += 1;
-				if (tile_offset > max_tile_x_roll_over)
-				{
-					tile_offset = ((y_tile_offset + y_roll_over) * 32);	// Do an X roll over
-				}
-				if (tile_offset > max_tile_y_roll_over)
-				{
-					tile_offset -= max_tile_y_roll_over;				// Do a Y roll over
-				}
-				map_tile_num_offset = tile_map_offset + tile_offset;
-				use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset & (bg_tile_map_select.end - 0x8000)];
-				actual_tile_num = map_tile_num_offset - (bg_tile_map_select.start - 0x8000);
-				//printf("actual_tile_num = %i, tile_map_offset = %i, tile_offset = %i\n", actual_tile_num, tile_map_offset, tile_offset);
-				getTile(use_tile_num, y, &tile);
-			}
-		}
-	}
-
-	//printf("y = %i, lcd_y = %i\n", y, lcd_y);
-
-	if (object_display_enable)
-	{
-		std::uint8_t curr_sprite;
-		std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
-		bool below_background, sprite_y_flip, sprite_x_flip, sprite_palette_num;
-
-		for (int i = 0; i < object_attribute_memory.size(); i += 4)
-		{
-			curr_sprite = i % 4;
-			sprite_y		= object_attribute_memory[i] - 16;
-			sprite_x		= object_attribute_memory[i + 1] - 8;
-			sprite_tile_num = object_attribute_memory[i + 2];
-			byte3			= object_attribute_memory[i + 3];
-
-			below_background	= byte3 & 0x80;
-			sprite_y_flip		= byte3 & 0x40;
-			sprite_x_flip		= byte3 & 0x20;
-			sprite_palette_num	= byte3 & 0x10;
-
-			// Check to see if sprite is rendered on current line
-			if (sprite_y <= scroll_y && (sprite_y + 8) > scroll_y)
-			{
-
-				// Get tile to use
-				getTile(sprite_tile_num, y, &tile);
-
-				// Find which row of tile to  render
-
-				
-				// Draw row of pixels
-				for (int x = 0; x < 8; x++)
-				{
-					if ((sprite_x + x) >= 0 && (sprite_x + x) < SCREEN_PIXEL_W && !below_background)
-					{
-						color = ((tile.b1 >> (6 - x)) & 0x02) | ((tile.b0 >> (7 - x)) & 0x01);
-
-						if (sprite_palette_num == 0)
-						{
-							frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[color];
-						}
-						else
-						{
-							frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[color];
-						}
-					}
-
-
-				}
-			}
-
-
-		}
-	}
-
-}
-
 
 void GPU::display()
 {
@@ -765,7 +781,11 @@ void GPU::display()
 
 void GPU::run()
 {
-	if (lcd_display_enable == false) return;
+    if (lcd_display_enable == false)
+    {
+        last_ticks = cpu->ticks;
+        return;
+    }
 
 	ticks += cpu->ticks - last_ticks;
 	last_ticks = cpu->ticks;
@@ -776,15 +796,22 @@ void GPU::run()
 
 		if (ticks >= 204)
 		{
-			if (lcd_y == 0)
-				logger->info("Start Frame");
+            if (lcd_y == 0)
+            {
+                logger->debug("Start Frame");
+            }
 
 			lcd_y++;
 
 			// Check if frame rendering has completed, start VBLANK interrupt
+            if (lcd_y == 144)
+            {
+                renderFullBackgroundMap();
+                memory->interrupt_flag |= INTERRUPT_VBLANK;
+                gpu_mode = GPU_MODE_VBLANK;
+            }
 			if (lcd_y >= 144)
 			{
-				memory->interrupt_flag |= INTERRUPT_VBLANK;
 				gpu_mode = GPU_MODE_VBLANK;
 			}
 			else
@@ -809,12 +836,7 @@ void GPU::run()
 				display();
 				lcd_y = 0;
 				gpu_mode = GPU_MODE_OAM;
-
-				//if (SDL_PollEvent(&e) != 0 && e.type == e.key.type && e.key.keysym.scancode != SDL_SCANCODE_UNKNOWN)
-				//{
-				//	memory->joypad->check_keyboard_input(&e);
-				//}
-				logger->info("End Frame");
+				logger->debug("End Frame");
 			}
 
 			ticks = 0;
@@ -836,8 +858,7 @@ void GPU::run()
 
 		if (ticks >= 172)
 		{
-			//renderLine();
-			renderLineTwo();
+            renderLine();
 			gpu_mode = GPU_MODE_HBLANK;
 			ticks = 0;
 		}
@@ -901,7 +922,7 @@ const SDL_Color * GPU::getFrame()
     return frame;
 }
 
-const std::vector<std::vector<Tile>> & GPU::getBGTiles()
+std::vector<std::vector<Tile>> GPU::getBGTiles()
 {
     bg_tiles_updated = false;
     return bg_tiles;
