@@ -29,7 +29,7 @@ GPU::GPU(SDL_Renderer *render)
 
     bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
 
-	gpu_mode = GPU_MODE_VRAM;
+	gpu_mode = GPU_MODE_OAM;
 
 #ifdef SDL_DRAW
 	renderer = render;
@@ -74,11 +74,12 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 	case 0x8000:
 	case 0x9000:
 
-        if (lcd_status & 0x03 == GPU_MODE_VRAM)
-        {
-            logger->info("CPU cannot access VRAM when GPU is using VRAM, blocking CPU read");
-            return 0xFF;
-        }
+        // Block writing to VRAM during Modes VRAM
+        //if (lcd_status & 0x03 == GPU_MODE_VRAM)
+        //{
+        //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+        //    return 0xFF;
+        //}
 
 		return vram_banks[curr_vram_bank][pos - 0x8000];
 
@@ -86,12 +87,13 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 
 		if (pos < 0xFF00)
 		{
-            if (lcd_status & 0x03 == GPU_MODE_OAM ||
-                lcd_status & 0x03 == GPU_MODE_VRAM)
-            {
-                logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
-                return 0xFF;
-            }
+            // Block writing to OAM during Modes VRAM and OAM
+            //if (lcd_status & 0x03 == GPU_MODE_OAM ||
+            //    lcd_status & 0x03 == GPU_MODE_VRAM)
+            //{
+            //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+            //    return 0xFF;
+            //}
 
 			// 0xFE00 - 0xFE9F : Sprite RAM (OAM)
 			return object_attribute_memory[pos - 0xFE00];
@@ -146,6 +148,13 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0x8000:
 	case 0x9000:
 
+        // Block writing to VRAM during Modes VRAM
+        //if (lcd_status & 0x03 == GPU_MODE_VRAM)
+        //{
+        //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+        //    return;
+        //}
+
 		vram_banks[curr_vram_bank][pos - 0x8000] = val;
 
 		// Background Tile Data: 0x8000 - 0x97FF
@@ -174,6 +183,14 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
 		if (pos < 0xFF00)
 		{
+            // Block writing to VRAM during Modes VRAM and OAM
+            //if (lcd_status & 0x03 == GPU_MODE_OAM ||
+            //    lcd_status & 0x03 == GPU_MODE_VRAM)
+            //{
+            //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+            //    return;
+            //}
+
 			// 0xFE00 - 0xFE9F : Sprite RAM (OAM)
 			object_attribute_memory[pos - 0xFE00] = val;
 			break;
@@ -204,7 +221,6 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
 				}
 			}
-
 
 			switch (pos)
 			{
@@ -290,8 +306,7 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 	{
 		lcd_y = 0;
 		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
-		gpu_mode = GPU_MODE_VBLANK;
-		set_lcd_status_mode_flag((GPU_MODE) gpu_mode);
+        set_lcd_status_mode_flag(GPU_MODE_VBLANK);
         ticks = 0;
 	}
 	else if ((old_lcd_display_enable == false && lcd_display_enable == true)
@@ -324,6 +339,11 @@ void GPU::set_lcd_status(unsigned char lcdStatus)
 
 void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 {
+    logger->info("GPU Mode: {0:x}", mode);
+
+    int prev_gpu_mode = gpu_mode;
+    gpu_mode = mode;
+
     // Clear bits 0 and 1
     lcd_status &= 0xFC;
 
@@ -333,12 +353,16 @@ void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
         lcd_status |= mode;
     }
 
-    // Set LCD Interrupts enabled
-    switch (mode)
+    // Check if an interrupt should be fired off
+    if (prev_gpu_mode != gpu_mode)
     {
-    case GPU_MODE_OAM:      lcd_status |= BIT5; break;
-    case GPU_MODE_VBLANK:   lcd_status |= BIT4; break;
-    case GPU_MODE_HBLANK:   lcd_status |= BIT3; break;
+        if ((mode == GPU_MODE_HBLANK && lcd_status & BIT3) ||
+            (mode == GPU_MODE_VBLANK && lcd_status & BIT4) ||
+            (mode == GPU_MODE_OAM && lcd_status & BIT5))
+        {
+            lcd_status_interrupt_signal == 0;
+            memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
+        }
     }
 }
 
@@ -346,8 +370,13 @@ void GPU::set_lcd_status_coincidence_flag(bool flag)
 {
     // Update lcd_status' lcd_y == lcd_y_compare bit
     if (flag)
-    {
+    {   // lcd_y == lcd_y_compare
         lcd_status |= BIT2;
+
+        if (lcd_status & BIT6)
+        {
+            memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
+        }
     }
     else
     {
@@ -360,18 +389,18 @@ void GPU::set_lcd_status_coincidence_flag(bool flag)
     }
 
     // Check if an interrupt flag should be enabled
-	if (((lcd_status & BIT2) && enable_lcd_y_compare_interrupt)
-        || (gpu_mode == GPU_MODE_HBLANK && (lcd_status & BIT3))
-        || (gpu_mode == GPU_MODE_VBLANK && ((lcd_status & BIT4) || (lcd_status & BIT5)))
-        || (gpu_mode == GPU_MODE_OAM    && (lcd_status & BIT5)))
-	{
-        // Only trigger interrupt when going from low to high
-        if (lcd_status_interrupt_signal == 0)
-        {
-            lcd_status_interrupt_signal = 1;
-            memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
-        }
-	}
+	//if (((lcd_status & BIT2) && (lcd_status & BIT6))
+ //       || (gpu_mode == GPU_MODE_HBLANK && (lcd_status & BIT3))
+ //       || (gpu_mode == GPU_MODE_VBLANK && ((lcd_status & BIT4) || (lcd_status & BIT5)))
+ //       || (gpu_mode == GPU_MODE_OAM    && (lcd_status & BIT5)))
+	//{
+ //       // Only trigger interrupt when going from low to high
+ //       if (lcd_status_interrupt_signal == 0)
+ //       {
+ //           lcd_status_interrupt_signal = 1;
+ //           memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
+ //       }
+	//}
 }
 
 void GPU::getTile(int tile_num, int line_num, TILE *tile)
@@ -407,6 +436,8 @@ void GPU::renderFullBackgroundMap()
         // Get the tile
         tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
+        const std::vector<uint8_t> tile_data = tile->getRawPixelData();
+
         row_pixel_offset = ((tile_map_pos / 32) * 8 * 256);
 
         for (uint8_t row = 0; row < 8; row++)
@@ -418,7 +449,7 @@ void GPU::renderFullBackgroundMap()
                 uint8_t use_col = col + ((tile_map_pos * 8) & 255); // (0..255)
 
                 // Set pixel in frame
-                bg_frame[use_col + use_row] = bg_palette_color[tile->getPixel(row, col)];
+                bg_frame[use_col + use_row] = bg_palette_color[tile_data[col + (row * 8)]];
             }
         }
     }
@@ -492,7 +523,7 @@ void GPU::drawBackgroundLine()
         uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
 
         // Find which tile memory block should be used
-        std::uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+        uint8_t tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
         tile = getTileFromBGTiles(tile_block_num, use_tile_num);
@@ -506,7 +537,8 @@ void GPU::drawBackgroundLine()
         // Draw pixel
         frame[frame_x + frame_y] = bg_palette_color[pixel];
 
-        use_pixel_x++;                           // Will rollover naturally due to uint8 (0..255)
+        // Will rollover naturally due to uint8 (0..255)
+        use_pixel_x++;
     }
 }
 
@@ -540,7 +572,7 @@ void GPU::drawWindowLine()
         uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
 
         // Find which tile memory block should be used
-        std::uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+        uint8_t tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
         tile = getTileFromBGTiles(tile_block_num, use_tile_num);
@@ -554,7 +586,8 @@ void GPU::drawWindowLine()
         // Draw pixel
         frame[frame_x + frame_y] = bg_palette_color[pixel];
 
-        use_pixel_x++;                           // Will rollover naturally due to uint8 (0..255)
+        // Will rollover naturally due to uint8 (0..255)
+        use_pixel_x++;
     }
 }
 
@@ -573,7 +606,7 @@ void GPU::drawOAMLine()
     for (int i = 0; i < object_attribute_memory.size(); i += 4)
     {
         // Parse current sprite's 4 bytes of data
-        curr_sprite     = i % 4;
+        curr_sprite     = i / 4;
         sprite_y        = object_attribute_memory[i] - 16;
         sprite_x        = object_attribute_memory[i + 1] - 8;
         sprite_tile_num = object_attribute_memory[i + 2];
@@ -599,7 +632,6 @@ void GPU::drawOAMLine()
             }
 
             // Find which tile block should be used
-            //uint8_t tile_block_num = getTileBlockNum(sprite_tile_num);
             uint8_t tile_block_num = getSpriteTileBlockNum(sprite_tile_num);
 
             // Get the tile
@@ -609,7 +641,7 @@ void GPU::drawOAMLine()
             for (uint8_t x = 0; x < 8; x++)
             {
                 // Check to make sure sprite X position isn't out of bounds
-                if ((sprite_x + x) > SCREEN_PIXEL_W)
+                if ((sprite_x + x + 1) > SCREEN_PIXEL_W)
                 {
                     continue;
                 }
@@ -652,21 +684,23 @@ void GPU::drawOAMLine()
                 }
 
                 // Get color for current pixel in object
-                uint8_t pixel_color = tile->getPixel(pixel_y, pixel_x);
+                const uint8_t pixel_color = tile->getPixel(pixel_y, pixel_x);
 
                 if (pixel_color == 0)
                 {
                     continue;   // Color 0 == transparent == don't display
                 }
 
+                uint8_t use_x = x + sprite_x;
+
                 // Draw sprite pixel to frame
                 if (sprite_palette_num == 0)
                 {
-                    frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
+                    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
                 }
                 else
                 {
-                    frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
+                    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
                 }
 
             } // end for(x)
@@ -784,13 +818,18 @@ void GPU::run()
     if (lcd_display_enable == false)
     {
         last_ticks = cpu->ticks;
+
+        if (lcd_status & 0x03 != GPU_MODE_HBLANK)
+        {
+            set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+        }
         return;
     }
 
 	ticks += cpu->ticks - last_ticks;
 	last_ticks = cpu->ticks;
 
-	switch (gpu_mode)
+    switch (lcd_status & 0x03)
 	{
 	case GPU_MODE_HBLANK:
 
@@ -808,21 +847,16 @@ void GPU::run()
             {
                 renderFullBackgroundMap();
                 memory->interrupt_flag |= INTERRUPT_VBLANK;
-                gpu_mode = GPU_MODE_VBLANK;
+                set_lcd_status_mode_flag(GPU_MODE_VBLANK);
             }
-			if (lcd_y >= 144)
-			{
-				gpu_mode = GPU_MODE_VBLANK;
-			}
-			else
-			{
-				gpu_mode = GPU_MODE_OAM;
-			}
+            else
+            {
+                set_lcd_status_mode_flag(GPU_MODE_OAM);
+            }
 
 			ticks = 0;
 		}
 		break;
-
 
 	case GPU_MODE_VBLANK:
 
@@ -835,7 +869,7 @@ void GPU::run()
                 frame_is_ready = true;
 				display();
 				lcd_y = 0;
-				gpu_mode = GPU_MODE_OAM;
+                set_lcd_status_mode_flag(GPU_MODE_OAM);
 				logger->debug("End Frame");
 			}
 
@@ -848,7 +882,7 @@ void GPU::run()
 
 		if (ticks >= 80)
 		{
-			gpu_mode = GPU_MODE_VRAM;
+            set_lcd_status_mode_flag(GPU_MODE_VRAM);
 			ticks = 0;
 		}
 		break;
@@ -859,18 +893,13 @@ void GPU::run()
 		if (ticks >= 172)
 		{
             renderLine();
-			gpu_mode = GPU_MODE_HBLANK;
+            set_lcd_status_mode_flag(GPU_MODE_HBLANK);
 			ticks = 0;
 		}
 		break;
 	}
 
     set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
-
-    if (gpu_mode != GPU_MODE_NONE)
-    {
-        set_lcd_status_mode_flag((GPU_MODE)gpu_mode);
-    }
 }
 
 
