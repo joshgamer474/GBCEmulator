@@ -63,6 +63,7 @@ GPU::~GPU()
 
 void GPU::init_color_gb()
 {
+    is_color_gb = true;
 	num_vram_banks = 2;
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 }
@@ -115,7 +116,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF49:	return object_pallete1;
 			case 0xFF4A:	return window_y_pos;
 			case 0xFF4B:	return window_x_pos;
-			case 0xFF4F:	return curr_vram_bank;
+			case 0xFF4F:	return curr_vram_bank | 0xFE;   // Only bit 0 matters, rest will be 1s
 			case 0xFF51:	return hdma1;
 			case 0xFF52:	return hdma2;
 			case 0xFF53:	return hdma3;
@@ -199,28 +200,51 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 		{
 			// LCD Stuff, VRAM bank selector
 
-			if (memory->cartridgeReader->getColorGBFlag())
-			{
-				switch (pos)
-				{
+            // CGB only
+            if (memory->cartridgeReader->getColorGBFlag())
+            {
+                switch (pos)
+                {
+                case 0xFF4F:	curr_vram_bank = (val & 0x01); return;
+                case 0xFF51:	hdma1 = val; return;
+                case 0xFF52:	hdma2 = val; return;
+                case 0xFF53:	hdma3 = val; return;
+                case 0xFF54:	hdma4 = val; return;
+                case 0xFF55:	hdma5 = val; return;
 
-				case 0xFF68:	background_palette_index = val & 0x3F; 
-								auto_increment_background_palette_index = val & 0x80; 
-								return;
-				case 0xFF69:	background_palette_data[background_palette_index] = val; 
-								if (auto_increment_background_palette_index) background_palette_index++;
-								background_palette_index &= 0x3F;
-								return;
-				case 0xFF6A:	sprite_palette_index = val & 0x07; 
-								auto_increment_sprite_palette_index = val & 0x80; 
-								return;
-				case 0xFF6B:	sprite_palette_data[sprite_palette_index] = val; 
-								if (auto_increment_sprite_palette_index) sprite_palette_index++;
-								sprite_palette_index &= 0x07;
-								return;
+                    // Background Palette Index
+                case 0xFF68:
+                    background_palette_index = val & 0x3F;
+                    auto_increment_background_palette_index = val & 0x80;
+                    return;
+                    // Background Palette Data
+                case 0xFF69:
+                    background_palette_data[background_palette_index] = val;
+                    updateBackgroundPalette(val);
+                    if (auto_increment_background_palette_index)
+                    {
+                        background_palette_index++;
+                    }
+                    background_palette_index &= 0x3F;
+                    return;
+                    // Sprite Palette Index
+                case 0xFF6A:
+                    sprite_palette_index = val & 0x07;
+                    auto_increment_sprite_palette_index = val & 0x80;
+                    return;
+                    // Sprite Palette Data
 
-				}
-			}
+                case 0xFF6B:
+                    sprite_palette_data[sprite_palette_index] = val;
+                    updateSpritePalette(val);
+                    if (auto_increment_sprite_palette_index)
+                    {
+                        sprite_palette_index++;
+                    }
+                    sprite_palette_index &= 0x07;
+                    return;
+                }
+            }
 
 			switch (pos)
 			{
@@ -236,12 +260,6 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val, true); break;
 			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
-			case 0xFF4F:	curr_vram_bank = (val & 0x01); break;
-			case 0xFF51:	hdma1 = val; break;
-			case 0xFF52:	hdma2 = val; break;
-			case 0xFF53:	hdma3 = val; break;
-			case 0xFF54:	hdma4 = val; break;
-			case 0xFF55:	hdma5 = val; break;
 
 			default:
 				logger->warn("GPU::setByte() doesn't handle address: 0x{0:x}", pos);
@@ -339,8 +357,6 @@ void GPU::set_lcd_status(unsigned char lcdStatus)
 
 void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 {
-    logger->info("GPU Mode: {0:x}", mode);
-
     int prev_gpu_mode = gpu_mode;
     gpu_mode = mode;
 
@@ -360,7 +376,7 @@ void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
             (mode == GPU_MODE_VBLANK && lcd_status & BIT4) ||
             (mode == GPU_MODE_OAM && lcd_status & BIT5))
         {
-            lcd_status_interrupt_signal == 0;
+            lcd_status_interrupt_signal = 0;
             memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
         }
     }
@@ -536,6 +552,7 @@ void GPU::drawBackgroundLine()
 
         // Draw pixel
         frame[frame_x + frame_y] = bg_palette_color[pixel];
+        //frame[frame_x + frame_y] = background_palettes[background_palette_index / 8].getColor(pixel);
 
         // Will rollover naturally due to uint8 (0..255)
         use_pixel_x++;
@@ -557,7 +574,12 @@ void GPU::drawWindowLine()
 
     uint16_t frame_y = lcd_y * SCREEN_PIXEL_W;
 
-    if (window_x_pos - 7 >= SCREEN_PIXEL_W || window_y_pos >= SCREEN_PIXEL_H)
+    if (use_pixel_x >= SCREEN_PIXEL_W || window_y_pos >= SCREEN_PIXEL_H)
+    {
+        return;
+    }
+
+    if (lcd_y < window_y_pos)
     {
         return;
     }
@@ -626,9 +648,17 @@ void GPU::drawOAMLine()
         {
             // Check for case of object_size = 16, ie sprite size is 8x16
             // Then check if we should be using the next sprite 8x8 sprite to draw
-            if (object_size == 16 && (sprite_y + object_size) - lcd_y <= 8)
+            if (object_size == 16)
             {
-                sprite_tile_num++;
+                uint8_t curr_sprite_y = (sprite_y + object_size) - lcd_y;
+                if (!sprite_y_flip && curr_sprite_y <= 8)
+                {   // Get bottom 8x8 sprite
+                    sprite_tile_num++;
+                }
+                else if (sprite_y_flip && curr_sprite_y >= 8)
+                {   // Get bottom 8x8 sprite
+                    sprite_tile_num++;
+                }
             }
 
             // Find which tile block should be used
@@ -652,9 +682,12 @@ void GPU::drawOAMLine()
                     // Get current pixel in frame
                     auto curr_frame_pixel = frame[x + sprite_x + (lcd_y * SCREEN_PIXEL_W)];
 
-                    // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
-                    if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
-                    {
+                    if (bg_display_enable == false && is_color_gb)
+                    {   // Let sprite be drawn on top of background and window
+
+                    }
+                    else if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
+                    {   // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
                         continue;
                     }
                 }
@@ -667,7 +700,7 @@ void GPU::drawOAMLine()
                 // Check if sprite needs to be drawn flipped
                 if (sprite_y_flip)
                 {   // Vertically mirrored
-                    pixel_y = object_size - pixel_y;
+                    pixel_y = object_size - 1 - pixel_y;
                 }
 
                 if (sprite_x_flip)
@@ -694,13 +727,20 @@ void GPU::drawOAMLine()
                 uint8_t use_x = x + sprite_x;
 
                 // Draw sprite pixel to frame
-                if (sprite_palette_num == 0)
-                {
-                    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
-                }
-                else
-                {
-                    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
+                //if (is_color_gb)
+                //{   // Draw sprite in color
+                //    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = sprite_palettes[sprite_palette_num_cgb].getColor(pixel_color);
+                //}
+                //else
+                {   // Draw sprite in gray scale
+                    if (sprite_palette_num == 0)
+                    {
+                        frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
+                    }
+                    else
+                    {
+                        frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
+                    }
                 }
 
             } // end for(x)
@@ -970,4 +1010,22 @@ bool GPU::SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b)
     {
         return false;
     }
+}
+
+void GPU::updateBackgroundPalette(uint8_t val)
+{
+    // Get Color Palette object
+    ColorPalette & colorPalette = background_palettes[background_palette_index / 8];
+
+    // Update color palette
+    colorPalette.updateRawByte(background_palette_index % 8, val);
+}
+
+void GPU::updateSpritePalette(uint8_t val)
+{
+    // Get Color Palette object
+    ColorPalette & colorPalette = sprite_palettes[sprite_palette_index / 8];
+
+    // Update color palette
+    colorPalette.updateRawByte(sprite_palette_index % 8, val);
 }

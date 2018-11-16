@@ -3,6 +3,8 @@
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
+#include <QThread>
+#include <QApplication>
 
 EmuView::EmuView(QObject * parent)
     : QGraphicsScene(parent),
@@ -98,30 +100,34 @@ void EmuView::initFrame()
     // Create QImage frame
     frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(), SCREEN_PIXEL_W, SCREEN_PIXEL_H, QImage::Format_ARGB32);
 
+    // Setup frame update method
+    emu->setFrameUpdateMethod(std::bind(&EmuView::updateScene, this));
+
+    // Update scene
     updateScene();
 }
 
 void EmuView::connectEmulatorSignals()
 {
     // Connect frame updater
-    connect(&frameCheckTimer, &QTimer::timeout, [&]()
-    {
-        if (checkNewFrame())
-        {
-            updateScene();
+    //connect(&frameCheckTimer, &QTimer::timeout, [&]()
+    //{
+    //    if (checkNewFrame())
+    //    {
+    //        updateScene();
 
-            //int hash = hashImage(frame);
+    //        //int hash = hashImage(frame);
 
-            //if (hash != prevHash && emu->get_CPU()->get_register_16(CPU::PC) > 0x0100)
-            //{   // New frame/changed frame
-            //    int a = 0;
-            //    //emu->get_CPU()->startLogging = true;
-            //}
+    //        //if (hash != prevHash && emu->get_CPU()->get_register_16(CPU::PC) > 0x0100)
+    //        //{   // New frame/changed frame
+    //        //    int a = 0;
+    //        //    //emu->get_CPU()->startLogging = true;
+    //        //}
 
-            //prevHash = hash;
-        }
-    });
-    frameCheckTimer.start((1.0 / SCREEN_FRAMERATE) * 1000);
+    //        //prevHash = hash;
+    //    }
+    //});
+    //frameCheckTimer.start((1.0 / SCREEN_FRAMERATE) * 250);
 }
 
 bool EmuView::checkNewFrame()
@@ -163,6 +169,12 @@ int EmuView::hashImage(const QImage & image)
 
 void EmuView::updateScene()
 {
+    if (QThread::currentThread() != QApplication::instance()->thread())
+    {
+        QMetaObject::invokeMethod(this, &EmuView::updateScene);
+        return;
+    }
+
     // Create new QPixmap from QImage
     frame_pixmap = QPixmap::fromImage(*frame);
     frame_pixmap = frame_pixmap.scaled(frame_pixmap.size() * scaleFrameToFit());

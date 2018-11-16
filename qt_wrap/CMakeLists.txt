@@ -16,6 +16,7 @@ find_package(Qt5 REQUIRED Widgets)
 set(GBC_HEADERS
     ../src/GBCEmulator.h
     ../src/CartridgeReader.h
+    ../src/ColorPalette.h
     ../src/CPU.h
     ../src/GPU.h
     ../src/Joypad.h
@@ -26,6 +27,7 @@ set(GBC_HEADERS
 set(GBC_SOURCE
     ../src/GBCEmulator.cpp
     ../src/CartridgeReader.cpp
+    ../src/ColorPalette.cpp
     ../src/CPU.cpp
     ../src/GPU.cpp
     ../src/Joypad.cpp

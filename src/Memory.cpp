@@ -46,10 +46,14 @@ void Memory::initWorkRAM(bool isColorGB)
 {
 	is_color_gb = isColorGB;
 
-	if (is_color_gb)
-		num_working_ram_banks = 8;
-	else
-		num_working_ram_banks = 2;
+    if (is_color_gb)
+    {
+        num_working_ram_banks = 8;
+    }
+    else
+    {
+        num_working_ram_banks = 2;
+    }
 
 	curr_working_ram_bank = 1;
 
@@ -84,14 +88,11 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		/// GPU RAM
 	case 0x8000:
 	case 0x9000:
-
-
 		// 0x8000 - 0x97FF : Tile RAM
 		// 0x9800 - 0x9BFF : BG Map Data 1
 		// 0x9C00 - 0x9FFF : BG Map Data 2
 		return gpu->readByte(pos);
 		
-
 
 		/// GB Work RAM, GPU Object Attribute Memory (OAM), Hardware I/O, High RAM, Interrupt enable reg
 	case 0xC000:
@@ -349,6 +350,15 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 				// 0xFF40 - 0xFF6B : GPU LCD
 				gpu->setByte(pos, val);
 			}
+            else if (pos == 0xFF70 && is_color_gb)
+            {
+                if (val == 0x00)
+                {   // Cannot select WRAM bank 00
+                    val = 0x01;
+                }
+
+                curr_working_ram_bank = val & 0x07;
+            }
 			else
 			{
 				// 0xFF6C - 0xFF7F : Not referenced

@@ -1,6 +1,7 @@
 #ifndef EMU_VIEW_H
 #define EMU_VIEW_H
 
+#include <QObject>
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QTimer>
@@ -26,6 +27,7 @@ public:
     void runEmulator();
     void runTo(uint16_t pc);
     void connectEmulatorSignals();
+    void updateScene();
     void initFrame();
     bool checkNewFrame();
     uint8_t scaleFrameToFit();
@@ -39,7 +41,6 @@ public:
 
 private:
     int hashImage(const QImage & p);
-    void updateScene();
 
     int prevHash;
 };

@@ -40,17 +40,11 @@ GBCEmulator::~GBCEmulator()
 #endif
 
     cpu->memory->reset();
-
-    if (cpu)
-        cpu.reset();
-    if (cartridgeReader)
-        cartridgeReader.reset();
-    if (mbc)
-        mbc.reset();
-    if (gpu)
-        gpu.reset();
-    if (logger)
-        logger.reset();
+    cpu.reset();
+    cartridgeReader.reset();
+    mbc.reset();
+    gpu.reset();
+    logger.reset();
 }
 
 void GBCEmulator::init_SDL()
@@ -115,9 +109,11 @@ void GBCEmulator::init_gpu()
 {
     cpu->memory->gpu = gpu;
     gpu->memory = cpu->memory;
-    /*if (cartridgeReader->getColorGBFlag())
-        gpu->init_color_gb();*/
-    gpu->init_color_gb();
+    if (cartridgeReader->getColorGBFlag())
+    {
+        gpu->init_color_gb();
+    }
+    //gpu->init_color_gb();
 }
 
 void GBCEmulator::run()
@@ -142,6 +138,12 @@ void GBCEmulator::runNextInstruction()
         logger->flush();
     }
     logCounter++;
+
+    if (gpu->frame_is_ready)
+    {
+        frameIsUpdatedFunction();
+        gpu->frame_is_ready = false;
+    }
 
     ranInstruction = true;
 }
@@ -297,4 +299,9 @@ std::chrono::duration<double> GBCEmulator::getCurrentTime()
 void GBCEmulator::setTimePerFrame(double d)
 {
     timePerFrame = std::chrono::duration<double>(d);
+}
+
+void GBCEmulator::setFrameUpdateMethod(std::function<void(void)> function)
+{
+    frameIsUpdatedFunction = function;
 }

@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
+#include <functional>
 
 #include "CPU.h"
 #include "Memory.h"
@@ -27,9 +28,7 @@ extern "C" {
 
 class GBCEmulator
 {
-
 public:
-
     GBCEmulator(const std::string romName, const std::string logName="log.txt", bool debugMode=false);
     virtual ~GBCEmulator();
 
@@ -49,13 +48,14 @@ public:
     void release_joypad_button(Joypad::BUTTON button);
     void setTimePerFrame(double d);
 
+    void setFrameUpdateMethod(std::function<void(void)> function);
+
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
     SDL_Window *window;
 
 private:
-
     void read_rom(std::string filename);
     void init_SDL();
     void init_memory();
@@ -83,6 +83,8 @@ private:
     uint64_t ticksRan;
     std::chrono::duration<double> timeSpentOnTicks;
     std::chrono::duration<double> timePerFrame;
+
+    std::function<void(void)> frameIsUpdatedFunction;
 };
 
 #endif

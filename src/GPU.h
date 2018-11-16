@@ -1,10 +1,9 @@
-#pragma once
-
 #ifndef GPU_H
 #define GPU_H
 
 #include <vector>
 #include <SDL.h>
+#include "ColorPalette.h"
 #include <spdlog/spdlog.h>
 
 #define VRAM_SIZE 0x2000
@@ -97,6 +96,10 @@ public:
     uint8_t getSpriteTileBlockNum(int use_tile_num);
     Tile * getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num);
 
+    // Palette methods
+    void updateBackgroundPalette(uint8_t val);
+    void updateSpritePalette(uint8_t val);
+
     // Reading and writing methods
     std::uint8_t readByte(std::uint16_t pos);
     void setByte(std::uint16_t pos, std::uint8_t val);
@@ -120,6 +123,8 @@ public:
 	bool auto_increment_background_palette_index, auto_increment_sprite_palette_index;
 	std::vector<unsigned char> background_palette_data;
 	std::vector<unsigned char> sprite_palette_data;
+    std::array<ColorPalette, 8> background_palettes;
+    std::array<ColorPalette, 8> sprite_palettes;
 
 	// LCD Object Attribute Memory DMA Transfers
 	unsigned char oam_dma;

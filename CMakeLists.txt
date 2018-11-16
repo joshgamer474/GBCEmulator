@@ -7,29 +7,31 @@ conan_basic_setup(TARGETS)
 find_package(SDL2)
 add_definitions(-DSDL_DRAW)
 
-set(GBC_HEADERS \ 
-        src/GBCEmulator.h \ 
-        src/CartridgeReader.h \ 
-        src/CPU.h \ 
-        src/GPU.h \ 
-        src/Joypad.h \ 
-        src/MBC.h \ 
-        src/Memory.h \ 
-        src/Tile.h)
-        
-set(GBC_SOURCE \ 
-        src/GBCEmulator.cpp \ 
-        src/CartridgeReader.cpp \ 
-        src/CPU.cpp \ 
-        src/GPU.cpp \ 
-        src/Joypad.cpp \ 
-        src/MBC.cpp \ 
-        src/Memory.cpp \ 
-        src/Tile.cpp)
-        
-set(GBC_RUN_SOURCE \ 
-        src/main.cpp)
-        
+set(GBC_HEADERS
+    src/GBCEmulator.h
+    src/CartridgeReader.h
+    src/ColorPalette.h
+    src/CPU.h
+    src/GPU.h
+    src/Joypad.h
+    src/MBC.h
+    src/Memory.h
+    src/Tile.h)
+
+set(GBC_SOURCE
+    src/GBCEmulator.cpp
+    src/CartridgeReader.cpp
+    src/ColorPalette.cpp
+    src/CPU.cpp
+    src/GPU.cpp
+    src/Joypad.cpp
+    src/MBC.cpp
+    src/Memory.cpp
+    src/Tile.cpp)
+
+set(GBC_RUN_SOURCE
+    src/main.cpp)
+
 # Create GBCEmulator lib
 if(BUILD_SHARED_LIBS)
     message("Building as SHARED")
