@@ -113,7 +113,6 @@ void GBCEmulator::init_gpu()
     {
         gpu->init_color_gb();
     }
-    //gpu->init_color_gb();
 }
 
 void GBCEmulator::run()

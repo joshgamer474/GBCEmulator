@@ -184,9 +184,14 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 				// 0xFF40 - 0xFF6B : GPU LCD
 				return gpu->readByte(pos);
 			}
+            else if (pos == 0xFF70)
+            {
+                // 0xFF70 : WRAM select (CBG Only)
+                return curr_working_ram_bank;
+            }
 			else
 			{
-				// 0xFF6C - 0xFF7F : Not referenced
+				// 0xFF6C - 0xFF6F and 0xFF71 - 0xFF7F : Not referenced
 				logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 				return 0xFF;
 			}
@@ -352,6 +357,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			}
             else if (pos == 0xFF70 && is_color_gb)
             {
+                // 0xFF70 : WRAM select (CBG Only)
                 if (val == 0x00)
                 {   // Cannot select WRAM bank 00
                     val = 0x01;
@@ -361,7 +367,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
             }
 			else
 			{
-				// 0xFF6C - 0xFF7F : Not referenced
+                // 0xFF6C - 0xFF6F and 0xFF71 - 0xFF7F : Not referenced
 				logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 			}
 		}

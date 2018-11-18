@@ -68,6 +68,7 @@ void MBC::MBC_init(int mbcNum)
 		setFromTo(&rom_from_to, 0x0000, 0x7FFF);
 		setFromTo(&ram_from_to, 0xA000, 0xBFFF);
 	}
+    logger->info("Using MBC: {}", mbc_num);
 }
 
 void MBC::MBC1_init()
@@ -304,6 +305,17 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         {   // Set RAM bank number 
             /// TODO: MBC3 RTC Register select
             curr_ram_bank = (val & 0x03) % num_ram_banks;
+        }
+        else if (mbc_num == 3)
+        {
+            if (val <= 0x04)
+            {   // Set external RAM bank
+                curr_ram_bank = val & 0x03;
+            }
+            else if (val >= 0x08 && val <= 0x0C)
+            {   // Set RTC register
+                curr_rtc_register = val;
+            }
         }
         else if (mbc_num == 5)
         {

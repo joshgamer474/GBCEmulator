@@ -196,7 +196,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			object_attribute_memory[pos - 0xFE00] = val;
 			break;
 		}
-		else if (pos < 0xFF6C)
+		else if (pos < 0xFF77)
 		{
 			// LCD Stuff, VRAM bank selector
 
@@ -217,6 +217,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                     background_palette_index = val & 0x3F;
                     auto_increment_background_palette_index = val & 0x80;
                     return;
+
                     // Background Palette Data
                 case 0xFF69:
                     background_palette_data[background_palette_index] = val;
@@ -227,13 +228,14 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                     }
                     background_palette_index &= 0x3F;
                     return;
+
                     // Sprite Palette Index
                 case 0xFF6A:
                     sprite_palette_index = val & 0x07;
                     auto_increment_sprite_palette_index = val & 0x80;
                     return;
-                    // Sprite Palette Data
 
+                    // Sprite Palette Data
                 case 0xFF6B:
                     sprite_palette_data[sprite_palette_index] = val;
                     updateSpritePalette(val);
