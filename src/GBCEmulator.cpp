@@ -146,6 +146,9 @@ void GBCEmulator::runNextInstruction()
     {
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
+
+        // Update frameStartTime to current time
+        frameStartTime = getCurrentTime();
     }
 
     ranInstruction = true;
@@ -279,7 +282,7 @@ void GBCEmulator::waitToRunInstruction()
 
         // Calculate time elapsed since start of frame
         auto currTimeDouble = getCurrentTime();
-        auto timeElapsedMilli = currTimeDouble - timeSpentOnTicks;
+        auto timeElapsedMilli = currTimeDouble - frameStartTime;
 
         // Calculate amount of time to sleep until next frame
         auto timeToWaitMilli = timePerFrame - timeElapsedMilli;
@@ -288,9 +291,6 @@ void GBCEmulator::waitToRunInstruction()
             std::this_thread::sleep_for(timeToWaitMilli);
         }
     }
-
-    // Update timeSpentOnTicks to current time
-    timeSpentOnTicks = getCurrentTime();
 }
 
 std::chrono::duration<double> GBCEmulator::getCurrentTime()

@@ -81,7 +81,7 @@ private:
 
     uint64_t ticksPerFrame;
     uint64_t ticksRan;
-    std::chrono::duration<double> timeSpentOnTicks;
+    std::chrono::duration<double> frameStartTime;
     std::chrono::duration<double> timePerFrame;
 
     std::function<void(void)> frameIsUpdatedFunction;
