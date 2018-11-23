@@ -59,7 +59,6 @@ public:
 	{
 		unsigned char b0, b1;
 	};
-	void getTile(int tile_num, int line_num, TILE *tile);
 	std::uint8_t y_roll_over;
 
 	enum GPU_MODE
@@ -82,7 +81,7 @@ public:
     void renderFullBackgroundMap();
     void drawShownBackgroundArea();
 	void display();
-	void updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
+	Tile * updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
     void set_lcd_control(unsigned char lcd_control);
     void set_lcd_status(unsigned char lcd_status);
     void set_lcd_status_mode_flag(GPU_MODE);

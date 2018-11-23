@@ -18,13 +18,23 @@ public:
 	void updateRawData(uint8_t pos, uint8_t val);
     uint8_t getPixel(uint8_t row, uint8_t column);
     std::vector<uint8_t> getRawPixelData();
+    void setCGBAttribute(uint8_t attribute_byte);
 
     std::vector<uint8_t> pixels;
 
 private:
     void updatePixelRow(uint8_t row_num);
+    void parseCGBAttribute();
 
     std::vector<uint8_t> raw_data;
+
+    // CGB variables
+    uint8_t cgb_attribute;
+    uint8_t cgb_bg_palette_num;
+    bool cgb_tile_vram_bank_num;
+    bool horizontal_flip;
+    bool vertical_flip;
+    bool bg_to_OAM_priority;
 };
 
 

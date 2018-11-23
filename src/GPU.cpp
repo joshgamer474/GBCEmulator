@@ -194,9 +194,15 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			tile_block_num = 2;
 		}
 
+        
 		if (tile_block_num < 3)
-		{
-			updateTile(pos, val, tile_block_num);
+		{   // Update Tiles[]
+			Tile * tile = updateTile(pos, val, tile_block_num);
+
+            if (tile && is_color_gb && curr_vram_bank == 1)
+            {   // Update CGB Tile attribute byte
+                tile->setCGBAttribute(val);
+            }
 		}
 
 		// Background Maps: 0x9800 - 0x9FFF (0x9800 - 0x9BFF, 0x9C00 - 0x9FFF)
@@ -253,11 +259,11 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                     // Background Palette Data
                 case 0xFF69:
                     // Block writing to VRAM when VRAM is being used
-                    if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
-                    {
-                        logger->info("Blocking write to 0xFF69 Background Palette Data, gpu_mode: {}", gpu_mode);
-                        return;
-                    }
+                    //if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
+                    //{
+                    //    logger->warn("Blocking write to 0xFF69 Background Palette Data, gpu_mode: {}", gpu_mode);
+                    //    return;
+                    //}
 
                     cgb_background_palette_data[cgb_background_palette_index] = val;
                     updateBackgroundPalette(val);
@@ -270,18 +276,18 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
                     // Sprite Palette Index
                 case 0xFF6A:
-                    cgb_sprite_palette_index = val & 0x07;
+                    cgb_sprite_palette_index = val & 0x3F;
                     cgb_auto_increment_sprite_palette_index = val & 0x80;
                     return;
 
                     // Sprite Palette Data
                 case 0xFF6B:
                     // Block writing to VRAM when VRAM is being used
-                    if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
-                    {
-                        logger->info("Blocking write to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
-                        return;
-                    }
+                    //if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
+                    //{
+                    //    logger->warn("Blocking write to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
+                    //    return;
+                    //}
 
                     cgb_sprite_palette_data[cgb_sprite_palette_index] = val;
                     updateSpritePalette(val);
@@ -289,7 +295,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                     {
                         cgb_sprite_palette_index++;
                     }
-                    cgb_sprite_palette_index &= 0x07;
+                    cgb_sprite_palette_index &= 0x3F;
                     return;
                 }
             }
@@ -451,27 +457,6 @@ void GPU::set_lcd_status_coincidence_flag(bool flag)
     {
         lcd_status_interrupt_signal = 0;
     }
-
-    // Check if an interrupt flag should be enabled
-	//if (((lcd_status & BIT2) && (lcd_status & BIT6))
- //       || (gpu_mode == GPU_MODE_HBLANK && (lcd_status & BIT3))
- //       || (gpu_mode == GPU_MODE_VBLANK && ((lcd_status & BIT4) || (lcd_status & BIT5)))
- //       || (gpu_mode == GPU_MODE_OAM    && (lcd_status & BIT5)))
-	//{
- //       // Only trigger interrupt when going from low to high
- //       if (lcd_status_interrupt_signal == 0)
- //       {
- //           lcd_status_interrupt_signal = 1;
- //           memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
- //       }
-	//}
-}
-
-void GPU::getTile(int tile_num, int line_num, TILE *tile)
-{
-	int pos = (tile_num * 16) + (line_num * 2);
-	tile->b0 = vram_banks[curr_vram_bank][pos];
-	tile->b1 = vram_banks[curr_vram_bank][pos + 1];
 }
 
 // Draws the 256x256 pixel Background to bg_frame[]
@@ -1120,7 +1105,7 @@ void GPU::printFrame()
 }
 
 
-void GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num)
+Tile * GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num)
 {
 	Tile *tile;
 	std::uint16_t tile_num;
@@ -1137,6 +1122,7 @@ void GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_bloc
 		tile->updateRawData(byte_pos % 16, val);
         bg_tiles_updated = true;
 	}
+    return tile;
 }
 
 const SDL_Color * GPU::getFrame()

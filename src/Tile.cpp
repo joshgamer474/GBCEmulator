@@ -56,3 +56,19 @@ std::vector<uint8_t> Tile::getRawPixelData()
 {
     return pixels;
 }
+
+void Tile::setCGBAttribute(uint8_t attribute_byte)
+{
+    cgb_attribute = attribute_byte;
+    parseCGBAttribute();
+}
+
+void Tile::parseCGBAttribute()
+{
+    cgb_bg_palette_num      = cgb_attribute & 0x03;
+    cgb_tile_vram_bank_num  = cgb_attribute & 0x08;
+    // Bit 4 not used
+    horizontal_flip         = cgb_attribute & 0x20;
+    vertical_flip           = cgb_attribute & 0x40;
+    bg_to_OAM_priority      = cgb_attribute & 0x80;
+}
