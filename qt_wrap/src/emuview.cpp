@@ -5,9 +5,12 @@
 #include <QMimeData>
 #include <QThread>
 #include <QApplication>
+#include <QMainWindow>
+#include <src/mainwindow.h>
 
 EmuView::EmuView(QObject * parent)
-    : QGraphicsScene(parent),
+    :   QGraphicsScene(parent),
+        parent(parent),
         prevHash(0)
 {
 
@@ -15,6 +18,7 @@ EmuView::EmuView(QObject * parent)
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
     :   QGraphicsScene(parent),
+        parent(parent),
         emuView(graphicsView),
         prevHash(0)
 {
@@ -25,7 +29,8 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
 }
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
-    : QGraphicsScene(parent),
+    :   QGraphicsScene(parent),
+        parent(parent),
         emuView(graphicsView),
         prevHash(0)
 {
@@ -65,6 +70,18 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 #endif
 
     initFrame();
+    setupFPSCounting();
+}
+
+void EmuView::setupFPSCounting()
+{
+    fps = 0;
+    connect(this, &EmuView::updateFPS, static_cast<MainWindow*>(parent), &MainWindow::updateFPS);
+    connect(&fpsTimer, &QTimer::timeout, this, [this]()
+    {
+        emit updateFPS(QString::number(fps));
+        fps = 0;
+    });
 }
 
 void EmuView::runEmulator()
@@ -79,6 +96,9 @@ void EmuView::runEmulator()
     {
         emu->run();
     });
+
+    // Start FPS timer
+    fpsTimer.start(1000);
 }
 
 void EmuView::runTo(uint16_t next_pc)
@@ -154,6 +174,8 @@ void EmuView::updateScene()
         QMetaObject::invokeMethod(this, &EmuView::updateScene);
         return;
     }
+
+    fps++;
 
     // Create new QPixmap from QImage
     frame_pixmap = QPixmap::fromImage(*frame);

@@ -58,6 +58,11 @@ void MainWindow::openDebuggerWindow()
     debuggerWindow->show();
 }
 
+void MainWindow::updateFPS(QString fps)
+{
+    this->setWindowTitle("GBCEmulator | " + fps);
+}
+
 void MainWindow::dragEnterEvent(QDragEnterEvent * e)
 {
     if (e->mimeData()->hasUrls())

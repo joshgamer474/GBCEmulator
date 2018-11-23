@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QString>
 #include <QTimer>
 #include <QPixmap>
 #include <memory>
@@ -24,6 +25,7 @@ public:
     QGraphicsScene* getThis();
 
     void setupEmulator(std::string filename, bool debugMode = false);
+    void setupFPSCounting();
     void runEmulator();
     void runTo(uint16_t pc);
     void updateScene();
@@ -35,10 +37,16 @@ public:
     QGraphicsView  *emuView;
     std::unique_ptr<QImage> frame;
     QPixmap frame_pixmap;
-    QTimer frameCheckTimer;
+    QTimer fpsTimer;
+    float fps;
     std::shared_ptr<std::thread> thread;
 
+Q_SIGNALS:
+    void updateFPS(QString fps);
+
 private:
+    QObject * parent;
+
     int hashImage(const QImage & p);
 
     int prevHash;

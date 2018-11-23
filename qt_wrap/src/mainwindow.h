@@ -20,6 +20,7 @@ public:
 
 public Q_SLOTS:
     void openDebuggerWindow();
+    void updateFPS(QString fps);
 
 private:
     void connectSignalsSlots();
