@@ -119,12 +119,12 @@ public:
 	unsigned char bg_palette, object_pallete0, object_pallete1;
 
 	// LCD Color Palettes (GBC only)
-	unsigned char background_palette_index, sprite_palette_index;
-	bool auto_increment_background_palette_index, auto_increment_sprite_palette_index;
-	std::vector<unsigned char> background_palette_data;
-	std::vector<unsigned char> sprite_palette_data;
-    std::array<ColorPalette, 8> background_palettes;
-    std::array<ColorPalette, 8> sprite_palettes;
+	unsigned char cgb_background_palette_index, cgb_sprite_palette_index;
+	bool cgb_auto_increment_background_palette_index, cgb_auto_increment_sprite_palette_index;
+	std::vector<unsigned char> cgb_background_palette_data;
+	std::vector<unsigned char> cgb_sprite_palette_data;
+    std::array<ColorPalette, 8> cgb_background_palettes;
+    std::array<ColorPalette, 8> cgb_sprite_palettes;
 
 	// LCD Object Attribute Memory DMA Transfers
 	unsigned char oam_dma;

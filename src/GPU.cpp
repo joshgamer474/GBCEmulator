@@ -24,8 +24,8 @@ GPU::GPU(SDL_Renderer *render)
 	object_attribute_memory.resize(OAM_SIZE);
 	bg_tiles.resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
 
-	background_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
-	sprite_palette_data.resize(PALETTE_DATA_SIZE);
+	cgb_background_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
+	cgb_sprite_palette_data.resize(PALETTE_DATA_SIZE);
 
     bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
 
@@ -37,8 +37,8 @@ GPU::GPU(SDL_Renderer *render)
 	game_screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
 #endif
 
-	background_palette_index = 0;
-	sprite_palette_index = 0;
+	cgb_background_palette_index = 0;
+	cgb_sprite_palette_index = 0;
     scroll_x = 0;
     scroll_y = 0;
     lcd_y = 0;
@@ -47,8 +47,8 @@ GPU::GPU(SDL_Renderer *render)
     bg_display_enable = 0;
 	bg_tile_data_select_method = false;
 	bg_tile_map_select_method = false;
-	auto_increment_background_palette_index = false;
-	auto_increment_sprite_palette_index = false;
+	cgb_auto_increment_background_palette_index = false;
+	cgb_auto_increment_sprite_palette_index = false;
 
     frame_is_ready = false;
     bg_tiles_updated = false;
@@ -75,7 +75,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 	case 0x8000:
 	case 0x9000:
 
-        // Block writing to VRAM during Modes VRAM
+        // Block writing to VRAM during VRAM Mode
         //if (lcd_status & 0x03 == GPU_MODE_VRAM)
         //{
         //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
@@ -122,10 +122,30 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF53:	return hdma3;
 			case 0xFF54:	return hdma4;
 			case 0xFF55:	return hdma5;
-			case 0xFF68:	return background_palette_index;
-			case 0xFF69:	return background_palette_data[background_palette_index];
-			case 0xFF6A:	return sprite_palette_index;
-			case 0xFF6B:	return sprite_palette_data[sprite_palette_index];
+			case 0xFF68:	return cgb_background_palette_index;
+			case 0xFF69:
+                // Block reading to VRAM when VRAM is being used
+                if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
+                {
+                    logger->info("Blocking read to 0xFF69 Background Palette Data, gpu_mode: {}", gpu_mode);
+                    return 0xFF;
+                }
+                else
+                {
+                    return cgb_background_palette_data[cgb_background_palette_index];
+                }
+			case 0xFF6A:	return cgb_sprite_palette_index;
+            case 0xFF6B:
+                // Block reading to VRAM when VRAM is being used
+                if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
+                {
+                    logger->info("Blocking read to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
+                    return 0xFF;
+                }
+                else
+                {
+                    return cgb_sprite_palette_data[cgb_sprite_palette_index];
+                }
 
 			default:
 				logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
@@ -142,7 +162,9 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 
 void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 {
-	std::uint8_t tile_block_num = 3;
+	uint8_t tile_block_num = 3;
+    uint16_t source_address;
+    uint16_t dest_address;
 
 	switch (pos & 0xF000)
 	{
@@ -201,7 +223,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			// LCD Stuff, VRAM bank selector
 
             // CGB only
-            if (memory->cartridgeReader->getColorGBFlag())
+            if (memory->cartridgeReader->isColorGB())
             {
                 switch (pos)
                 {
@@ -210,40 +232,64 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                 case 0xFF52:	hdma2 = val; return;
                 case 0xFF53:	hdma3 = val; return;
                 case 0xFF54:	hdma4 = val; return;
-                case 0xFF55:	hdma5 = val; return;
+                case 0xFF55:
+                    hdma5 = val;
+                    
+                    source_address = hdma1;
+                    source_address = (source_address << 8) | hdma2;
+
+                    dest_address = hdma3;
+                    dest_address = (dest_address << 8) | hdma4;
+
+                    memory->do_cgb_oam_dma_transfer(source_address, dest_address, hdma5);
+                    return;
 
                     // Background Palette Index
                 case 0xFF68:
-                    background_palette_index = val & 0x3F;
-                    auto_increment_background_palette_index = val & 0x80;
+                    cgb_background_palette_index = val & 0x3F;
+                    cgb_auto_increment_background_palette_index = val & 0x80;
                     return;
 
                     // Background Palette Data
                 case 0xFF69:
-                    background_palette_data[background_palette_index] = val;
-                    updateBackgroundPalette(val);
-                    if (auto_increment_background_palette_index)
+                    // Block writing to VRAM when VRAM is being used
+                    if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
                     {
-                        background_palette_index++;
+                        logger->info("Blocking write to 0xFF69 Background Palette Data, gpu_mode: {}", gpu_mode);
+                        return;
                     }
-                    background_palette_index &= 0x3F;
+
+                    cgb_background_palette_data[cgb_background_palette_index] = val;
+                    updateBackgroundPalette(val);
+                    if (cgb_auto_increment_background_palette_index)
+                    {
+                        cgb_background_palette_index++;
+                    }
+                    cgb_background_palette_index &= 0x3F;
                     return;
 
                     // Sprite Palette Index
                 case 0xFF6A:
-                    sprite_palette_index = val & 0x07;
-                    auto_increment_sprite_palette_index = val & 0x80;
+                    cgb_sprite_palette_index = val & 0x07;
+                    cgb_auto_increment_sprite_palette_index = val & 0x80;
                     return;
 
                     // Sprite Palette Data
                 case 0xFF6B:
-                    sprite_palette_data[sprite_palette_index] = val;
-                    updateSpritePalette(val);
-                    if (auto_increment_sprite_palette_index)
+                    // Block writing to VRAM when VRAM is being used
+                    if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
                     {
-                        sprite_palette_index++;
+                        logger->info("Blocking write to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
+                        return;
                     }
-                    sprite_palette_index &= 0x07;
+
+                    cgb_sprite_palette_data[cgb_sprite_palette_index] = val;
+                    updateSpritePalette(val);
+                    if (cgb_auto_increment_sprite_palette_index)
+                    {
+                        cgb_sprite_palette_index++;
+                    }
+                    cgb_sprite_palette_index &= 0x07;
                     return;
                 }
             }
@@ -254,7 +300,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
             case 0xFF41:	set_lcd_status(val); break;
 			case 0xFF42:	scroll_y = val; break;
 			case 0xFF43:	scroll_x = val; break;
-			case 0xFF44:	if (lcd_display_enable == false) lcd_y = 0; break;				// Read only - Writing to this register resets the counter
+			case 0xFF44:	if (lcd_display_enable == false) lcd_y = 0; break;  // Read only - Writing to this register resets the counter
 			case 0xFF45:	lcd_y_compare = val; set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare); break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
@@ -431,7 +477,7 @@ void GPU::getTile(int tile_num, int line_num, TILE *tile)
 // Draws the 256x256 pixel Background to bg_frame[]
 void GPU::renderFullBackgroundMap()
 {
-    int tile_map_offset = bg_tile_map_select.start - 0x8000;
+    int tile_map_vram_offset = bg_tile_map_select.start - 0x8000;
     int tile_offset = 0;
     int tile_offset_save = 0;
     int map_tile_num_offset = 0;
@@ -441,12 +487,36 @@ void GPU::renderFullBackgroundMap()
     std::uint8_t tile_block_num;
     uint16_t row_pixel_offset;
 
+    // CGB variables
+    uint8_t cgb_tile_attributes = 0;
+    uint8_t cgb_bg_palette_num;
+    bool cgb_tile_vram_bank_num;
+    bool cgb_horizontal_flip;
+    bool cgb_vertical_flip;
+    bool cgb_bg_to_OAM_priority;
+
     for (uint16_t tile_map_pos = 0; tile_map_pos < bg_tile_map_select.end - bg_tile_map_select.start + 1; tile_map_pos++)
     {
-        map_tile_num_offset = tile_map_offset + tile_map_pos;
+        map_tile_num_offset = tile_map_vram_offset + tile_map_pos;
 
-        // Get tile number from tile map
-        use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
+        if (is_color_gb)
+        {   // Get Tile's attributes
+            cgb_tile_attributes = vram_banks[1][map_tile_num_offset];
+
+            // Parse Tile's attributes
+            uint8_t cgb_bg_palette_num  = cgb_tile_attributes & 0x03;
+            bool cgb_tile_vram_bank_num = cgb_tile_attributes & BIT3;
+            bool cgb_horizontal_flip    = cgb_tile_attributes & BIT5;
+            bool cgb_vertical_flip      = cgb_tile_attributes & BIT6;
+            bool cgb_bg_to_OAM_priority = cgb_tile_attributes & BIT7;
+
+            // Get tile number from tile map
+            use_tile_num = vram_banks[cgb_tile_vram_bank_num][map_tile_num_offset];
+        }
+        else
+        {   // Get tile number from tile map
+            use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
+        }
 
         // Find which tile block should be used
         tile_block_num = getTileBlockNum(use_tile_num);
@@ -467,7 +537,14 @@ void GPU::renderFullBackgroundMap()
                 uint8_t use_col = col + ((tile_map_pos * 8) & 255); // (0..255)
 
                 // Set pixel in frame
-                bg_frame[use_col + use_row] = bg_palette_color[tile_data[col + (row * 8)]];
+                if (is_color_gb)
+                {
+                    bg_frame[use_col + use_row] = cgb_background_palettes[cgb_bg_palette_num].getColor(tile_data[col + (row * 8)]);
+                }
+                else
+                {
+                    bg_frame[use_col + use_row] = bg_palette_color[tile_data[col + (row * 8)]];
+                }
             }
         }
     }
@@ -519,6 +596,19 @@ void GPU::drawShownBackgroundArea()
 void GPU::drawBackgroundLine()
 {
     Tile * tile;
+    uint16_t tile_map_offset;
+    uint16_t use_tile_num;
+    uint8_t tile_block_num;
+    uint8_t curr_tile_col;
+    uint8_t pixel;
+
+    // CGB variables
+    uint8_t cgb_tile_attributes = 0;
+    uint8_t cgb_bg_palette_num;
+    bool cgb_tile_vram_bank_num;
+    bool cgb_horizontal_flip;
+    bool cgb_vertical_flip;
+    bool cgb_bg_to_OAM_priority;
 
     // Calculate which row of the Tile we're in (0..7)
     uint8_t curr_tile_row = (lcd_y + scroll_y) & 0x07;
@@ -529,32 +619,50 @@ void GPU::drawBackgroundLine()
     uint8_t use_pixel_x = scroll_x;
     uint8_t use_pixel_y = scroll_y + lcd_y;     // Will rollover naturally due to uint8 (0..255)
 
-    uint16_t frame_y = lcd_y * SCREEN_PIXEL_W;
+    uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
     // Draw scanline
     for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
         // Get tile offset in tile_map
-        uint16_t tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
+        tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
 
         // Get tile number from tile map
-        uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+        use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+
+        if (is_color_gb)
+        {   // Get Tile's attributes
+            cgb_tile_attributes = vram_banks[1][tile_map_vram_offset + tile_map_offset];
+
+            // Parse Tile's attributes
+            cgb_bg_palette_num      = cgb_tile_attributes & 0x03;
+            cgb_tile_vram_bank_num  = cgb_tile_attributes & BIT3;
+            cgb_horizontal_flip     = cgb_tile_attributes & BIT5;
+            cgb_vertical_flip       = cgb_tile_attributes & BIT6;
+            cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
+        }
 
         // Find which tile memory block should be used
-        uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+        tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
         tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
         // Calculate which col of the Tile we're in (0..7)
-        uint8_t curr_tile_col = (scroll_x + frame_x) & 0x07;
+        curr_tile_col = (scroll_x + frame_x) & 0x07;
 
         // Get pixel
-        uint8_t pixel = tile->getPixel(curr_tile_row, curr_tile_col);
+        pixel = tile->getPixel(curr_tile_row, curr_tile_col);
 
         // Draw pixel
-        frame[frame_x + frame_y] = bg_palette_color[pixel];
-        //frame[frame_x + frame_y] = background_palettes[background_palette_index / 8].getColor(pixel);
+        if (is_color_gb)
+        {
+            frame[frame_x + frame_y_offset] = cgb_background_palettes[cgb_bg_palette_num].getColor(pixel);
+        }
+        else
+        {
+            frame[frame_x + frame_y_offset] = bg_palette_color[pixel];
+        }
 
         // Will rollover naturally due to uint8 (0..255)
         use_pixel_x++;
@@ -564,6 +672,19 @@ void GPU::drawBackgroundLine()
 void GPU::drawWindowLine()
 {
     Tile * tile;
+    uint16_t tile_map_offset;
+    uint16_t use_tile_num;
+    uint8_t tile_block_num;
+    uint8_t curr_tile_col;
+    uint8_t pixel;
+
+    // CGB variables
+    uint8_t cgb_tile_attributes = 0;
+    uint8_t cgb_bg_palette_num;
+    bool cgb_tile_vram_bank_num;
+    bool cgb_horizontal_flip;
+    bool cgb_vertical_flip;
+    bool cgb_bg_to_OAM_priority;
 
     // Calculate which row of the Tile we're in (0..7)
     uint8_t curr_tile_row = (lcd_y + window_y_pos) & 0x07;
@@ -574,7 +695,7 @@ void GPU::drawWindowLine()
     uint8_t use_pixel_x = window_x_pos - 7;
     uint8_t use_pixel_y = window_y_pos + lcd_y;     // Will rollover naturally due to uint8 (0..255)
 
-    uint16_t frame_y = lcd_y * SCREEN_PIXEL_W;
+    uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
     if (use_pixel_x >= SCREEN_PIXEL_W || window_y_pos >= SCREEN_PIXEL_H)
     {
@@ -590,25 +711,48 @@ void GPU::drawWindowLine()
     for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
         // Get tile in tile_map
-        uint16_t tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
+        tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
 
-        // Get tile number from tile map
-        uint16_t use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+        if (is_color_gb)
+        {   // Get Tile's attributes
+            cgb_tile_attributes = vram_banks[1][tile_map_vram_offset + tile_map_offset];
+
+            // Parse Tile's attributes
+            cgb_bg_palette_num      = cgb_tile_attributes & 0x03;
+            cgb_tile_vram_bank_num  = cgb_tile_attributes & BIT3;
+            cgb_horizontal_flip     = cgb_tile_attributes & BIT5;
+            cgb_vertical_flip       = cgb_tile_attributes & BIT6;
+            cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
+
+            // Get tile number from tile map
+            use_tile_num = vram_banks[cgb_tile_vram_bank_num][tile_map_vram_offset + tile_map_offset];
+        }
+        else
+        {   // Get tile number from tile map
+            use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+        }
 
         // Find which tile memory block should be used
-        uint8_t tile_block_num = getTileBlockNum(use_tile_num);
+        tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
         tile = getTileFromBGTiles(tile_block_num, use_tile_num);
 
         // Calculate which col of the Tile we're in (0..7)
-        uint8_t curr_tile_col = (scroll_x + frame_x) & 0x07;
+        curr_tile_col = (scroll_x + frame_x) & 0x07;
 
         // Get pixel
-        uint8_t pixel = tile->getPixel(curr_tile_row, curr_tile_col);
+        pixel = tile->getPixel(curr_tile_row, curr_tile_col);
 
         // Draw pixel
-        frame[frame_x + frame_y] = bg_palette_color[pixel];
+        if (is_color_gb)
+        {
+            frame[frame_x + frame_y_offset] = cgb_background_palettes[cgb_bg_palette_num].getColor(pixel);
+        }
+        else
+        {
+            frame[frame_x + frame_y_offset] = bg_palette_color[pixel];
+        }
 
         // Will rollover naturally due to uint8 (0..255)
         use_pixel_x++;
@@ -621,11 +765,16 @@ void GPU::drawOAMLine()
     std::uint8_t curr_sprite;
     std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
     uint8_t pixel_x, pixel_y;
-    uint8_t tile_vram_bank_num;
-    uint8_t sprite_palette_num_cgb;
+    uint8_t tile_block_num;
+    uint8_t pixel_color;
+    uint8_t use_x;
+    uint8_t cgb_tile_vram_bank_num;
+    uint8_t cgb_sprite_palette_num;
     bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
 
     pixel_x = pixel_y = 0;
+
+    uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
     for (int i = 0; i < object_attribute_memory.size(); i += 4)
     {
@@ -641,9 +790,11 @@ void GPU::drawOAMLine()
         sprite_x_flip       = byte3 & 0x20;
         sprite_palette_num  = byte3 & 0x10; // Non CGB Mode only
 
-        // CGB Mode only
-        tile_vram_bank_num      = (byte3 & 0x08) >> 3;
-        sprite_palette_num_cgb  = byte3 & 0x07;
+        if (is_color_gb)
+        {
+            cgb_tile_vram_bank_num = (byte3 & 0x08) >> 3;
+            cgb_sprite_palette_num = byte3 & 0x07;
+        }
 
         // Check to see if sprite is rendered on current line (Y position)
         if (sprite_y <= lcd_y && (sprite_y + object_size) > lcd_y)
@@ -664,7 +815,7 @@ void GPU::drawOAMLine()
             }
 
             // Find which tile block should be used
-            uint8_t tile_block_num = getSpriteTileBlockNum(sprite_tile_num);
+            tile_block_num = getSpriteTileBlockNum(sprite_tile_num);
 
             // Get the tile
             tile = getTileFromBGTiles(tile_block_num, sprite_tile_num);
@@ -719,29 +870,29 @@ void GPU::drawOAMLine()
                 }
 
                 // Get color for current pixel in object
-                const uint8_t pixel_color = tile->getPixel(pixel_y, pixel_x);
+                pixel_color = tile->getPixel(pixel_y, pixel_x);
 
                 if (pixel_color == 0)
                 {
                     continue;   // Color 0 == transparent == don't display
                 }
 
-                uint8_t use_x = x + sprite_x;
+                use_x = x + sprite_x;
 
                 // Draw sprite pixel to frame
-                //if (is_color_gb)
-                //{   // Draw sprite in color
-                //    frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = sprite_palettes[sprite_palette_num_cgb].getColor(pixel_color);
-                //}
-                //else
+                if (is_color_gb)
+                {   // Draw sprite in color
+                    frame[use_x + frame_y_offset] = cgb_sprite_palettes[cgb_sprite_palette_num].getColor(pixel_color);
+                }
+                else
                 {   // Draw sprite in gray scale
                     if (sprite_palette_num == 0)
                     {
-                        frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette0_color[pixel_color];
+                        frame[use_x + frame_y_offset] = object_palette0_color[pixel_color];
                     }
                     else
                     {
-                        frame[use_x + (lcd_y * SCREEN_PIXEL_W)] = object_palette1_color[pixel_color];
+                        frame[use_x + frame_y_offset] = object_palette1_color[pixel_color];
                     }
                 }
 
@@ -1017,17 +1168,25 @@ bool GPU::SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b)
 void GPU::updateBackgroundPalette(uint8_t val)
 {
     // Get Color Palette object
-    ColorPalette & colorPalette = background_palettes[background_palette_index / 8];
+    ColorPalette & colorPalette = cgb_background_palettes[cgb_background_palette_index / 8];
 
     // Update color palette
-    colorPalette.updateRawByte(background_palette_index % 8, val);
+    colorPalette.updateRawByte(cgb_background_palette_index % 8, val);
+
+    logger->info("Updating Background color palette {0:x} with val {1:x}",
+        cgb_background_palette_index,
+        val);
 }
 
 void GPU::updateSpritePalette(uint8_t val)
 {
     // Get Color Palette object
-    ColorPalette & colorPalette = sprite_palettes[sprite_palette_index / 8];
+    ColorPalette & colorPalette = cgb_sprite_palettes[cgb_sprite_palette_index / 8];
 
     // Update color palette
-    colorPalette.updateRawByte(sprite_palette_index % 8, val);
+    colorPalette.updateRawByte(cgb_sprite_palette_index % 8, val);
+
+    logger->info("Updating Sprite color palette {0:x} with val {1:x}",
+        cgb_sprite_palette_index,
+        val);
 }

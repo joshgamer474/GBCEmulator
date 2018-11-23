@@ -29,10 +29,10 @@ public:
 
 	std::vector<std::vector<unsigned char>> romBanks;	// size per bank = 16 KB = 0x4000
 	std::vector<std::vector<unsigned char>> ramBanks;	// size per bank = 8 KB = 0x2000
+    std::vector<unsigned char> rtcRegisters;
 
 	uint16_t curr_rom_bank;
 	uint8_t curr_ram_bank;
-    uint8_t curr_rtc_register;
 	int mbc_num;
 	int num_rom_banks;
 	int num_ram_banks;

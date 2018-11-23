@@ -348,6 +348,12 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (registers[PC] >= 0x100 && memory->cartridgeReader->is_bios)
 	{
 		memory->cartridgeReader->is_bios = false;
+
+        if (memory->cartridgeReader->isColorGB())
+        {   // Let games know that emulator is CGB
+            set_register(CPU::REGISTERS::A, static_cast<uint8_t>(0x11));
+        }
+
 		printRegisters();
 		logger->info("Done running bootstrap, moving on to cartridge");
 		//startLogging = true;

@@ -23,23 +23,28 @@ class Joypad;
 
 class Memory
 {
-private:
-
-
 public:
-
 	Memory();
 	~Memory();
 
     void reset();
+	void initWorkRAM(bool isColorGB);
+	void initROMBanks();
+	void do_oam_dma_transfer(uint8_t start_address);
+    void do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_address, uint8_t & hdma5);
+	void writeToTimerRegisters(uint16_t addr, uint8_t val);
+	void updateTimer(uint64_t ticks, double clock_speed);
+
+	uint8_t readByte(uint16_t pos);
+	void setByte(uint16_t pos, uint8_t val);
 
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;
     std::shared_ptr<GPU> gpu;
     std::shared_ptr<Joypad> joypad;
 
-	//char memoryMap[0xFFFF];
-
+    unsigned char cgb_undoc_reg_ff6c;
+    unsigned char cgb_undoc_regs[0xFF77 - 0xFF72];
 	unsigned char high_ram[0x7F];
 	unsigned char gamepad;
 	unsigned char timer[0x04];
@@ -59,16 +64,7 @@ public:
 
 	// Timer variables
 	bool timer_enabled;
-	std::uint64_t prev_clock_div, curr_clock, prev_clock_tima;
-	std::uint32_t clock_frequency;
-	
-	void initWorkRAM(bool isColorGB);
-	void initROMBanks();
-	void do_oam_dma_transfer(std::uint8_t start_address);
-	void writeToTimerRegisters(std::uint16_t addr, std::uint8_t val);
-	void updateTimer(std::uint64_t ticks, double clock_speed);
-
-	std::uint8_t readByte(std::uint16_t pos);
-	void setByte(std::uint16_t pos, std::uint8_t val);
+	uint64_t prev_clock_div, curr_clock, prev_clock_tima;
+	uint32_t clock_frequency;
 };
 #endif

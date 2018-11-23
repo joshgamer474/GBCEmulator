@@ -98,36 +98,16 @@ void EmuView::runTo(uint16_t next_pc)
 void EmuView::initFrame()
 {
     // Create QImage frame
-    frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(), SCREEN_PIXEL_W, SCREEN_PIXEL_H, QImage::Format_ARGB32);
+    frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(),
+        SCREEN_PIXEL_W,
+        SCREEN_PIXEL_H,
+        QImage::Format_RGBA8888);
 
     // Setup frame update method
     emu->setFrameUpdateMethod(std::bind(&EmuView::updateScene, this));
 
     // Update scene
     updateScene();
-}
-
-void EmuView::connectEmulatorSignals()
-{
-    // Connect frame updater
-    //connect(&frameCheckTimer, &QTimer::timeout, [&]()
-    //{
-    //    if (checkNewFrame())
-    //    {
-    //        updateScene();
-
-    //        //int hash = hashImage(frame);
-
-    //        //if (hash != prevHash && emu->get_CPU()->get_register_16(CPU::PC) > 0x0100)
-    //        //{   // New frame/changed frame
-    //        //    int a = 0;
-    //        //    //emu->get_CPU()->startLogging = true;
-    //        //}
-
-    //        //prevHash = hash;
-    //    }
-    //});
-    //frameCheckTimer.start((1.0 / SCREEN_FRAMERATE) * 250);
 }
 
 bool EmuView::checkNewFrame()

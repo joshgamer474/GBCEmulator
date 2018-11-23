@@ -10,7 +10,7 @@ ColorPalette::~ColorPalette()
 
 }
 
-void ColorPalette::updateRawByte(uint8_t pos, uint8_t data)
+void ColorPalette::updateRawByte(const uint8_t & pos, const uint8_t & data)
 {
     raw_data[pos] = data;
 
@@ -28,9 +28,7 @@ void ColorPalette::updateColors()
         SDL_Color & color = colors[i / 2];
 
         // Set color
-        color.r = twoBytes & 0x1F;
-        color.g = twoBytes & 0x03E0;
-        color.b = twoBytes & 0x7C00;
+        setColor(twoBytes, color);
     }
 }
 
@@ -49,12 +47,24 @@ void ColorPalette::updateColor(uint8_t bytePos)
     SDL_Color & color = colors[bytePos / 2];
 
     // Set color
-    color.r = twoBytes & 0x1F;
-    color.g = twoBytes & 0x03E0;
-    color.b = twoBytes & 0x7C00;
+    setColor(twoBytes, color);
 }
 
-SDL_Color ColorPalette::getColor(uint8_t index)
+void ColorPalette::setColor(const uint16_t & data, SDL_Color & color)
+{
+    // Set color
+    color.r = data & 0x1F;
+    color.g = (data & 0x03E0) >> 5;
+    color.b = (data & 0x7C00) >> 10;
+    color.a = 0xFF;
+
+    // Scale colors from 0x00 - 0x1F to 0x00 - 0xFF
+    color.r *= 8;
+    color.g *= 8;
+    color.b *= 8;
+}
+
+SDL_Color ColorPalette::getColor(const uint8_t & index)
 {
     return colors[index];
 }

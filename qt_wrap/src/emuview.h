@@ -26,7 +26,6 @@ public:
     void setupEmulator(std::string filename, bool debugMode = false);
     void runEmulator();
     void runTo(uint16_t pc);
-    void connectEmulatorSignals();
     void updateScene();
     void initFrame();
     bool checkNewFrame();

@@ -9,7 +9,9 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     ranInstruction(false),
     logFileBaseName(logName)
 {
+#ifdef SDL_DRAW
     init_SDL();
+#endif
 
     gpu = std::make_shared<GPU>(renderer);
 
@@ -47,9 +49,9 @@ GBCEmulator::~GBCEmulator()
     logger.reset();
 }
 
+#ifdef SDL_DRAW
 void GBCEmulator::init_SDL()
 {
-#ifdef SDL_DRAW
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -81,8 +83,8 @@ void GBCEmulator::init_SDL()
     screenSurface = SDL_GetWindowSurface(window);
     SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
     SDL_UpdateWindowSurface(window);
-#endif
 }
+#endif
 
 void GBCEmulator::read_rom(std::string filename)
 {
@@ -90,13 +92,15 @@ void GBCEmulator::read_rom(std::string filename)
     bool successful = cartridgeReader->readRom();
 
     if (!successful)
+    {
         throw std::runtime_error("Could not find file " + filename);
+    }
 }
 
 void GBCEmulator::init_memory()
 {
     // Setup Memory Bank Controller
-    mbc->MBC_init(cartridgeReader->cartridgeType.mbc);
+    mbc->MBC_init(cartridgeReader->getMBCNum());
 
     // Set GB object pointers, move game cartridge into ROM banks
     cpu->memory->cartridgeReader = cartridgeReader;
@@ -109,7 +113,7 @@ void GBCEmulator::init_gpu()
 {
     cpu->memory->gpu = gpu;
     gpu->memory = cpu->memory;
-    if (cartridgeReader->getColorGBFlag())
+    if (cartridgeReader->isColorGB())
     {
         gpu->init_color_gb();
     }

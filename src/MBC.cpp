@@ -11,7 +11,6 @@ MBC::MBC()
 
 	curr_rom_bank = 1;
 	curr_ram_bank = 1;
-    curr_rtc_register = 0;
 
 	num_rom_banks = 2;
 	num_ram_banks = 1;
@@ -130,6 +129,7 @@ void MBC::MBC3_init()
 
 	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
 	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
+    rtcRegisters.resize(0x0C - 0x08);
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
@@ -198,8 +198,21 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 		// External RAM
 	case 0xA000:
 	case 0xB000:
-		//return external_ram[pos - 0xA000];
-        return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
+        if (mbc_num == 3)
+        {
+            if (curr_ram_bank <= 0x03)
+            {
+                return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
+            }
+            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
+            {
+                return rtcRegisters[curr_ram_bank - 0x08];
+            }
+        }
+        else
+        {
+            return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
+        }
 
 	default:
 		logger->warn("MBC::readByte() used address: 0x{0:x}", pos);
@@ -314,7 +327,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else if (val >= 0x08 && val <= 0x0C)
             {   // Set RTC register
-                curr_rtc_register = val;
+                curr_ram_bank = val;
             }
         }
         else if (mbc_num == 5)
@@ -325,9 +338,11 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else if (val >= 0x08 && val <= 0x0C)
             {   // Set RTC register
-                curr_rtc_register = val;
+                curr_ram_bank = val;
             }
         }
+
+        break;
 
 	case 0x6000:
 	case 0x7000:
@@ -364,7 +379,22 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xA000:
 	case 0xB000:
 
-        if (ram_banking_mode)
+        if (ram_banking_mode && mbc_num == 1)
+        {
+            ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+        }
+        else if (mbc_num == 3)
+        {
+            if (curr_ram_bank <= 0x03)
+            {
+                ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+            }
+            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
+            {
+                rtcRegisters[curr_ram_bank - 0x08] = val;
+            }
+        }
+        else if (mbc_num != 1)
         {
             ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
         }

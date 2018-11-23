@@ -84,7 +84,6 @@ void MainWindow::dropEvent(QDropEvent * e)
             emuView->setupEmulator(filename.toStdString());         // Run in normal mode
             emuView->runEmulator();
         }
-        emuView->connectEmulatorSignals();
     }
 }
 

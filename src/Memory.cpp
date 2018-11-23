@@ -184,10 +184,25 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 				// 0xFF40 - 0xFF6B : GPU LCD
 				return gpu->readByte(pos);
 			}
+            else if (pos == 0xFF6C && is_color_gb)
+            {
+                return cgb_undoc_reg_ff6c;
+            }
             else if (pos == 0xFF70)
             {
                 // 0xFF70 : WRAM select (CBG Only)
                 return curr_working_ram_bank;
+            }
+            else if (is_color_gb)
+            {
+                if (pos == 0xFF75)
+                {
+                    return 0x8F | cgb_undoc_regs[pos - 0xFF72];  // Only bits 4-6 are readable, rest are 1s
+                }
+                else if (pos >= 0xFF72 && pos <= 0xFF77)
+                {
+                    return cgb_undoc_regs[pos - 0xFF72];
+                }
             }
 			else
 			{
@@ -355,6 +370,10 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 				// 0xFF40 - 0xFF6B : GPU LCD
 				gpu->setByte(pos, val);
 			}
+            else if (pos == 0xFF6C && is_color_gb)
+            {
+                cgb_undoc_reg_ff6c = 0xFE | val;
+            }
             else if (pos == 0xFF70 && is_color_gb)
             {
                 // 0xFF70 : WRAM select (CBG Only)
@@ -364,6 +383,17 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
                 }
 
                 curr_working_ram_bank = val & 0x07;
+            }
+            else if (is_color_gb)
+            {
+                if (pos == 0xFF75)
+                {
+                    cgb_undoc_regs[pos - 0xFF72] = 0x8F | val;  // Only bits 4-6 are writable, rest are 1s
+                }
+                else if (pos >= 0xFF72 && pos <= 0xFF77)
+                {
+                    cgb_undoc_regs[pos - 0xFF72] = val;
+                }
             }
 			else
 			{
@@ -423,7 +453,14 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 	source_addr = (static_cast<std::uint16_t>(start_address) << 8);
 	dest_addr = 0xFE00;
 
-    logger->info("Performing OAM DMA from starting source: {x}", source_addr);
+    if (gpu->gpu_mode == GPU::GPU_MODE::GPU_MODE_OAM ||
+        gpu->gpu_mode == GPU::GPU_MODE::GPU_MODE_VRAM)
+    {
+        logger->warn("Returning on OAM DMA, gpu_mode: {}", gpu->gpu_mode);
+        return;
+    }
+
+    logger->info("Performing OAM DMA from starting source: {0:x}", source_addr);
 
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
 	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)
@@ -432,6 +469,47 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 		setByte(dest_addr, val);
 	}
 	
+}
+
+// Performs copying of ROM/RAM to GPU->OAM memory
+void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_address, uint8_t & hdma5)
+{
+    uint8_t val;
+
+    // Should be between range 0x0000-0x7FF0 or 0xA000-0xDFF0
+    start_address &= 0xFFF0;    // Lower 4-bits are treated as 0s
+
+    // Should be between range 0x8000-0x9FF0
+    dest_address &= 0x1FF0;     // Only bits 12-4 are respected
+    dest_address |= 0x8000;     // Dest is at a minimum 0x8000
+
+    uint16_t transfer_length = hdma5 & 0x7F;
+    bool h_blank_dma        = hdma5 & 0x80;
+
+    // Transfer length is divided by 0x10, minus 1
+    transfer_length = (transfer_length + 1) * 0x10;
+
+    logger->info("Performing HDMA5 DMA from starting source: {0:x}, dest source: {1:x}, length: {2:x}, DMA type: {3:b}",
+        start_address,
+        dest_address,
+        transfer_length,
+        h_blank_dma);
+
+    if (h_blank_dma == false)
+    {
+        // Copy memory from Source address to Dest address
+        for (uint16_t i = 0; i < transfer_length; i++)
+        {
+            val = readByte(start_address + i);
+            setByte(dest_address + i, val);
+        }
+
+        hdma5 = 0xFF;
+    }
+    else
+    {
+        logger->error("H Blank DMA transfer is not implemented yet..");
+    }
 }
 
 void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
