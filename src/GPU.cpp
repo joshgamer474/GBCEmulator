@@ -233,7 +233,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
             {
                 switch (pos)
                 {
-                case 0xFF4F:	curr_vram_bank = (val & 0x01); return;
+                case 0xFF4F:	curr_vram_bank = val & 0x01; return;    // Only bit 0 is writable
                 case 0xFF51:	hdma1 = val; return;
                 case 0xFF52:	hdma2 = val; return;
                 case 0xFF53:	hdma3 = val; return;
@@ -489,11 +489,11 @@ void GPU::renderFullBackgroundMap()
             cgb_tile_attributes = vram_banks[1][map_tile_num_offset];
 
             // Parse Tile's attributes
-            uint8_t cgb_bg_palette_num  = cgb_tile_attributes & 0x03;
-            bool cgb_tile_vram_bank_num = cgb_tile_attributes & BIT3;
-            bool cgb_horizontal_flip    = cgb_tile_attributes & BIT5;
-            bool cgb_vertical_flip      = cgb_tile_attributes & BIT6;
-            bool cgb_bg_to_OAM_priority = cgb_tile_attributes & BIT7;
+            cgb_bg_palette_num  = cgb_tile_attributes & 0x03;
+            cgb_tile_vram_bank_num = cgb_tile_attributes & BIT3;
+            cgb_horizontal_flip    = cgb_tile_attributes & BIT5;
+            cgb_vertical_flip      = cgb_tile_attributes & BIT6;
+            cgb_bg_to_OAM_priority = cgb_tile_attributes & BIT7;
 
             // Get tile number from tile map
             use_tile_num = vram_banks[cgb_tile_vram_bank_num][map_tile_num_offset];
@@ -997,7 +997,7 @@ void GPU::run()
     {
         last_ticks = cpu->ticks;
 
-        if (lcd_status & 0x03 != GPU_MODE_HBLANK)
+        if ((lcd_status & 0x03) != GPU_MODE_HBLANK)
         {
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
         }
@@ -1007,11 +1007,18 @@ void GPU::run()
 	ticks += cpu->ticks - last_ticks;
 	last_ticks = cpu->ticks;
 
+    // Account for double speed mode
+    uint16_t cgb_double_speed_multiplier = 1;
+    if (memory->cgb_speed_mode & BIT7)
+    {
+        cgb_double_speed_multiplier = 2;
+    }
+
     switch (lcd_status & 0x03)
 	{
 	case GPU_MODE_HBLANK:
 
-		if (ticks >= 204)
+		if (ticks >= 204 * cgb_double_speed_multiplier)
 		{
             if (lcd_y == 0)
             {
@@ -1038,7 +1045,7 @@ void GPU::run()
 
 	case GPU_MODE_VBLANK:
 
-		if (ticks >= 456)
+		if (ticks >= 456 * cgb_double_speed_multiplier)
 		{
 			lcd_y++;
 
@@ -1058,7 +1065,7 @@ void GPU::run()
 
 	case GPU_MODE_OAM:
 
-		if (ticks >= 80)
+		if (ticks >= 80 * cgb_double_speed_multiplier)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
 			ticks = 0;
@@ -1068,7 +1075,7 @@ void GPU::run()
 
 	case GPU_MODE_VRAM:
 
-		if (ticks >= 172)
+		if (ticks >= 172 * cgb_double_speed_multiplier)
 		{
             renderLine();
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
@@ -1105,12 +1112,12 @@ void GPU::printFrame()
 }
 
 
-Tile * GPU::updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num)
+Tile * GPU::updateTile(uint16_t pos, uint8_t val, uint8_t tile_block_num)
 {
 	Tile *tile;
-	std::uint16_t tile_num;
-	std::uint16_t byte_pos;
-	std::uint16_t offset;
+	uint16_t tile_num;
+	uint16_t byte_pos;
+	uint16_t offset;
 
 	offset = 0x8000 + (0x800 * tile_block_num);
 

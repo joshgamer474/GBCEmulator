@@ -151,6 +151,17 @@ void GBCEmulator::runNextInstruction()
         frameStartTime = getCurrentTime();
     }
 
+    if (cpu->memory->cgb_perform_speed_switch)
+    {   // Perform CPU double speed mode
+        cpu->memory->cgb_perform_speed_switch = false;
+
+        // Calculate number of CPU cycles that can run in one frame's time
+        ticksPerFrame = CLOCK_SPEED_GBC_MAX / SCREEN_FRAMERATE; // cycles per frame
+
+        // Set double speed flag
+        cpu->memory->cgb_speed_mode |= BIT7;
+    }
+
     ranInstruction = true;
 }
 

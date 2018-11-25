@@ -9,17 +9,18 @@
 
 Memory::Memory()
 {
-    cartridgeReader = NULL;
-	mbc = NULL;
-	gpu = NULL;
 	joypad = std::make_shared<Joypad>();
 
-	timer_enabled = false;
-	prev_clock_div = prev_clock_tima = curr_clock = 0;
+	timer_enabled   = false;
+	prev_clock_div  = prev_clock_tima = curr_clock = 0;
 	clock_frequency = 4096;
 
-    interrupt_flag = false;
-    interrupt_enable = false;
+    interrupt_flag      = false;
+    interrupt_enable    = false;
+
+    cgb_speed_mode      = 0;
+    cgb_undoc_reg_ff6c  = 0;
+    cgb_perform_speed_switch = false;
 
 	initWorkRAM(false);
 }
@@ -32,14 +33,10 @@ Memory::~Memory()
 
 void Memory::reset()
 {
-    if (cartridgeReader)
-        cartridgeReader.reset();
-    if (mbc)
-        mbc.reset();
-    if (gpu)
-        gpu.reset();
-    if (joypad)
-        joypad.reset();
+    cartridgeReader.reset();
+    mbc.reset();
+    gpu.reset();
+    joypad.reset();
 }
 
 void Memory::initWorkRAM(bool isColorGB)
@@ -179,6 +176,10 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 				// 0xFF10 - 0xFF3F : Audio
 				return audio[pos - 0xFF10];
 			}
+            else if (pos == 0xFF4D)
+            {
+                return cgb_speed_mode;
+            }
 			else if (pos < 0xFF6C)
 			{
 				// 0xFF40 - 0xFF6B : GPU LCD
@@ -365,6 +366,14 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 				// 0xFF10 - 0xFF3F : Audio
 				audio[pos - 0xFF10] = val;
 			}
+            else if (pos == 0xFF4D)
+            {
+                if ((val & 0x01) && (cgb_speed_mode & 0x01) == 0)
+                {
+                    cgb_perform_speed_switch = true;
+                }
+                cgb_speed_mode = val & 0x01;    // Only bit 0 is writable
+            }
 			else if (pos < 0xFF6C)
 			{
 				// 0xFF40 - 0xFF6B : GPU LCD
@@ -460,7 +469,7 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
         return;
     }
 
-    logger->info("Performing OAM DMA from starting source: {0:x}", source_addr);
+    logger->info("Performing OAM DMA from starting source: {x}", source_addr);
 
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
 	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)

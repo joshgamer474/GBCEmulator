@@ -43,6 +43,8 @@ public:
     std::shared_ptr<GPU> gpu;
     std::shared_ptr<Joypad> joypad;
 
+    bool cgb_perform_speed_switch;
+    unsigned char cgb_speed_mode;
     unsigned char cgb_undoc_reg_ff6c;
     unsigned char cgb_undoc_regs[0xFF77 - 0xFF72];
 	unsigned char high_ram[0x7F];

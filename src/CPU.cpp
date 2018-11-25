@@ -34,7 +34,14 @@ void CPU::runNextInstruction()
         runInstruction(getInstruction());
 
 		// Update timer
-		memory->updateTimer(this->ticks, CLOCK_SPEED);
+        if (memory->cgb_speed_mode & BIT7)
+        {
+            memory->updateTimer(this->ticks, CLOCK_SPEED_GBC_MAX);
+        }
+        else
+        {
+            memory->updateTimer(this->ticks, CLOCK_SPEED);
+        }
 
 #ifdef ENABLE_DEBUG_PRINT
         printRegisters();
