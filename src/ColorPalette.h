@@ -14,6 +14,7 @@ public:
 
     void updateRawByte(const uint8_t & pos, const uint8_t & data);
     SDL_Color getColor(const uint8_t & index);
+    std::array<uint8_t, 8> getRawData();
 
 private:
     void updateColors();

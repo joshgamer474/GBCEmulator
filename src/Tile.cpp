@@ -3,6 +3,7 @@
 #include "Tile.h"
 
 Tile::Tile()
+    : color_palette(NULL)
 {
     raw_data.resize(16);
     pixels.resize(8 * 8);
@@ -66,7 +67,7 @@ void Tile::setCGBAttribute(uint8_t attribute_byte)
 
 void Tile::parseCGBAttribute()
 {
-    cgb_bg_palette_num      = cgb_attribute & 0x03;
+    cgb_bg_palette_num      = cgb_attribute & 0x07;
     cgb_tile_vram_bank_num  = cgb_attribute & 0x08;
     // Bit 4 not used
     horizontal_flip         = cgb_attribute & 0x20;
@@ -74,7 +75,12 @@ void Tile::parseCGBAttribute()
     bg_to_OAM_priority      = cgb_attribute & 0x80;
 }
 
-uint8_t Tile::getCGBBGPaletteNum()
+void Tile::setCGBColorPalette(ColorPalette * colorPalette)
 {
-    return cgb_bg_palette_num;
+    color_palette = colorPalette;
+}
+
+ColorPalette * Tile::getCGBColorPalette()
+{
+    return color_palette;
 }

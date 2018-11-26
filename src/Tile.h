@@ -1,9 +1,9 @@
-#pragma once
-
 #ifndef TILE_H
 #define TILE_H
+
 #include <cstdint>
 #include <vector>
+#include <ColorPalette.h>
 
 #define NUM_BG_TILES_PER_BLOCK 128
 #define NUM_BG_TILE_BLOCKS 3
@@ -19,7 +19,8 @@ public:
     uint8_t getPixel(uint8_t row, uint8_t column);
     std::vector<uint8_t> getRawPixelData();
     void setCGBAttribute(uint8_t attribute_byte);
-    uint8_t getCGBBGPaletteNum();
+    void setCGBColorPalette(ColorPalette * color_palette);
+    ColorPalette * getCGBColorPalette();
 
     std::vector<uint8_t> pixels;
 
@@ -36,6 +37,7 @@ private:
     bool horizontal_flip;
     bool vertical_flip;
     bool bg_to_OAM_priority;
+    ColorPalette * color_palette;
 };
 
 

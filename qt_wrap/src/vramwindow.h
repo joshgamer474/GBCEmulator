@@ -5,6 +5,7 @@
 #include <QLabel>
 #include <QTimer>
 #include <memory>
+#include <map>
 #include <ui_vramwindow.h>
 #include <src/emuview.h>
 #include <GPU.h>
@@ -25,6 +26,7 @@ public:
     virtual ~VRAMWindow();
 
     void initColorTable();
+    void updateColorTable();
     void setGPU(std::shared_ptr<GPU>);
     void initBackgroundMap();
     void updateTileViews();
@@ -36,11 +38,14 @@ private:
     void initBackgroundMapImage();
     void mousePressEvent(QMouseEvent * e);
     void showEvent(QShowEvent * e);
+    QVector<QRgb> getColorTableFromPtr(ColorPalette * color_palette);
+    void updateQRgb(QRgb & qrgb, const SDL_Color & color);
 
     Ui::VRAMWindow *ui;
     std::shared_ptr<EmuView> emuView;
     QVector<QVector<QLabel *>> tileViews;
     QVector<QVector<QRgb>> colorTables;
+    QVector<QRgb> whiteColorTable;
     std::unique_ptr<QLabel> bgImageLabel;
     std::unique_ptr<QImage> bgImage;
     QTimer bgTimer;

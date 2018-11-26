@@ -469,7 +469,7 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
         return;
     }
 
-    logger->info("Performing OAM DMA from starting source: {x}", source_addr);
+    logger->info("Performing OAM DMA from starting source: {0:x}", source_addr);
 
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
 	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)

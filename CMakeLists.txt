@@ -50,7 +50,12 @@ target_link_libraries(GBCEmulator
 
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+
 target_link_libraries(GBCEmulator_bin GBCEmulator)
+
+include_directories(${CONAN_INCLUDE_DIRS}
+    "src/")
+    
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
 

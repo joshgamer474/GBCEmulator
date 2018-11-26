@@ -28,6 +28,8 @@ VRAMWindow::VRAMWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
         gpu = emuView->emu->get_GPU();
     }
 
+    whiteColorTable = QVector<QRgb>(4, 0xFFFFFFFF);
+
     initTileViews();
     initBackgroundMap();
     initBackgroundMapImage();
@@ -51,28 +53,90 @@ void VRAMWindow::initColorTable()
 
     if (gpu->is_color_gb)
     {
-        colorTables.resize(8);
-        // Initialize background tile colors for CGB
+        colorTables.resize(16);
+
+        // Initialize background and sprite tile colors for CGB
         for (int i = 0; i < gpu->cgb_background_palettes.size(); i++)
         {   // Get color palette
-            auto & palette = gpu->cgb_background_palettes[i];
+            auto & bg_palette       = gpu->cgb_background_palettes[i];
+            auto & sprite_palette   = gpu->cgb_sprite_palettes[i];
+
+            colorTables[i].resize(CGB_NUM_COLORS_PER_PALETTE);
+            colorTables[i + CGB_PALETTE_DATA_SIZE].resize(CGB_NUM_COLORS_PER_PALETTE);
 
             for (int j = 0; j < CGB_NUM_COLORS_PER_PALETTE; j++)
             {   // Get color from palette
-                const auto & color = palette.getColor(j);
-                colorTables[i].push_back(qRgb(color.r, color.g, color.b));
+                const auto & bg_color       = bg_palette.getColor(j);
+                const auto & sprite_color   = sprite_palette.getColor(j);
+
+                colorTables[i][j] = qRgb(bg_color.r, bg_color.g, bg_color.b);
+                colorTables[i + CGB_PALETTE_DATA_SIZE][j] = qRgb(sprite_color.r, sprite_color.g, sprite_color.b);
             }
         }
-        // Implement colors for sprites?
     }
     else
-    {
+    {   // Initialize background tile color
         colorTables.resize(1);
+        colorTables[0].resize(PALETTE_DATA_SIZE);
         for (const auto & item : gpu->bg_palette_color)
         {
             colorTables[0].push_back(qRgb(item.r, item.g, item.b));
         }
+
+        // Initialize sprite tile colors?
     }
+}
+
+void VRAMWindow::updateColorTable()
+{
+    if (!gpu)
+    {
+        return;
+    }
+
+    if (gpu->is_color_gb)
+    {   // Update CGB background and sprite tile colors
+        for (int i = 0; i < gpu->cgb_background_palettes.size(); i++)
+        {   // Get color palette
+            auto & bg_palette = gpu->cgb_background_palettes[i];
+            auto & sprite_palette = gpu->cgb_sprite_palettes[i];
+
+            for (int j = 0; j < CGB_NUM_COLORS_PER_PALETTE; j++)
+            {   // Get color from palette
+                const auto & bg_color       = bg_palette.getColor(j);
+                const auto & sprite_color   = sprite_palette.getColor(j);
+
+                // Get current QRgb
+                auto & bg_qrgb      = colorTables[i][j];
+                auto & sprite_qrgb  = colorTables[i + CGB_PALETTE_DATA_SIZE][j];
+
+                // Update QRgbs
+                updateQRgb(bg_qrgb, bg_color);
+                updateQRgb(sprite_qrgb, sprite_color);
+            }
+        }
+    }
+    else
+    {   // Update background tile color
+        for (int i = 0; i < PALETTE_DATA_SIZE; i++)
+        {   // Get current QRgb
+            auto & qrgb = colorTables[0][i];
+
+            // Get color from palette
+            const auto & color = gpu->bg_palette_color[i];
+            
+            // Update QRgb
+            updateQRgb(qrgb, color);
+        }
+    }
+}
+
+void VRAMWindow::updateQRgb(QRgb & qrgb, const SDL_Color & color)
+{
+    qrgb = color.a;
+    qrgb = (qrgb << 8) | color.r;
+    qrgb = (qrgb << 8) | color.g;
+    qrgb = (qrgb << 8) | color.b;
 }
 
 void VRAMWindow::setGPU(std::shared_ptr<GPU> g)
@@ -163,7 +227,7 @@ void VRAMWindow::initBackgroundMapImage()
 void VRAMWindow::updateTileViews()
 {
     std::vector<std::vector<std::vector<Tile>>> & tiles = gpu->getBGTiles();
-    initColorTable();
+    updateColorTable();
 
     for (int i = 0; i < tiles.size(); i++)
     {
@@ -180,7 +244,7 @@ void VRAMWindow::updateTileViews()
                 // Set QImage's color table
                 if (gpu->is_color_gb)
                 {
-                    image.setColorTable(colorTables[tile.getCGBBGPaletteNum()]);
+                    image.setColorTable(getColorTableFromPtr(tile.getCGBColorPalette()));
                 }
                 else
                 {
@@ -232,4 +296,32 @@ void VRAMWindow::showEvent(QShowEvent * e)
     {
         updateTileViews();
     }
+}
+
+QVector<QRgb> VRAMWindow::getColorTableFromPtr(ColorPalette * color_palette)
+{
+    if (color_palette == NULL)
+    {
+        return whiteColorTable;
+    }
+
+    const auto & color_palette_raw_data = color_palette->getRawData();
+    
+    for (int i = 0; i < gpu->cgb_background_palettes.size(); i++)
+    {
+        if (color_palette_raw_data == gpu->cgb_background_palettes[i].getRawData())
+        {
+            return colorTables[i];
+        }
+    }
+
+    for (int i = 0; i < gpu->cgb_sprite_palettes.size(); i++)
+    {
+        if (color_palette_raw_data == gpu->cgb_sprite_palettes[i].getRawData())
+        {
+            return colorTables[i + CGB_PALETTE_DATA_SIZE];
+        }
+    }
+
+    return whiteColorTable;
 }

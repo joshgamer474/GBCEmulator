@@ -8,7 +8,9 @@
 
 #define VRAM_SIZE 0x2000
 #define OAM_SIZE 0xA0
-#define PALETTE_DATA_SIZE 0x08
+#define PALETTE_DATA_SIZE 4
+#define CGB_PALETTE_DATA_SIZE 8
+#define CGB_PALETTE_DATA_SIZE_RAW 64
 
 #define SCREEN_PIXEL_H 144
 #define SCREEN_PIXEL_W 160
@@ -49,9 +51,9 @@ public:
 
 	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
     std::vector<SDL_Color> bg_frame;
-	SDL_Color bg_palette_color[4];
-	SDL_Color object_palette0_color[4];
-	SDL_Color object_palette1_color[4];
+	SDL_Color bg_palette_color[PALETTE_DATA_SIZE];
+	SDL_Color object_palette0_color[PALETTE_DATA_SIZE];
+	SDL_Color object_palette1_color[PALETTE_DATA_SIZE];
 	void set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_transparent = false);
 
 
@@ -120,10 +122,11 @@ public:
 	// LCD Color Palettes (GBC only)
 	unsigned char cgb_background_palette_index, cgb_sprite_palette_index;
 	bool cgb_auto_increment_background_palette_index, cgb_auto_increment_sprite_palette_index;
-	std::vector<unsigned char> cgb_background_palette_data;
-	std::vector<unsigned char> cgb_sprite_palette_data;
+	std::array<unsigned char, CGB_PALETTE_DATA_SIZE_RAW> cgb_background_palette_data;
+	std::array<unsigned char, CGB_PALETTE_DATA_SIZE_RAW> cgb_sprite_palette_data;
     std::array<ColorPalette, 8> cgb_background_palettes;
     std::array<ColorPalette, 8> cgb_sprite_palettes;
+    std::array<bool, SCREEN_PIXEL_W> cgb_bg_to_oam_priority_array;
 
 	// LCD Object Attribute Memory DMA Transfers
 	unsigned char oam_dma;

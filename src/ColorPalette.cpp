@@ -68,3 +68,8 @@ SDL_Color ColorPalette::getColor(const uint8_t & index)
 {
     return colors[index];
 }
+
+std::array<uint8_t, 8> ColorPalette::getRawData()
+{
+    return raw_data;
+}
