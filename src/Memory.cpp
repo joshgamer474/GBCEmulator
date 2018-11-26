@@ -478,6 +478,7 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 		setByte(dest_addr, val);
 	}
 	
+    gpu->bg_tiles_updated = true;
 }
 
 // Performs copying of ROM/RAM to GPU->OAM memory
@@ -514,6 +515,8 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
         }
 
         hdma5 = 0xFF;
+
+        gpu->bg_tiles_updated = true;
     }
     else
     {

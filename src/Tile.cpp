@@ -6,6 +6,7 @@ Tile::Tile()
 {
     raw_data.resize(16);
     pixels.resize(8 * 8);
+    cgb_bg_palette_num = 0;
 }
 
 Tile::~Tile()
@@ -71,4 +72,9 @@ void Tile::parseCGBAttribute()
     horizontal_flip         = cgb_attribute & 0x20;
     vertical_flip           = cgb_attribute & 0x40;
     bg_to_OAM_priority      = cgb_attribute & 0x80;
+}
+
+uint8_t Tile::getCGBBGPaletteNum()
+{
+    return cgb_bg_palette_num;
 }

@@ -19,6 +19,7 @@ public:
     uint8_t getPixel(uint8_t row, uint8_t column);
     std::vector<uint8_t> getRawPixelData();
     void setCGBAttribute(uint8_t attribute_byte);
+    uint8_t getCGBBGPaletteNum();
 
     std::vector<uint8_t> pixels;
 

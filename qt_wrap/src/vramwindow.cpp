@@ -1,5 +1,6 @@
 #include <vramwindow.h>
 #include <GBCEmulator.h>
+#include <ColorPalette.h>
 #include <Tile.h>
 #include <vector>
 #include <QImage>
@@ -46,11 +47,31 @@ void VRAMWindow::initColorTable()
         return;
     }
 
-    colorTable.clear();
+    colorTables.clear();
 
-    for (const auto & item : gpu->bg_palette_color)
+    if (gpu->is_color_gb)
     {
-        colorTable.push_back(qRgb(item.r, item.g, item.b));
+        colorTables.resize(8);
+        // Initialize background tile colors for CGB
+        for (int i = 0; i < gpu->cgb_background_palettes.size(); i++)
+        {   // Get color palette
+            auto & palette = gpu->cgb_background_palettes[i];
+
+            for (int j = 0; j < CGB_NUM_COLORS_PER_PALETTE; j++)
+            {   // Get color from palette
+                const auto & color = palette.getColor(j);
+                colorTables[i].push_back(qRgb(color.r, color.g, color.b));
+            }
+        }
+        // Implement colors for sprites?
+    }
+    else
+    {
+        colorTables.resize(1);
+        for (const auto & item : gpu->bg_palette_color)
+        {
+            colorTables[0].push_back(qRgb(item.r, item.g, item.b));
+        }
     }
 }
 
@@ -77,13 +98,28 @@ void VRAMWindow::setGPU(std::shared_ptr<GPU> g)
 void VRAMWindow::initTileViews()
 {
     tileViews.clear();
-    tileViews.reserve(TOTAL_NUM_TILES);
+    tileViews.resize(2);
+    tileViews[0].reserve(TOTAL_NUM_TILES);
+    tileViews[1].reserve(TOTAL_NUM_TILES);
 
-    // First Tile set in VRAM
-    for (int i = 0; i < TOTAL_NUM_TILES; i++)
-    {
-        tileViews.push_back(new QLabel(this));
-        ui->gridLayout->addWidget(tileViews[i], i / 16, i % 16);
+    // Both Tile sets in VRAM
+    for (int i = 0; i < 2; i++)
+    //for (auto & tileSet : tileViews)
+    {   // Initialize tile set with QLabels
+        auto & tileSet = tileViews[i];
+        for (int j = 0; j < TOTAL_NUM_TILES; j++)
+        {
+            tileSet.push_back(new QLabel(this));
+
+            if (i == 0)
+            {
+                ui->gridLayout->addWidget(tileSet[j], j / 16, j % 16);
+            }
+            else
+            {
+                ui->gridLayout2->addWidget(tileSet[j], j / 16, j % 16);
+            }
+        }
     }
 }
 
@@ -126,26 +162,38 @@ void VRAMWindow::initBackgroundMapImage()
 
 void VRAMWindow::updateTileViews()
 {
-    std::vector<std::vector<Tile>> & tiles = gpu->getBGTiles();
+    std::vector<std::vector<std::vector<Tile>>> & tiles = gpu->getBGTiles();
     initColorTable();
 
-    int tileCounter = 0;
-    for (auto & tileBlock : tiles)
+    for (int i = 0; i < tiles.size(); i++)
     {
-        for (auto & tile : tileBlock)
+        auto & tileSet = tiles[i];
+        auto & tileLabelSet = tileViews[i];
+        int tileCounter = 0;
+        for (auto & tileBlock : tileSet)
         {
-            // Create QImage from raw pixel data
-            QImage image((unsigned char *)(tile.pixels.data()), 8, 8, QImage::Format::Format_Indexed8);
+            for (auto & tile : tileBlock)
+            {
+                // Create QImage from raw pixel data
+                QImage image((unsigned char *)(tile.pixels.data()), 8, 8, QImage::Format::Format_Indexed8);
 
-            // Set QImage's color table
-            image.setColorTable(colorTable);
+                // Set QImage's color table
+                if (gpu->is_color_gb)
+                {
+                    image.setColorTable(colorTables[tile.getCGBBGPaletteNum()]);
+                }
+                else
+                {
+                    image.setColorTable(colorTables[0]);
+                }
 
-            // Scale image
-            image = image.scaled(8 * 2, 8 * 2, Qt::KeepAspectRatio);
+                // Scale image
+                image = image.scaled(8 * 2, 8 * 2, Qt::KeepAspectRatio);
 
-            // Update QLabel's QImage
-            tileViews[tileCounter]->setPixmap(QPixmap::fromImage(image));
-            tileCounter++;
+                // Update QLabel's QImage
+                tileLabelSet[tileCounter]->setPixmap(QPixmap::fromImage(image));
+                tileCounter++;
+            }
         }
     }
 }

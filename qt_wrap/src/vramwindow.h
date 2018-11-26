@@ -39,8 +39,8 @@ private:
 
     Ui::VRAMWindow *ui;
     std::shared_ptr<EmuView> emuView;
-    QList<QLabel *> tileViews;
-    QVector<QRgb> colorTable;
+    QVector<QVector<QLabel *>> tileViews;
+    QVector<QVector<QRgb>> colorTables;
     std::unique_ptr<QLabel> bgImageLabel;
     std::unique_ptr<QImage> bgImage;
     QTimer bgTimer;

@@ -22,10 +22,12 @@ GPU::GPU(SDL_Renderer *render)
 
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 	object_attribute_memory.resize(OAM_SIZE);
-	bg_tiles.resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    bg_tiles.resize(num_vram_banks);
+	bg_tiles[0].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    
 
 	cgb_background_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
-	cgb_sprite_palette_data.resize(PALETTE_DATA_SIZE);
+	cgb_sprite_palette_data.resize(PALETTE_DATA_SIZE * PALETTE_DATA_SIZE);
 
     bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
 
@@ -66,6 +68,10 @@ void GPU::init_color_gb()
     is_color_gb = true;
 	num_vram_banks = 2;
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
+
+    bg_tiles.resize(num_vram_banks);
+    bg_tiles[0].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    bg_tiles[1].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
 }
 
 std::uint8_t GPU::readByte(std::uint16_t pos)
@@ -197,7 +203,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
         
 		if (tile_block_num < 3)
 		{   // Update Tiles[]
-			Tile * tile = updateTile(pos, val, tile_block_num);
+			Tile * tile = updateTile(pos, val, curr_vram_bank, tile_block_num);
 
             if (tile && is_color_gb && curr_vram_bank == 1)
             {   // Update CGB Tile attribute byte
@@ -475,7 +481,7 @@ void GPU::renderFullBackgroundMap()
     // CGB variables
     uint8_t cgb_tile_attributes = 0;
     uint8_t cgb_bg_palette_num;
-    bool cgb_tile_vram_bank_num;
+    bool cgb_tile_vram_bank_num = 0;
     bool cgb_horizontal_flip;
     bool cgb_vertical_flip;
     bool cgb_bg_to_OAM_priority;
@@ -489,25 +495,32 @@ void GPU::renderFullBackgroundMap()
             cgb_tile_attributes = vram_banks[1][map_tile_num_offset];
 
             // Parse Tile's attributes
-            cgb_bg_palette_num  = cgb_tile_attributes & 0x03;
-            cgb_tile_vram_bank_num = cgb_tile_attributes & BIT3;
-            cgb_horizontal_flip    = cgb_tile_attributes & BIT5;
-            cgb_vertical_flip      = cgb_tile_attributes & BIT6;
-            cgb_bg_to_OAM_priority = cgb_tile_attributes & BIT7;
+            cgb_bg_palette_num      = cgb_tile_attributes & 0x03;
+            cgb_tile_vram_bank_num  = cgb_tile_attributes & BIT3;
+            cgb_horizontal_flip     = cgb_tile_attributes & BIT5;
+            cgb_vertical_flip       = cgb_tile_attributes & BIT6;
+            cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
 
             // Get tile number from tile map
             use_tile_num = vram_banks[cgb_tile_vram_bank_num][map_tile_num_offset];
         }
         else
         {   // Get tile number from tile map
-            use_tile_num = vram_banks[curr_vram_bank][map_tile_num_offset];
+            use_tile_num = vram_banks[0][map_tile_num_offset];
         }
 
         // Find which tile block should be used
         tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
-        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
+        if (is_color_gb)
+        {
+            tile = getTileFromBGTiles(cgb_tile_vram_bank_num, tile_block_num, use_tile_num);
+        }
+        else
+        {
+            tile = getTileFromBGTiles(0, tile_block_num, use_tile_num);
+        }
 
         const std::vector<uint8_t> tile_data = tile->getRawPixelData();
 
@@ -590,7 +603,7 @@ void GPU::drawBackgroundLine()
     // CGB variables
     uint8_t cgb_tile_attributes = 0;
     uint8_t cgb_bg_palette_num;
-    bool cgb_tile_vram_bank_num;
+    bool cgb_tile_vram_bank_num = 0;
     bool cgb_horizontal_flip;
     bool cgb_vertical_flip;
     bool cgb_bg_to_OAM_priority;
@@ -612,9 +625,6 @@ void GPU::drawBackgroundLine()
         // Get tile offset in tile_map
         tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
 
-        // Get tile number from tile map
-        use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
-
         if (is_color_gb)
         {   // Get Tile's attributes
             cgb_tile_attributes = vram_banks[1][tile_map_vram_offset + tile_map_offset];
@@ -625,13 +635,27 @@ void GPU::drawBackgroundLine()
             cgb_horizontal_flip     = cgb_tile_attributes & BIT5;
             cgb_vertical_flip       = cgb_tile_attributes & BIT6;
             cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
+
+            // Get tile number from tile map
+            use_tile_num = vram_banks[cgb_tile_vram_bank_num][tile_map_vram_offset + tile_map_offset];
+        }
+        else
+        {   // Get tile number from tile map
+            use_tile_num = vram_banks[0][tile_map_vram_offset + tile_map_offset];
         }
 
         // Find which tile memory block should be used
         tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
-        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
+        if (is_color_gb)
+        {
+            tile = getTileFromBGTiles(cgb_tile_vram_bank_num, tile_block_num, use_tile_num);
+        }
+        else
+        {
+            tile = getTileFromBGTiles(0, tile_block_num, use_tile_num);
+        }
 
         // Calculate which col of the Tile we're in (0..7)
         curr_tile_col = (scroll_x + frame_x) & 0x07;
@@ -666,7 +690,7 @@ void GPU::drawWindowLine()
     // CGB variables
     uint8_t cgb_tile_attributes = 0;
     uint8_t cgb_bg_palette_num;
-    bool cgb_tile_vram_bank_num;
+    bool cgb_tile_vram_bank_num = 0;
     bool cgb_horizontal_flip;
     bool cgb_vertical_flip;
     bool cgb_bg_to_OAM_priority;
@@ -714,14 +738,21 @@ void GPU::drawWindowLine()
         }
         else
         {   // Get tile number from tile map
-            use_tile_num = vram_banks[curr_vram_bank][tile_map_vram_offset + tile_map_offset];
+            use_tile_num = vram_banks[0][tile_map_vram_offset + tile_map_offset];
         }
 
         // Find which tile memory block should be used
         tile_block_num = getTileBlockNum(use_tile_num);
 
         // Get the tile
-        tile = getTileFromBGTiles(tile_block_num, use_tile_num);
+        if (is_color_gb)
+        {
+            tile = getTileFromBGTiles(cgb_tile_vram_bank_num, tile_block_num, use_tile_num);
+        }
+        else
+        {
+            tile = getTileFromBGTiles(0, tile_block_num, use_tile_num);
+        }
 
         // Calculate which col of the Tile we're in (0..7)
         curr_tile_col = (scroll_x + frame_x) & 0x07;
@@ -753,8 +784,8 @@ void GPU::drawOAMLine()
     uint8_t tile_block_num;
     uint8_t pixel_color;
     uint8_t use_x;
-    uint8_t cgb_tile_vram_bank_num;
-    uint8_t cgb_sprite_palette_num;
+    uint8_t cgb_tile_vram_bank_num = 0;
+    uint8_t cgb_sprite_palette_num = 0;
     bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
 
     pixel_x = pixel_y = 0;
@@ -803,7 +834,14 @@ void GPU::drawOAMLine()
             tile_block_num = getSpriteTileBlockNum(sprite_tile_num);
 
             // Get the tile
-            tile = getTileFromBGTiles(tile_block_num, sprite_tile_num);
+            if (is_color_gb)
+            {
+                tile = getTileFromBGTiles(cgb_tile_vram_bank_num, tile_block_num, sprite_tile_num);
+            }
+            else
+            {
+                tile = getTileFromBGTiles(0, tile_block_num, sprite_tile_num);
+            }
 
             // Draw row of pixels
             for (uint8_t x = 0; x < 8; x++)
@@ -955,17 +993,17 @@ uint8_t GPU::getSpriteTileBlockNum(int use_tile_num)
     return use_tile_num / 128;
 }
 
-Tile * GPU::getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num)
+Tile * GPU::getTileFromBGTiles(bool use_vram_bank, uint8_t tile_block_num, int use_tile_num)
 {
     Tile * tile;
 
     if (use_tile_num < 128)
     {
-        tile = &bg_tiles[tile_block_num][use_tile_num];
+        tile = &bg_tiles[use_vram_bank][tile_block_num][use_tile_num];
     }
     else
     {
-        tile = &bg_tiles[tile_block_num][use_tile_num - 128];
+        tile = &bg_tiles[use_vram_bank][tile_block_num][use_tile_num - 128];
     }
     return tile;
 }
@@ -1112,7 +1150,7 @@ void GPU::printFrame()
 }
 
 
-Tile * GPU::updateTile(uint16_t pos, uint8_t val, uint8_t tile_block_num)
+Tile * GPU::updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t tile_block_num)
 {
 	Tile *tile;
 	uint16_t tile_num;
@@ -1125,7 +1163,7 @@ Tile * GPU::updateTile(uint16_t pos, uint8_t val, uint8_t tile_block_num)
 	{
 		byte_pos = pos - offset;
 		tile_num = std::floor(byte_pos / NUM_BYTES_PER_TILE);
-		tile = &bg_tiles[tile_block_num][tile_num];
+		tile = &bg_tiles[use_vram_bank][tile_block_num][tile_num];
 		tile->updateRawData(byte_pos % 16, val);
         bg_tiles_updated = true;
 	}
@@ -1137,7 +1175,7 @@ const SDL_Color * GPU::getFrame()
     return frame;
 }
 
-std::vector<std::vector<Tile>> GPU::getBGTiles()
+std::vector<std::vector<std::vector<Tile>>> GPU::getBGTiles()
 {
     bg_tiles_updated = false;
     return bg_tiles;

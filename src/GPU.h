@@ -31,7 +31,7 @@ private:
 
 	std::vector<std::vector<unsigned char>> vram_banks;
 	std::vector<unsigned char> object_attribute_memory;
-	std::vector<std::vector<Tile>> bg_tiles;
+	std::vector<std::vector<std::vector<Tile>>> bg_tiles;
 
 public:
 
@@ -81,7 +81,7 @@ public:
     void renderFullBackgroundMap();
     void drawShownBackgroundArea();
 	void display();
-	Tile * updateTile(std::uint16_t pos, std::uint8_t val, std::uint8_t tile_block_num);
+	Tile * updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t tile_block_num);
     void set_lcd_control(unsigned char lcd_control);
     void set_lcd_status(unsigned char lcd_status);
     void set_lcd_status_mode_flag(GPU_MODE);
@@ -89,11 +89,11 @@ public:
     void printFrame();
     const SDL_Color * getFrame();
 
-    std::vector<std::vector<Tile>> getBGTiles();
+    std::vector<std::vector<std::vector<Tile>>> getBGTiles();
     const std::vector<int> & getUpdatedBGTileIndexes();
     uint8_t getTileBlockNum(int use_tile_num);
     uint8_t getSpriteTileBlockNum(int use_tile_num);
-    Tile * getTileFromBGTiles(uint8_t tile_block_num, int use_tile_num);
+    Tile * getTileFromBGTiles(bool use_vram_bank, uint8_t tile_block_num, int use_tile_num);
 
     // Palette methods
     void updateBackgroundPalette(uint8_t val);

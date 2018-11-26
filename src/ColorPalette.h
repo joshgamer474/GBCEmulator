@@ -4,6 +4,8 @@
 #include <array>
 #include <SDL.h>
 
+#define CGB_NUM_COLORS_PER_PALETTE 4
+
 class ColorPalette
 {
 public:
@@ -19,7 +21,7 @@ private:
     void setColor(const uint16_t & data, SDL_Color & color);
 
     std::array<uint8_t, 8> raw_data;
-    std::array<SDL_Color, 4> colors;
+    std::array<SDL_Color, CGB_NUM_COLORS_PER_PALETTE> colors;
 };
 
 #endif
