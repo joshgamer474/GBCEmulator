@@ -674,6 +674,9 @@ void GPU::drawBackgroundLine()
 
             // Save tile's most recent used ColorPalette
             tile->setCGBColorPalette(&cgb_background_palettes[cgb_bg_palette_num]);
+
+            // Keep track of ColorPalette used at this pixel in the scanline
+            cgb_bg_scanline_color_palettes[frame_x] = &cgb_background_palettes[cgb_bg_palette_num];
         }
         else
         {
@@ -738,17 +741,23 @@ void GPU::drawWindowLine()
     bool cgb_bg_to_OAM_priority;
 
     // Calculate which row of the Tile we're in (0..7)
-    uint8_t curr_tile_row = (lcd_y + window_y_pos) & 0x07;
+    //uint8_t curr_tile_row = (lcd_y + window_y_pos) & 0x07;
+    uint8_t curr_tile_row = (lcd_y - window_y_pos) & 0x07;
 
     // Get VRAM offset for which set of tiles to use
     uint16_t tile_map_vram_offset = window_tile_map_display_select.start - 0x8000;
 
     uint8_t use_pixel_x = window_x_pos - 7;
-    uint8_t use_pixel_y = window_y_pos + lcd_y;     // Will rollover naturally due to uint8 (0..255)
+    uint8_t use_pixel_y = lcd_y - window_y_pos;     // Will rollover naturally due to uint8 (0..255)
 
     uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
-    if (use_pixel_x >= SCREEN_PIXEL_W || window_y_pos >= SCREEN_PIXEL_H)
+    if (window_x_pos < 7 || window_x_pos > 166)
+    {
+        use_pixel_x = 0;
+    }
+
+    if (window_y_pos >= SCREEN_PIXEL_H)
     {
         return;
     }
@@ -759,7 +768,7 @@ void GPU::drawWindowLine()
     }
 
     // Draw scanline
-    for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
+    for (uint8_t frame_x = use_pixel_x; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
         // Get tile in tile_map
         tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
@@ -792,6 +801,9 @@ void GPU::drawWindowLine()
 
             // Save tile's most recent used ColorPalette
             tile->setCGBColorPalette(&cgb_background_palettes[cgb_bg_palette_num]);
+
+            // Keep track of ColorPalette used at this pixel in the scanline
+            cgb_bg_scanline_color_palettes[frame_x] = &cgb_background_palettes[cgb_bg_palette_num];
         }
         else
         {
@@ -799,7 +811,7 @@ void GPU::drawWindowLine()
         }
 
         // Calculate which col of the Tile we're in (0..7)
-        curr_tile_col = (scroll_x + frame_x) & 0x07;
+        curr_tile_col = frame_x & 0x07;
 
         pixel_use_col = curr_tile_col;
         pixel_use_row = curr_tile_row;
@@ -918,26 +930,41 @@ void GPU::drawOAMLine()
                     continue;
                 }
 
+                // Get current pixel in frame
+                auto curr_frame_pixel = frame[use_x + frame_y_offset];
+                bool bg_is_color_0 = false;
+
                 // Check if pixel should be drawn due to object_behind_bg flag
-                if (object_behind_bg)
+                // or CGB's object_behind_bg flag
+                if (is_color_gb)
                 {
-                    // Get current pixel in frame
-                    auto curr_frame_pixel = frame[use_x + frame_y_offset];
+                    bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, cgb_bg_scanline_color_palettes[use_x]->getColor(0));
 
-                    if (bg_display_enable == false && is_color_gb)
-                    {   // Let sprite be drawn on top of background and window
-
+                    if (cgb_bg_to_oam_priority_array[use_x] == 0)
+                    {   // Use OAM byte 3 flag
+                        if (object_behind_bg)
+                        {   // BG has priority over sprite
+                            if (bg_is_color_0 == false)
+                            {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
+                                continue;
+                            }
+                        }
                     }
-                    else if (SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]) == false)
-                    {   // If curr_frame_pixel isn't background color 0, don't draw object's current pixel
-                        continue;
+                    else
+                    {   // BG has priority over sprite
+                        if (bg_is_color_0 == false)
+                        {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
+                            continue;
+                        }
                     }
                 }
-
-                // Check if pixel should NOT be drawn over background
-                if (is_color_gb && cgb_bg_to_oam_priority_array[use_x] == 1)
-                {
-                    continue;
+                else if (object_behind_bg)
+                {   // Non-CGB handling
+                    bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]);
+                    if (bg_is_color_0 == false)
+                    {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
+                        continue;
+                    }
                 }
 
                 // Find out which col of the sprite to use for this pixel

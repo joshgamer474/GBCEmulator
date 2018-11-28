@@ -127,6 +127,7 @@ public:
     std::array<ColorPalette, 8> cgb_background_palettes;
     std::array<ColorPalette, 8> cgb_sprite_palettes;
     std::array<bool, SCREEN_PIXEL_W> cgb_bg_to_oam_priority_array;
+    std::array<ColorPalette *, SCREEN_PIXEL_W> cgb_bg_scanline_color_palettes;
 
 	// LCD Object Attribute Memory DMA Transfers
 	unsigned char oam_dma;
