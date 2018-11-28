@@ -937,8 +937,11 @@ void GPU::drawOAMLine()
                 // Check if pixel should be drawn due to object_behind_bg flag
                 // or CGB's object_behind_bg flag
                 if (is_color_gb)
-                {
-                    bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, cgb_bg_scanline_color_palettes[use_x]->getColor(0));
+                {   // Ensure that we have a BG palette present
+                    if (cgb_bg_scanline_color_palettes[use_x])
+                    {
+                        bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, cgb_bg_scanline_color_palettes[use_x]->getColor(0));
+                    }
 
                     if (cgb_bg_to_oam_priority_array[use_x] == 0)
                     {   // Use OAM byte 3 flag
@@ -1041,6 +1044,7 @@ void GPU::renderLine()
     if (is_color_gb)
     {   // Clear current scanline's background to OAM priority array
         cgb_bg_to_oam_priority_array.fill(0);
+        cgb_bg_scanline_color_palettes.fill(NULL);
     }
 }
 
