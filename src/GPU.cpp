@@ -860,6 +860,7 @@ void GPU::drawOAMLine()
     bool cgb_tile_vram_bank_num = 0;
     uint8_t cgb_sprite_palette_num = 0;
     bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
+    uint8_t sprite_y_start, sprite_y_end;
 
     pixel_x = pixel_y = 0;
 
@@ -885,8 +886,20 @@ void GPU::drawOAMLine()
             cgb_tile_vram_bank_num = byte3 & 0x08;
         }
 
+        // Calculate sprite_y_start and sprite_y_end
+        sprite_y_end = object_attribute_memory[i];
+
+        if (object_attribute_memory[i] < 16)
+        {
+            sprite_y_start = 0;
+        }
+        else
+        {
+            sprite_y_start = object_attribute_memory[i] - 16;
+        }
+
         // Check to see if sprite is rendered on current line (Y position)
-        if (sprite_y <= lcd_y && (sprite_y + object_size) > lcd_y)
+        if (sprite_y_start <= lcd_y && sprite_y_end > lcd_y)
         {
             // Check for case of object_size = 16, ie sprite size is 8x16
             // Then check if we should be using the next sprite 8x8 sprite to draw
@@ -925,7 +938,8 @@ void GPU::drawOAMLine()
                 use_x = x + sprite_x;
 
                 // Check to make sure sprite X position isn't out of bounds
-                if ((sprite_x + x + 1) > SCREEN_PIXEL_W)
+                // i.e. only draw from 0..159
+                if (sprite_x + x >= SCREEN_PIXEL_W)
                 {
                     continue;
                 }
