@@ -131,7 +131,6 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    waitToRunInstruction();
     cpu->runNextInstruction();
     gpu->run();
 
@@ -146,6 +145,9 @@ void GBCEmulator::runNextInstruction()
     {
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
+
+        // Sleep until next frame should start
+        waitToStartNextFrame();
 
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
@@ -282,25 +284,19 @@ void GBCEmulator::release_joypad_button(Joypad::BUTTON button)
     }
 }
 
-void GBCEmulator::waitToRunInstruction()
+void GBCEmulator::waitToStartNextFrame()
 {
-    uint64_t ticksDiff = cpu->ticks - ticksRan;
+    ticksRan = cpu->ticks;
 
-    // Check if enough ticks have been used to produce 1 frame
-    if (ticksDiff >= ticksPerFrame)
-    {
-        ticksRan = cpu->ticks;
+    // Calculate time elapsed since start of frame
+    auto currTimeDouble = getCurrentTime();
+    auto timeElapsedMilli = currTimeDouble - frameStartTime;
 
-        // Calculate time elapsed since start of frame
-        auto currTimeDouble = getCurrentTime();
-        auto timeElapsedMilli = currTimeDouble - frameStartTime;
-
-        // Calculate amount of time to sleep until next frame
-        auto timeToWaitMilli = timePerFrame - timeElapsedMilli;
-        if (timeToWaitMilli.count() > 0)
-        {   // Sleep until next frame needs to start rendering
-            std::this_thread::sleep_for(timeToWaitMilli);
-        }
+    // Calculate amount of time to sleep until next frame
+    auto timeToWaitMilli = timePerFrame - timeElapsedMilli;
+    if (timeToWaitMilli.count() > 0)
+    {   // Sleep until next frame needs to start rendering
+        std::this_thread::sleep_for(timeToWaitMilli);
     }
 }
 

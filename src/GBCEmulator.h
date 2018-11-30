@@ -61,7 +61,7 @@ private:
     void init_memory();
     void init_gpu();
     void init_logging(std::string logName);
-    void waitToRunInstruction();
+    void waitToStartNextFrame();
     std::chrono::duration<double> getCurrentTime();
  
     std::shared_ptr<CPU> cpu;
