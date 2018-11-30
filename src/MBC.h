@@ -6,6 +6,20 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
+enum MBC_Type {
+    UNKNOWN,
+    MBC1,
+    MBC2,
+    MBC3,
+    MMM01,
+    MBC5,
+    MBC6,
+    MBC7,
+    HuC1,
+    HuC3,
+    TAMA5
+};
+
 class MBC
 {
 public:
@@ -15,10 +29,14 @@ public:
 	void MBC_init(int mbc_num);
 	void MBC1_init();
 	void MBC2_init();
+    void MMM01_init();
 	void MBC3_init();
 	void MBC5_init();
 	void MBC6_init();
 	void MBC7_init();
+    void HuC1_init();
+    void HuC3_init();
+    void TAMA5_init();
 
 	// Reading and writing methods
 	uint8_t readByte(std::uint16_t pos);
@@ -34,6 +52,7 @@ public:
 	uint16_t curr_rom_bank;
 	uint8_t curr_ram_bank;
 	int mbc_num;
+    MBC_Type mbc_type;
 	int num_rom_banks;
 	int num_ram_banks;
 

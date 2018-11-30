@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CartridgeReader.h"
 #include "Debug.h"
+#include "MBC.h"
 
 CartridgeReader::CartridgeReader()
     : is_bios(true)
@@ -146,109 +147,160 @@ int CartridgeReader::getNumOfRamBanks(unsigned char ram_size)
 
 void CartridgeReader::parseCartridgeType(unsigned char cartridge_type)
 {
-	// MBC
-	switch (cartridge_type)
-	{
-	case 0x01:
+    setMBC(cartridge_type);
+    setROMSize(cartridge_type);
+    setRAMSize(cartridge_type);
+    setBattery(cartridge_type);
+    setTimer(cartridge_type);
+    setMMM01(cartridge_type);
+    setRumble(cartridge_type);
+
+	// Sensor
+    cartridgeType.sensor = (cartridge_type == 0x22);
+}
+
+void CartridgeReader::setMBC(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x01:
     case 0x02:
-    case 0x03: cartridgeType.mbc = 1; break;
+    case 0x03:
+        cartridgeType.mbc = MBC1; break;
 
-	case 0x05:
-    case 0x06: cartridgeType.mbc = 2; break;
+    case 0x05:
+    case 0x06:
+        cartridgeType.mbc = MBC2; break;
 
-	case 0x0F:
+    case 0x0F:
     case 0x10:
     case 0x11:
     case 0x12:
-    case 0x13: cartridgeType.mbc = 3; break;
+    case 0x13:
+        cartridgeType.mbc = MBC3; break;
 
-	case 0x19:
+    case 0x19:
     case 0x1A:
     case 0x1B:
     case 0x1C:
     case 0x1D:
-    case 0x1E: cartridgeType.mbc = 5; break;
+    case 0x1E:
+        cartridgeType.mbc = MBC5; break;
 
-	case 0x20: cartridgeType.mbc = 6; break;
+    case 0x20: cartridgeType.mbc = MBC6; break;
+    case 0x22: cartridgeType.mbc = MBC7; break;
+    case 0xFD: cartridgeType.mbc = TAMA5; break;
+    case 0xFE: cartridgeType.mbc = HuC3; break;
+    case 0xFF: cartridgeType.mbc = HuC1; break;
 
-	case 0x22: cartridgeType.mbc = 7; break;
+    default:
+        cartridgeType.mbc = 0;
+    }
+}
 
-	default:
-		cartridgeType.mbc = 0;
-	}
-
-	// ROM
-	switch (cartridge_type)
-	{
-	case 0x00:
+void CartridgeReader::setROMSize(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x00:
     case 0x08:
-    case 0x09: cartridgeType.rom = true; break;
+    case 0x09:
+        cartridgeType.rom = true; break;
 
-	default:
-		cartridgeType.rom = false;
-	}
+    default:
+        cartridgeType.rom = false;
+    }
+}
 
-	// RAM
-	switch (cartridge_type)
-	{
-	case 0x02: case 0x03: case 0x08: case 0x09: case 0x0C: case 0x0D:
-	case 0x10: case 0x12: case 0x13: case 0x1A: case 0x1B: case 0x1D:
-	case 0x1E: case 0x22: case 0xFF:
-		cartridgeType.ram = true;
-		break;
+void CartridgeReader::setRAMSize(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x02:
+    case 0x03:
+    case 0x08:
+    case 0x09:
+    case 0x0C:
+    case 0x0D:
+    case 0x10:
+    case 0x12:
+    case 0x13:
+    case 0x1A:
+    case 0x1B:
+    case 0x1D:
+    case 0x1E:
+    case 0x22:
+    case 0xFF:
+        cartridgeType.ram = true; break;
 
-	default:
-		cartridgeType.ram = false;
-	}
+    default:
+        cartridgeType.ram = false;
+    }
+}
 
-	// Battery
-	switch (cartridge_type)
-	{
-	case 0x03: case 0x06: case 0x09: case 0x0D: case 0x0F: case 0x10:
-	case 0x13: case 0x1B: case 0x1E: case 0x22: case 0xFF:
-		cartridgeType.battery = true;
-		break;
+void CartridgeReader::setBattery(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x03:
+    case 0x06:
+    case 0x09:
+    case 0x0D:
+    case 0x0F:
+    case 0x10:
+    case 0x13:
+    case 0x1B:
+    case 0x1E:
+    case 0x22:
+    case 0xFF:
+        cartridgeType.battery = true; break;
 
-	default:
-		cartridgeType.battery = false;
-	}
+    default:
+        cartridgeType.battery = false;
+    }
+}
 
-	// Timer
-	switch (cartridge_type)
-	{
-	case 0x0F:
-    case 0x10: cartridgeType.timer = true; break;
+void CartridgeReader::setTimer(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x0F:
+    case 0x10:
+        cartridgeType.timer = true; break;
 
-	default:
-		cartridgeType.timer = false;
-	}
+    default:
+        cartridgeType.timer = false;
+    }
+}
 
+void CartridgeReader::setMMM01(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x0B:
+    case 0x0C:
+    case 0x0D:
+        cartridgeType.mmm01 = true; break;
 
-	// MMM01 (?)
-	switch (cartridge_type)
-	{
-	case 0x0B: case 0x0C: case 0x0D:
-		cartridgeType.mmm01 = true;
-		break;
+    default:
+        cartridgeType.mmm01 = false;
+        break;
+    }
+}
 
-	default:
-		cartridgeType.mmm01 = false;
-		break;
-	}
+void CartridgeReader::setRumble(unsigned char cartridge_type)
+{
+    switch (cartridge_type)
+    {
+    case 0x1C:
+    case 0x1D:
+    case 0x1E:
+    case 0x22:
+        cartridgeType.rumble = true; break;
 
-	// Rumble
-	switch (cartridge_type)
-	{
-	case 0x1C: case 0x1D: case 0x1E: case 0x22:
-		cartridgeType.rumble = true;
-		break;
-
-	default:
-		cartridgeType.rumble = false;
-	}
-
-	// Sensor
-    cartridgeType.sensor = (cartridge_type == 0x22);
+    default:
+        cartridgeType.rumble = false;
+    }
 }
 
 int CartridgeReader::getMBCNum()

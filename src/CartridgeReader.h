@@ -61,6 +61,13 @@ private:
     int getNumOfRomBanks(unsigned char rom_size);
     int getNumOfRamBanks(unsigned char ram_size);
     void parseCartridgeType(unsigned char cartridge_type);
+    void setMBC(unsigned char cartridge_type);
+    void setROMSize(unsigned char cartridge_type);
+    void setRAMSize(unsigned char cartridge_type);
+    void setBattery(unsigned char cartridge_type);
+    void setTimer(unsigned char cartridge_type);
+    void setMMM01(unsigned char cartridge_type);
+    void setRumble(unsigned char cartridge_type);
 
 	CartridgeType cartridgeType;
     std::string cartridgeFilename;

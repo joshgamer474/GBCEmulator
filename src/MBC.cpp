@@ -18,7 +18,8 @@ MBC::MBC()
 	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
 	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
 
-	mbc_num = 0;
+	mbc_num     = 0;
+    mbc_type    = UNKNOWN;
 
 	setFromTo(&rom_from_to, 0x0000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
@@ -39,15 +40,20 @@ void MBC::MBC_init(int mbcNum)
 	curr_ram_bank = 1;
 
 	mbc_num = mbcNum;
+    mbc_type = static_cast<MBC_Type>(mbcNum);
 
 	switch (mbc_num)
 	{
-	case 1: MBC1_init(); break;
-	case 2: MBC2_init(); break;
-	case 3: MBC3_init(); break;
-	case 5: MBC5_init(); break;
-	case 6: MBC6_init(); break;
-	case 7: MBC7_init(); break;
+	case MBC1:  MBC1_init(); break;
+	case MBC2:  MBC2_init(); break;
+	case MBC3:  MBC3_init(); break;
+	case MBC5:  MBC5_init(); break;
+	case MBC6:  MBC6_init(); break;
+	case MBC7:  MBC7_init(); break;
+    case HuC1:  HuC1_init(); break;
+    case HuC3:  HuC3_init(); break;
+    case MMM01: MMM01_init(); break;
+    case TAMA5: TAMA5_init(); break;
 
 	default:
 		rom_banking_mode = true;
@@ -86,8 +92,6 @@ void MBC::MBC1_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
-
-	mbc_num = 1;
 }
 
 
@@ -111,10 +115,7 @@ void MBC::MBC2_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xA1FF);
-
-	mbc_num = 2;
 }
-
 
 void MBC::MBC3_init()
 {
@@ -133,8 +134,6 @@ void MBC::MBC3_init()
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
-
-	mbc_num = 3;
 }
 
 void MBC::MBC5_init()
@@ -153,20 +152,37 @@ void MBC::MBC5_init()
 
     setFromTo(&rom_from_to, 0x4000, 0x7FFF);
     setFromTo(&ram_from_to, 0xA000, 0xBFFF);
-
-    mbc_num = 5;
 }
 
 
 void MBC::MBC6_init()
 {
-
+    throw std::exception("MBC6 not yet supported!");
 }
-
 
 void MBC::MBC7_init()
 {
+    throw std::exception("MBC7 not yet supported!");
+}
 
+void MBC::HuC1_init()
+{
+    throw std::exception("HuC1 not yet supported!");
+}
+
+void MBC::HuC3_init()
+{
+    throw std::exception("HuC3 not yet supported!");
+}
+
+void MBC::MMM01_init()
+{
+    throw std::exception("MMM01 not yet supported!");
+}
+
+void MBC::TAMA5_init()
+{
+    throw std::exception("TAMA5 not yet supported!");
 }
 
 
