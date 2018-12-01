@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "MBC.h"
 #include "Debug.h"
+#include <fstream>
 
 MBC::MBC()
 {
@@ -31,13 +32,19 @@ MBC::~MBC()
     logger.reset();
 }
 
-void MBC::MBC_init(int mbcNum)
+void MBC::MBC_init(int mbcNum, int numROMBanks, int numRAMBanks)
 {
 	rom_banking_mode = true;
-	ram_banking_mode = false;
-	external_ram_enabled = false;
+	ram_banking_mode = true;
+	external_ram_enabled = true;
 	curr_rom_bank = 1;
 	curr_ram_bank = 1;
+
+    num_rom_banks = numROMBanks;
+    num_ram_banks = numRAMBanks;
+
+    romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
+    ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
 
 	mbc_num = mbcNum;
     mbc_type = static_cast<MBC_Type>(mbcNum);
@@ -54,42 +61,12 @@ void MBC::MBC_init(int mbcNum)
     case HuC3:  HuC3_init(); break;
     case MMM01: MMM01_init(); break;
     case TAMA5: TAMA5_init(); break;
-
-	default:
-		rom_banking_mode = true;
-		ram_banking_mode = false;
-		external_ram_enabled = false;
-		curr_rom_bank = 1;
-		curr_ram_bank = 1;
-
-		num_rom_banks = 2;
-		num_ram_banks = 1;
-
-		romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-		ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
-
-		mbc_num = 0;
-
-		setFromTo(&rom_from_to, 0x0000, 0x7FFF);
-		setFromTo(&ram_from_to, 0xA000, 0xBFFF);
 	}
     logger->info("Using MBC: {}", mbc_num);
 }
 
 void MBC::MBC1_init()
 {
-	rom_banking_mode = true;
-	ram_banking_mode = true;
-	external_ram_enabled = true;
-	curr_rom_bank = 1;
-	curr_ram_bank = 1;
-
-	num_rom_banks = 0x80;
-	num_ram_banks = 0x04;
-
-	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
-
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
 }
@@ -101,35 +78,12 @@ void MBC::MBC1_init()
 */
 void MBC::MBC2_init()
 {
-	rom_banking_mode = true;
-	ram_banking_mode = true;
-	external_ram_enabled = true;
-	curr_rom_bank = 1;
-	curr_ram_bank = 1;
-
-	num_rom_banks = 0x10;
-	num_ram_banks = 0x04;
-
-	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
-
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xA1FF);
 }
 
 void MBC::MBC3_init()
 {
-	rom_banking_mode = true;
-	ram_banking_mode = true;
-	external_ram_enabled = true;
-	curr_rom_bank = 1;
-	curr_ram_bank = 1;
-
-	num_rom_banks = 0x80;
-	num_ram_banks = 0x04;
-
-	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
     rtcRegisters.resize(0x0C - 0x08);
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
@@ -138,18 +92,6 @@ void MBC::MBC3_init()
 
 void MBC::MBC5_init()
 {
-    rom_banking_mode = true;
-    ram_banking_mode = true;
-    external_ram_enabled = true;
-    curr_rom_bank = 1;
-    curr_ram_bank = 1;
-
-    num_rom_banks = 0x01FF;
-    num_ram_banks = 0x0F;
-
-    romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-    ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
-
     setFromTo(&rom_from_to, 0x4000, 0x7FFF);
     setFromTo(&ram_from_to, 0xA000, 0xBFFF);
 }
@@ -299,7 +241,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else if (pos >= 0x4000 && pos <= 0x5FFF)
             {
-                curr_ram_bank = (val & 0x0F);
+                curr_ram_bank = (val & num_ram_banks);
             }
         }
 
@@ -422,3 +364,48 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	}
 }
 
+void MBC::loadSaveIntoRAM(const std::string & filename)
+{
+    // Open file
+    std::ifstream file;
+    file.open(filename, std::ios::binary);
+
+    if (file.is_open())
+    {   // Read in file
+        logger->info("Reading in save file");
+        std::vector<unsigned char> ram(
+            (std::istreambuf_iterator<char>(file)),
+            (std::istreambuf_iterator<char>()));
+
+        // Write file to RAM
+        uint8_t use_ram_bank = 0;
+        for (size_t i = 0; i < ram.size(); i++)
+        {
+            ramBanks[use_ram_bank][i & 0x1FFF] = ram[i];    // 0x1FFF = 0xBFFF - 0xA000
+
+            if ((i & 0x1FFF) == 0x1FFF)
+            {
+                use_ram_bank++;
+            }
+        }
+
+        // Close file
+        file.close();
+    }
+}
+
+void MBC::saveRAMToFile(const std::string & filename)
+{
+    // Open file
+    std::ofstream file;
+    file.open(filename, std::ios::binary);
+
+    // Write RAM to file
+    for (size_t i = 0; i < ramBanks.size(); i++)
+    {
+        file.write(reinterpret_cast<const char *>(ramBanks[i].data()), ramBanks[i].size());
+    }
+
+    // Close file
+    file.close();
+}

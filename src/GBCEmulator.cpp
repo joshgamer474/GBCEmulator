@@ -27,6 +27,10 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     init_memory();
     init_gpu();
 
+    // Read in game save
+    filenameNoExtension = romName.substr(0, romName.find_last_of("."));
+    mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
+
     // Calculate number of CPU cycles that can run in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
     ticksRan = 0;
@@ -40,6 +44,9 @@ GBCEmulator::~GBCEmulator()
     SDL_DestroyWindow(window);
     SDL_Quit();
 #endif
+
+    // Write out .sav file
+    mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
     cpu->memory->reset();
     cpu.reset();
@@ -100,7 +107,9 @@ void GBCEmulator::read_rom(std::string filename)
 void GBCEmulator::init_memory()
 {
     // Setup Memory Bank Controller
-    mbc->MBC_init(cartridgeReader->getMBCNum());
+    mbc->MBC_init(cartridgeReader->getMBCNum(),
+        cartridgeReader->num_ROM_banks,
+        cartridgeReader->num_RAM_banks);
 
     // Set GB object pointers, move game cartridge into ROM banks
     cpu->memory->cartridgeReader = cartridgeReader;

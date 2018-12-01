@@ -78,6 +78,7 @@ private:
 
     bool stopRunning;
     std::string logFileBaseName;
+    std::string filenameNoExtension;
 
     uint64_t ticksPerFrame;
     uint64_t ticksRan;

@@ -26,7 +26,7 @@ public:
 	MBC();
 	~MBC();
 
-	void MBC_init(int mbc_num);
+	void MBC_init(int mbc_num, int num_rom_banks, int num_ram_banks);
 	void MBC1_init();
 	void MBC2_init();
     void MMM01_init();
@@ -41,6 +41,9 @@ public:
 	// Reading and writing methods
 	uint8_t readByte(std::uint16_t pos);
 	void setByte(std::uint16_t pos, std::uint8_t val);
+
+    void loadSaveIntoRAM(const std::string & filename);
+    void saveRAMToFile(const std::string & filename);
 
     const uint16_t ROM_BANK_SIZE = 0x4000;
 	const uint16_t RAM_BANK_SIZE = 0x2000;
@@ -60,8 +63,6 @@ public:
 	bool ram_banking_mode;
     bool rtc_timer_enabled;
 	bool external_ram_enabled;
-
-	unsigned char external_ram[0x2000];
 
 	std::shared_ptr<spdlog::logger> logger;
 

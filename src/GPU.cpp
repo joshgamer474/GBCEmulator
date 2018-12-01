@@ -747,6 +747,7 @@ void GPU::drawWindowLine()
     // Get VRAM offset for which set of tiles to use
     uint16_t tile_map_vram_offset = window_tile_map_display_select.start - 0x8000;
 
+    //uint8_t use_pixel_x = (window_x_pos - 7) + scroll_x;
     uint8_t use_pixel_x = window_x_pos - 7;
     uint8_t use_pixel_y = lcd_y - window_y_pos;     // Will rollover naturally due to uint8 (0..255)
 
@@ -899,21 +900,10 @@ void GPU::drawOAMLine()
             sprite_y_start = object_attribute_memory[i] - 16;
         }
 
-        if (sprite_x >= 249)    // 1 - 8 = -7 = (uchar) 249;
-        {
-            num_x_pixels_to_draw = sprite_x + 8; // e.g. 249 + 8 = 257 = 1;
-        }
-        else if (sprite_x >= 152)
-        {
-            num_x_pixels_to_draw = 160 - sprite_x;
-        }
-        else if (sprite_x == 248)
-        {
-            continue;   // num_x_pixles_to_draw = 0;
-        }
-        else if (sprite_x == 168)
-        {
-            continue;   // num_x_pixels_to_draw = 0;
+        // Check if sprite is being drawn anywhere on the visible screen
+        if (sprite_x >= 168 && sprite_x <= 248)
+        {   // This sprite doesn't draw at all in 0..159, skip it
+            continue;
         }
 
         // Check to see if sprite is rendered on current line (Y position)
