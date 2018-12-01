@@ -377,16 +377,19 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
             (std::istreambuf_iterator<char>(file)),
             (std::istreambuf_iterator<char>()));
 
-        // Write file to RAM
         uint8_t use_ram_bank = 0;
-        for (size_t i = 0; i < ram.size(); i++)
-        {
-            ramBanks[use_ram_bank][i & 0x1FFF] = ram[i];    // 0x1FFF = 0xBFFF - 0xA000
+        uint32_t num_ram_banks_in_file = ram.size() / 0x1FFF;
+        
+        // Write file to RAM
+        for (uint8_t i = 0; i < num_ram_banks_in_file; i++)
+        {   // 0x1FFF = 0xB1FFF - 0xA000
+            uint16_t offset = use_ram_bank * 0x2000;
 
-            if ((i & 0x1FFF) == 0x1FFF)
-            {
-                use_ram_bank++;
-            }
+            ramBanks[use_ram_bank] = std::vector<unsigned char>(
+                ram.begin() + offset,
+                ram.begin() + offset + 0x2000);
+
+            use_ram_bank++;
         }
 
         // Close file
