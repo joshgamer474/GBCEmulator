@@ -861,6 +861,7 @@ void GPU::drawOAMLine()
     uint8_t cgb_sprite_palette_num = 0;
     bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
     uint8_t sprite_y_start, sprite_y_end;
+    uint8_t num_x_pixels_to_draw = 8;
 
     pixel_x = pixel_y = 0;
 
@@ -896,6 +897,23 @@ void GPU::drawOAMLine()
         else
         {
             sprite_y_start = object_attribute_memory[i] - 16;
+        }
+
+        if (sprite_x >= 249)    // 1 - 8 = -7 = (uchar) 249;
+        {
+            num_x_pixels_to_draw = sprite_x + 8; // e.g. 249 + 8 = 257 = 1;
+        }
+        else if (sprite_x >= 152)
+        {
+            num_x_pixels_to_draw = 160 - sprite_x;
+        }
+        else if (sprite_x == 248)
+        {
+            continue;   // num_x_pixles_to_draw = 0;
+        }
+        else if (sprite_x == 168)
+        {
+            continue;   // num_x_pixels_to_draw = 0;
         }
 
         // Check to see if sprite is rendered on current line (Y position)
@@ -939,7 +957,7 @@ void GPU::drawOAMLine()
 
                 // Check to make sure sprite X position isn't out of bounds
                 // i.e. only draw from 0..159
-                if (sprite_x + x >= SCREEN_PIXEL_W)
+                if (use_x >= SCREEN_PIXEL_W)
                 {
                     continue;
                 }
