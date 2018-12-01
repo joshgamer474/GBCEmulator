@@ -731,6 +731,7 @@ void GPU::drawWindowLine()
     uint8_t pixel;
     uint8_t pixel_use_row;
     uint8_t pixel_use_col;
+    uint8_t use_pixel_x;;
 
     // CGB variables
     uint8_t cgb_tile_attributes = 0;
@@ -747,15 +748,14 @@ void GPU::drawWindowLine()
     // Get VRAM offset for which set of tiles to use
     uint16_t tile_map_vram_offset = window_tile_map_display_select.start - 0x8000;
 
-    //uint8_t use_pixel_x = (window_x_pos - 7) + scroll_x;
-    uint8_t use_pixel_x = window_x_pos - 7;
+    uint8_t pixel_x_start = window_x_pos - 7;
     uint8_t use_pixel_y = lcd_y - window_y_pos;     // Will rollover naturally due to uint8 (0..255)
 
     uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
-    if (window_x_pos < 7 || window_x_pos > 166)
+    if (window_x_pos < 7)
     {
-        use_pixel_x = 0;
+        pixel_x_start = 0;
     }
 
     if (window_y_pos >= SCREEN_PIXEL_H)
@@ -769,8 +769,10 @@ void GPU::drawWindowLine()
     }
 
     // Draw scanline
-    for (uint8_t frame_x = use_pixel_x; frame_x < SCREEN_PIXEL_W; frame_x++)
+    for (uint8_t frame_x = pixel_x_start; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
+        use_pixel_x = frame_x - pixel_x_start;
+
         // Get tile in tile_map
         tile_map_offset = getTileMapNumber(use_pixel_x, use_pixel_y);
 
@@ -812,7 +814,7 @@ void GPU::drawWindowLine()
         }
 
         // Calculate which col of the Tile we're in (0..7)
-        curr_tile_col = frame_x & 0x07;
+        curr_tile_col = use_pixel_x & 0x07;
 
         pixel_use_col = curr_tile_col;
         pixel_use_row = curr_tile_row;
@@ -843,9 +845,6 @@ void GPU::drawWindowLine()
         {
             frame[frame_x + frame_y_offset] = bg_palette_color[pixel];
         }
-
-        // Will rollover naturally due to uint8 (0..255)
-        use_pixel_x++;
     }
 }
 
