@@ -64,6 +64,9 @@ public:
     bool rtc_timer_enabled;
 	bool external_ram_enabled;
 
+    uint8_t prev_mbc3_latch;
+    uint8_t curr_mbc3_latch;
+
 	std::shared_ptr<spdlog::logger> logger;
 
 	struct From_To
@@ -73,5 +76,8 @@ public:
 	From_To rom_from_to;
 	From_To ram_from_to;
 	void setFromTo(From_To *, int start, int end);
+
+private:
+    void latchCurrTimeToRTC();
 };
 #endif

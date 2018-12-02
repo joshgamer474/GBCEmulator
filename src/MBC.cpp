@@ -2,6 +2,8 @@
 #include "MBC.h"
 #include "Debug.h"
 #include <fstream>
+#include <chrono>
+#include <ctime>
 
 MBC::MBC()
 {
@@ -21,6 +23,9 @@ MBC::MBC()
 
 	mbc_num     = 0;
     mbc_type    = UNKNOWN;
+
+    prev_mbc3_latch = -1;
+    curr_mbc3_latch = -1;
 
 	setFromTo(&rom_from_to, 0x0000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
@@ -228,8 +233,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 			// Write the RAM bank number to this address (?) http://gbdev.gg8.se/wiki/articles/MBC3
 			romBanks[curr_rom_bank % num_rom_banks][pos] = curr_ram_bank;
 		}
-			
-        if (mbc_num == 5)
+		else if (mbc_num == 5)
         {
             if ((pos & 0xF000) < 0x3000)
             {
@@ -325,6 +329,17 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 		        ram_banking_mode = true;
 	        }
         } // end mbc_num == 1
+        else if (mbc_num == 3)
+        {
+            prev_mbc3_latch = curr_mbc3_latch;
+            curr_mbc3_latch = val;
+
+            if (prev_mbc3_latch == 0x00 &&
+                curr_mbc3_latch == 0x01)
+            {
+                latchCurrTimeToRTC();
+            }
+        }
         else
         {
 	        logger->warn("MBC::setByte() used address: 0x{0:x} with val: 0x{1:x}", pos, val);
@@ -343,18 +358,33 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         }
         else if (mbc_num == 3)
         {
-            if (curr_ram_bank <= 0x03)
+            if (curr_ram_bank <= 0x03 && external_ram_enabled)
             {
                 ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
             }
-            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
+            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C && rtc_timer_enabled)
             {
                 rtcRegisters[curr_ram_bank - 0x08] = val;
+            }
+            else
+            {
+                logger->warn("Tried to write val: {0:x} to RAM bank: {1:x} but writing to external RAM is disabled",
+                    val,
+                    curr_ram_bank);
             }
         }
         else if (mbc_num != 1)
         {
-            ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+            if (external_ram_enabled)
+            {
+                ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+            }
+            else
+            {
+                logger->warn("Tried to write val: {0:x} to RAM bank: {1:x} but writing to external RAM is disabled",
+                    val,
+                    curr_ram_bank);
+            }
         }
 		break;
 
@@ -411,4 +441,48 @@ void MBC::saveRAMToFile(const std::string & filename)
 
     // Close file
     file.close();
+}
+
+void MBC::latchCurrTimeToRTC()
+{
+    uint16_t dayCounter;
+    uint8_t & seconds   = rtcRegisters[0];
+    uint8_t & minutes   = rtcRegisters[1];
+    uint8_t & hours     = rtcRegisters[2];
+    uint8_t & lower_8_bits_of_day_counter = rtcRegisters[3];
+    uint8_t & rtc_DH    = rtcRegisters[4];
+
+    // Get prev day as uint16_t
+    uint16_t prevDayCounter = rtc_DH & 0x01;
+    prevDayCounter = (prevDayCounter << 8) | lower_8_bits_of_day_counter;
+
+    uint8_t prevHours = hours;
+
+    // Get current time
+    const std::time_t currTime = std::time(NULL);
+
+    // Convert to local calendar time
+    const std::tm calendarTime = *std::localtime(std::addressof(currTime));
+
+    // Set RTC registers
+    seconds = calendarTime.tm_sec;
+    minutes = calendarTime.tm_min;
+    hours   = calendarTime.tm_hour;
+
+    // Check for hour overflow
+    if (prevHours > hours)
+    {   // Update dayCounter RTC registers
+        lower_8_bits_of_day_counter = prevDayCounter & 0x00FF;
+        rtc_DH = (rtc_DH & 0xFE) | ((prevDayCounter & 0x0100) >> 8);
+    }
+
+    // Get current day as uint16_t
+    dayCounter = rtc_DH & 0x01;
+    dayCounter = (dayCounter << 8) | lower_8_bits_of_day_counter;
+
+    // Check for overflow of dayCounter
+    if (prevDayCounter > dayCounter)
+    {
+        rtc_DH |= 0x80; // Set Day Counter Carry bit
+    }
 }
