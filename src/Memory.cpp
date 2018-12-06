@@ -4,12 +4,14 @@
 #include "MBC.h"
 #include "GPU.h"
 #include "Joypad.h"
+#include "APU.h"
 #include "Debug.h"
 #include <string>
 
 Memory::Memory()
 {
 	joypad = std::make_shared<Joypad>();
+    apu = std::make_shared<APU>();
 
 	timer_enabled   = false;
 	prev_clock_div  = prev_clock_tima = curr_clock = 0;
@@ -174,7 +176,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			else if (pos < 0xFF40)
 			{
 				// 0xFF10 - 0xFF3F : Audio
-				return audio[pos - 0xFF10];
+                return apu->readByte(pos);
 			}
             else if (pos == 0xFF4D)
             {
@@ -364,7 +366,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			else if (pos < 0xFF40)
 			{
 				// 0xFF10 - 0xFF3F : Audio
-				audio[pos - 0xFF10] = val;
+                apu->setByte(pos, val);
 			}
             else if (pos == 0xFF4D)
             {

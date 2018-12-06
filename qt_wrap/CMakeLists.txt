@@ -17,6 +17,7 @@ set(GBC_HEADERS
     ../src/GBCEmulator.h
     ../src/CartridgeReader.h
     ../src/ColorPalette.h
+	../src/APU.h
     ../src/CPU.h
     ../src/GPU.h
     ../src/Joypad.h
@@ -28,6 +29,7 @@ set(GBC_SOURCE
     ../src/GBCEmulator.cpp
     ../src/CartridgeReader.cpp
     ../src/ColorPalette.cpp
+	../src/APU.cpp
     ../src/CPU.cpp
     ../src/GPU.cpp
     ../src/Joypad.cpp
@@ -59,7 +61,8 @@ set(QT_RUN_SOURCE
 
 qt5_wrap_ui(QT_UI_GENERATED_HEADERS ${QT_UIS})
     
-add_executable(GBCEmulator_qt WIN32
+#add_executable(GBCEmulator_qt WIN32
+add_executable(GBCEmulator_qt
     ${QT_RUN_SOURCE}
     ${QT_SOURCE}
     ${QT_HEADERS}

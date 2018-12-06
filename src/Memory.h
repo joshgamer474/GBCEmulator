@@ -20,6 +20,7 @@ class CartridgeReader;
 class MBC;
 class GPU;
 class Joypad;
+class APU;
 
 class Memory
 {
@@ -42,6 +43,7 @@ public:
     std::shared_ptr<MBC> mbc;
     std::shared_ptr<GPU> gpu;
     std::shared_ptr<Joypad> joypad;
+    std::shared_ptr<APU> apu;
 
     bool cgb_perform_speed_switch;
     unsigned char cgb_speed_mode;
@@ -50,7 +52,6 @@ public:
 	unsigned char high_ram[0x7F];
 	unsigned char gamepad;
 	unsigned char timer[0x04];
-	unsigned char audio[0x30];
 	unsigned char linkport[3];
 	bool firstTen = false;
 	std::string blargg = "";
