@@ -13,6 +13,7 @@
 #include <vector>
 #include <functional>
 
+#include "APU.h"
 #include "CPU.h"
 #include "Memory.h"
 #include "Joypad.h"
@@ -64,6 +65,7 @@ private:
     void waitToStartNextFrame();
     std::chrono::duration<double> getCurrentTime();
  
+    std::shared_ptr<APU> apu;
     std::shared_ptr<CPU> cpu;
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;

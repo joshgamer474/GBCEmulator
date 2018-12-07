@@ -50,6 +50,9 @@ GPU::GPU(SDL_Renderer *render)
 	cgb_auto_increment_background_palette_index = false;
 	cgb_auto_increment_sprite_palette_index = false;
 
+    cgb_dma_in_progress = false;
+    cgb_dma_transfer_bytes_left = 0;
+
     frame_is_ready = false;
     bg_tiles_updated = false;
 }
@@ -125,7 +128,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF52:	return hdma2;
 			case 0xFF53:	return hdma3;
 			case 0xFF54:	return hdma4;
-			case 0xFF55:	return hdma5;
+			case 0xFF55:	return (hdma5 & 0x7F) | (cgb_dma_in_progress << 7);
 			case 0xFF68:	return cgb_background_palette_index;
 			case 0xFF69:
                 // Block reading to VRAM when VRAM is being used
@@ -244,6 +247,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                 case 0xFF54:	hdma4 = val; return;
                 case 0xFF55:
                     hdma5 = val;
+                    cgb_dma_in_progress = true;
                     
                     source_address = hdma1;
                     source_address = (source_address << 8) | hdma2;

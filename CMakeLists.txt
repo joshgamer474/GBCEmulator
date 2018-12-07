@@ -11,7 +11,10 @@ set(GBC_HEADERS
     src/GBCEmulator.h
     src/CartridgeReader.h
     src/ColorPalette.h
-	src/APU.h
+    src/APU.h
+    src/AudioSquare.h
+    src/AudioWave.h
+    src/AudioNoise.h
     src/CPU.h
     src/GPU.h
     src/Joypad.h
@@ -24,7 +27,10 @@ set(GBC_SOURCE
     src/CartridgeReader.cpp
     src/ColorPalette.cpp
     src/APU.cpp
-	src/CPU.cpp
+    src/AudioSquare.cpp
+    src/AudioWave.cpp
+    src/AudioNoise.cpp
+    src/CPU.cpp
     src/GPU.cpp
     src/Joypad.cpp
     src/MBC.cpp
@@ -57,7 +63,7 @@ target_link_libraries(GBCEmulator_bin GBCEmulator)
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")
-    
+
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
 

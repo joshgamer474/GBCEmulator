@@ -134,6 +134,8 @@ public:
 
 	// LCD VRAM DMA Transfers (GBC only)
 	unsigned char hdma1, hdma2, hdma3, hdma4, hdma5;
+    bool cgb_dma_in_progress;
+    uint8_t cgb_dma_transfer_bytes_left;
 
 
 	/*

@@ -519,6 +519,8 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
         hdma5 = 0xFF;
 
         gpu->bg_tiles_updated = true;
+        gpu->cgb_dma_in_progress = false;
+        gpu->hdma5 = 0xFF;
     }
     else
     {

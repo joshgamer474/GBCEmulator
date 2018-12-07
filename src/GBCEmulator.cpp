@@ -48,11 +48,13 @@ GBCEmulator::~GBCEmulator()
     // Write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
+    cpu->memory->apu.reset();
     cpu->memory->reset();
     cpu.reset();
     cartridgeReader.reset();
     mbc.reset();
     gpu.reset();
+    apu.reset();
     logger.reset();
 }
 
@@ -114,7 +116,9 @@ void GBCEmulator::init_memory()
     // Set GB object pointers, move game cartridge into ROM banks
     cpu->memory->cartridgeReader = cartridgeReader;
     cpu->memory->mbc = mbc;
+    cpu->memory->initWorkRAM(cartridgeReader->isColorGB());
     cpu->memory->initROMBanks();
+    apu = cpu->memory->apu;
     gpu->cpu = cpu;
 }
 
@@ -142,6 +146,7 @@ void GBCEmulator::runNextInstruction()
 {
     cpu->runNextInstruction();
     gpu->run();
+    apu->run();
 
     if (logCounter % 100 == 0)
     {

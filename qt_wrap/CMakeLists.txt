@@ -17,7 +17,10 @@ set(GBC_HEADERS
     ../src/GBCEmulator.h
     ../src/CartridgeReader.h
     ../src/ColorPalette.h
-	../src/APU.h
+    ../src/APU.h
+    ../src/AudioSquare.h
+    ../src/AudioWave.h
+    ../src/AudioNoise.h
     ../src/CPU.h
     ../src/GPU.h
     ../src/Joypad.h
@@ -29,7 +32,10 @@ set(GBC_SOURCE
     ../src/GBCEmulator.cpp
     ../src/CartridgeReader.cpp
     ../src/ColorPalette.cpp
-	../src/APU.cpp
+    ../src/APU.cpp
+    ../src/AudioSquare.cpp
+    ../src/AudioWave.cpp
+    ../src/AudioNoise.cpp
     ../src/CPU.cpp
     ../src/GPU.cpp
     ../src/Joypad.cpp
