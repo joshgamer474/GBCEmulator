@@ -146,7 +146,7 @@ void GBCEmulator::runNextInstruction()
 {
     cpu->runNextInstruction();
     gpu->run();
-    apu->run();
+    apu->run(cpu->ticks);
 
     if (logCounter % 100 == 0)
     {

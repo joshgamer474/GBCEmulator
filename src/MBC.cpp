@@ -39,9 +39,9 @@ MBC::~MBC()
 
 void MBC::MBC_init(int mbcNum, int numROMBanks, int numRAMBanks)
 {
-	rom_banking_mode = true;
-	ram_banking_mode = true;
-	external_ram_enabled = true;
+	rom_banking_mode        = false;
+	ram_banking_mode        = false;
+	external_ram_enabled    = false;
 	curr_rom_bank = 1;
 	curr_ram_bank = 1;
 
@@ -352,7 +352,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xA000:
 	case 0xB000:
 
-        if (ram_banking_mode && mbc_num == 1)
+        if (ram_banking_mode && mbc_num == 1 && external_ram_enabled)
         {
             ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
         }

@@ -1,22 +1,68 @@
 #include "APU.h"
+#include <CPU.h>
+#include <Joypad.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
 APU::APU()
 {
+    frame_sequence_step  = 0;
     channel_control = 0;
     selection_of_sound_output = 0;
-    sound_on_off = 0;
+    sound_on    = 0;
+    curr_apu_ticks  = 0;
+    prev_cpu_ticks  = 0;
+    left_volume     = 0;
+    right_volume    = 0;
+    left_out_enabled = false;
+    right_out_enabled = false;
 
-    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, "audio_out_square_1.pcm");
-    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, "audio_out_square_2.pcm");
+    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10);
+    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15);
     sound_channel_3 = std::make_unique<AudioWave>(0xFF1A);
     sound_channel_4 = std::make_unique<AudioNoise>(0xFF20);
+
+    sample_timer_val    = CLOCK_SPEED / SAMPLE_RATE;
+    frame_sequence_timer_val  = CLOCK_SPEED / 512;
+
+    sample_timer    = sample_timer_val;
+    frame_sequence_timer  = frame_sequence_timer_val;
+
+    outRightChannel = std::make_unique<std::ofstream>("outRightChannel.pcm", std::ios::binary);
+    outLeftChannel = std::make_unique<std::ofstream>("outLeftChannel.pcm", std::ios::binary);
+
+    sample_buffer.reserve(SAMPLE_BUFFER_SIZE);
+    
+
+    SDL_Init(SDL_INIT_AUDIO);
+
+    // SDL Configuration
+    SDL_AudioSpec desiredSpec;
+    desiredSpec.format = AUDIO_U8;
+    desiredSpec.freq = 44100;
+    desiredSpec.channels = 4;
+    desiredSpec.samples = 1024;
+    //desiredSpec.callback = ? ? ;
+    desiredSpec.userdata = this;
+
+    SDL_AudioSpec obtainedSpec;
+
+    // Open SDL Audio instance
+    //SDL_OpenAudio(&desiredSpec, &obtainedSpec);
+    audio_device_id = SDL_OpenAudioDevice(NULL,
+        0,
+        &desiredSpec,
+        &obtainedSpec,
+        0);
+
+    // Start playing audio
+    SDL_PauseAudio(0);
 }
 
 APU::~APU()
 {
-
+    outRightChannel->close();
+    outLeftChannel->close();
 }
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
@@ -39,14 +85,36 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {   // Wave Pattern RAM
-        wave_pattern_RAM[addr - 0xFF30] = val;
+        sound_channel_3->setByte(addr, val);
     }
 
     switch (addr)
     {
-    case 0xFF24: channel_control            = val; break;
+    case 0xFF24:
+        channel_control     = val;
+        left_out_enabled    = val & BIT7;
+        right_out_enabled   = val & BIT3;
+        left_volume         = (val & 0x70) >> 4;
+        right_volume        = val & 0x07;
+        break;
     case 0xFF25: selection_of_sound_output  = val; break;
-    case 0xFF26: sound_on_off               = val; break;
+    case 0xFF26:
+
+        if (sound_on && (val & BIT7) == 0)
+        {   // Disabling sound, reset APU
+
+        }
+        else if (!sound_on && (val & BIT7))
+        {   // Enabling sound
+            frame_sequence_step = 0;
+
+            sound_channel_1->duty_pos = 0;
+            sound_channel_2->duty_pos = 0;
+        }
+
+        sound_on &= 0x7F;
+        sound_on |= val & BIT7; // Only BIT7 is writable
+        break;
     }
 }
 
@@ -70,21 +138,196 @@ uint8_t APU::readByte(const uint16_t & addr)
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {
-        return wave_pattern_RAM[addr - 0xFF30];
+        return sound_channel_3->readByte(addr);
     }
 
     switch (addr)
     {
     case 0xFF24: return channel_control;
     case 0xFF25: return selection_of_sound_output;
-    case 0xFF26: return sound_on_off;
+    case 0xFF26:
+        return (sound_on & 0x80)
+            | sound_channel_1->is_enabled
+            | (sound_channel_2->is_enabled) << 1
+            | (sound_channel_3->is_enabled) << 2
+            | (sound_channel_4->is_enabled) << 3;
     }
 
     return 0xFF;
 }
 
-void APU::run()
+void APU::run(const uint64_t & cpuTicks)
 {
-    sound_channel_1->run();
-    sound_channel_2->run();
+    uint64_t diff = cpuTicks - prev_cpu_ticks;
+
+    prev_cpu_ticks = cpuTicks;
+
+    // while (diff > 0)
+    // { // Do stuff ?
+
+    // Tick sound channels
+    sound_channel_1->tick();
+    sound_channel_2->tick();
+
+    // Tick frame sequencer
+    if (frame_sequence_timer > 0)
+    {
+        frame_sequence_timer--;
+    }
+
+    if (frame_sequence_timer == 0)
+    {
+        if (frame_sequence_step % 2 == 0)
+        {   // Tick Length counter, is updated every even step (0, 2, 4, 6)
+            sound_channel_1->tickLengthCounter();
+            sound_channel_2->tickLengthCounter();
+        }
+
+        if (frame_sequence_step == 2 ||
+            frame_sequence_step == 6)
+        {   // Tick Sweep
+            //sound_channel_1->tickSweep();
+        }
+
+        if (frame_sequence_step == 7)
+        {   // Tick Volume Envelope
+            //sound_channel_1->tickVolumeEnvelope();
+            //sound_channel_2->tickVolumeEnvelope();
+            //sound_channel_4->tickVolumeEnvelope();
+        }
+
+        frame_sequence_step++;
+        frame_sequence_step &= 7; // Sequence can only be 0..7
+
+        // Reset frame_sequence_timer
+        frame_sequence_timer = frame_sequence_timer_val;
+    }
+
+    // Tick sample_timer
+    if (sample_timer > 0)
+    {
+        sample_timer--;
+    }
+
+    if (sample_timer == 0)
+    {   // Get samples, send sample to audio out buffer
+
+        Sample sample;
+
+        if ((sound_on & BIT7))
+        {   // Audio is enabled
+            // Get samples
+            const uint8_t & channel_1_sample = sound_channel_1->curr_sample;
+            const uint8_t & channel_2_sample = sound_channel_2->curr_sample;
+
+            // Apply samples to left and/or right out channels
+            if (isSoundOutLeft(1))
+            {
+                sample.left += channel_1_sample;
+            }
+
+            if (isSoundOutRight(1))
+            {
+                sample.right += channel_1_sample;
+            }
+
+            if (isSoundOutLeft(2))
+            {
+                sample.left += channel_1_sample;
+            }
+
+            if (isSoundOutRight(2))
+            {
+                sample.right += channel_1_sample;
+            }
+        } // end if(sound_on)
+
+        // Multiply left and right samples by volume
+        sample.left    *= left_volume;
+        sample.right   *= right_volume;
+
+        // Add current sample to sample buffer
+        sample_buffer.push_back(std::move(sample));
+
+        // Check if sample buffer is full
+        if (sample_buffer.size() >= SAMPLE_BUFFER_SIZE)
+        {
+            // Drain audio buffer (?)
+            while (SDL_GetQueuedAudioSize(1) > SAMPLE_BUFFER_UINT8_SIZE)
+            {
+                SDL_Delay(1);
+            }
+
+            // Push sample_buffer to SDL
+            SDL_QueueAudio(audio_device_id, reinterpret_cast<uint8_t *>(sample_buffer.data()), SAMPLE_BUFFER_UINT8_SIZE);
+        
+            // Clear sample_buffer
+            sample_buffer.clear();
+            sample_buffer.reserve(SAMPLE_BUFFER_SIZE);
+        }
+
+        // Reset sample_timer
+        sample_timer = sample_timer_val;
+
+    } // end if(sample_timer)
+
+
+
+    //if ((sound_on & BIT7) == 0)
+    //{   // All sound is disabled
+    //    return;
+    //}
+
+    //curr_apu_ticks += diff;
+
+    //const auto & square_sample_1 = sound_channel_1->run();
+
+    //if (curr_apu_ticks < sample_timer)
+    //{   // Not enough CPU cycles to get sample rate of 44.1 kHz
+    //    return;
+    //}
+
+    //curr_apu_ticks -= sample_timer;
+
+    //// Get samples from each channel
+    ////const auto & square_sample_1 = sound_channel_1->run();
+    ////const auto & square_sample_2 = sound_channel_2->run();
+
+    //if (sound_channel_1->is_enabled)
+    //{
+    //    if (isSoundOutLeft(1))
+    //    {
+    //        outLeftChannel->write(reinterpret_cast<const char *>(square_sample_1.data()), square_sample_1.size());
+    //    }
+
+    //    if (isSoundOutRight(1))
+    //    {
+    //        outRightChannel->write(reinterpret_cast<const char *>(square_sample_1.data()), square_sample_1.size());
+    //    }
+    //}
+
+}
+
+bool APU::isSoundOutLeft(uint8_t sound_number)
+{
+    switch (sound_number)
+    {
+    case 4: return selection_of_sound_output & BIT7;
+    case 3: return selection_of_sound_output & BIT6;
+    case 2: return selection_of_sound_output & BIT5;
+    case 1: return selection_of_sound_output & BIT4;
+    default: return false;
+    }
+}
+
+bool APU::isSoundOutRight(uint8_t sound_number)
+{
+    switch (sound_number)
+    {
+    case 4: return selection_of_sound_output & BIT3;
+    case 3: return selection_of_sound_output & BIT2;
+    case 2: return selection_of_sound_output & BIT1;
+    case 1: return selection_of_sound_output & BIT0;
+    default: return false;
+    }
 }

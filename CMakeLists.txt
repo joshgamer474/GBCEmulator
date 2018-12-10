@@ -54,12 +54,14 @@ target_include_directories(GBCEmulator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator
-    ${CONAN_TARGETS})
+    ${CONAN_TARGETS}
+    ${CONAN_LIB_DIRS})
 
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
-target_link_libraries(GBCEmulator_bin GBCEmulator)
+target_link_libraries(GBCEmulator_bin
+    GBCEmulator)
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")

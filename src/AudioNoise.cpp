@@ -13,6 +13,7 @@ AudioNoise::AudioNoise(const uint16_t & register_offset)
     restart_sound                       = false;
     envelope_increase                   = false;
     stop_output_when_sound_length_ends  = false;
+    is_enabled                          = false;
 }
 
 AudioNoise::~AudioNoise()

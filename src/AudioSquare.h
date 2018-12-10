@@ -3,35 +3,40 @@
 
 #include <array>
 #include <memory>
-#include <fstream>
 #include <string>
+#include <vector>
 
 class AudioSquare
 {
 public:
-    AudioSquare(const uint16_t & register_offset, std::string filename);
+    AudioSquare(const uint16_t & register_offset);
     virtual ~AudioSquare();
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
-    void run();
+    void tick();
+    void tickLengthCounter();
+
+    uint8_t curr_sample;
+    uint8_t duty_pos;
+    bool is_enabled;
 
 private:
     void parseRegister(const uint8_t & reg, const uint8_t & val);
     uint8_t getWaveDuty();
-    
-    std::unique_ptr<std::ofstream> outFile;
-
+    void generateOutputClock();
+ 
     std::array<uint8_t, 5> registers;
-    uint16_t reg_offset;
-
     uint8_t sweep_shift_num;
     uint8_t wave_pattern_duty;
     uint8_t sound_length_data;
     uint8_t initial_volume_of_envelope;
     uint8_t envelope_sweep_num;
+    uint16_t reg_offset;
     uint16_t frequency_16;
     uint32_t frequency;
+    uint64_t timer;
+    uint64_t period;
     float sweep_time;
     float sound_length;
     bool sweep_decrease;

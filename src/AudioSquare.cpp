@@ -1,9 +1,12 @@
-#include <AudioSquare.h>
+#include "AudioSquare.h"
+#include "CPU.h"
+#include "Joypad.h"
 #include <vector>
 
-AudioSquare::AudioSquare(const uint16_t & register_offset, std::string filename)
+AudioSquare::AudioSquare(const uint16_t & register_offset)
     : reg_offset(register_offset)
 {
+    duty_pos                = 0;
     sweep_shift_num             = 0;
     wave_pattern_duty           = 0;
     sound_length_data           = 0;
@@ -11,19 +14,19 @@ AudioSquare::AudioSquare(const uint16_t & register_offset, std::string filename)
     envelope_sweep_num          = 0;
     frequency_16                = 0;
     frequency                   = 0;
+    timer                       = 0;
     sweep_time                  = 0.0f;
     sound_length                = 0.0f;
     sweep_decrease              = false;
     envelope_increase           = false;
     stop_output_when_sound_length_ends = false;
     restart_sound               = false;
-
-    outFile = std::make_unique<std::ofstream>(filename, std::ios::binary);
+    is_enabled                  = false;
 }
 
 AudioSquare::~AudioSquare()
 {
-    outFile->close();
+
 }
 
 void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
@@ -62,7 +65,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     {
     case 0:
         sweep_time = (val & 0x70) >> 4;
-        sweep_decrease = val & 0x08;
+        sweep_decrease = val & BIT3;
         sweep_shift_num = val & 0x07;
 
         sweep_time *= (1.0f / 128.0f);
@@ -76,7 +79,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 
     case 2:
         initial_volume_of_envelope = val >> 4;
-        envelope_increase = val & 0x08;
+        envelope_increase = val & BIT3;
         envelope_sweep_num = val & 0x03;
         break;
 
@@ -88,11 +91,21 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     case 4:
         frequency_16 &= 0x0F;
         frequency_16 |= (static_cast<uint16_t>(val) & 0x03) << 8;
-        stop_output_when_sound_length_ends = val & 0x40;
-        restart_sound = val & 0x80;
+        stop_output_when_sound_length_ends = val & BIT6;
+        restart_sound = val & BIT7;
+
+        if (restart_sound)
+        {
+            is_enabled = true;
+        }
 
         // Calculate frequency
         frequency = 131072 / (2048 - frequency_16);
+        //frequency = 1000;
+
+        // Calculate period
+        //period = CLOCK_SPEED / frequency;
+        period = (2048 - frequency_16) * 4;
         break;
     }
 }
@@ -108,42 +121,57 @@ uint8_t AudioSquare::getWaveDuty()
     }
 }
 
-void AudioSquare::run()
+void AudioSquare::tick()
 {
-    size_t counter = 0;
-    uint32_t use_sound_length;
-    uint8_t wave_duty = getWaveDuty();
-    std::vector<uint8_t> audio_out;
+    timer++;
 
-    if (stop_output_when_sound_length_ends)
-    {   // Use Sound length data as counter
-        use_sound_length = sound_length_data;
-    }
-    else
-    {   // Use frequency as counter
-        use_sound_length = frequency;
-    }
-
-    audio_out.resize(8 * use_sound_length);
-
-    for (int i = 0; i < 8; i++)
+    if (timer >= period)
     {
-        while (use_sound_length > 0)
-        {
-            audio_out[counter] = (wave_duty >> (7 - i)) & 0x01;
-            use_sound_length--;
-            counter++;
-        }
+        generateOutputClock();
+        timer -= period;
+        duty_pos++;
+        duty_pos &= 0x07;
+    }
+}
 
-        if (stop_output_when_sound_length_ends)
-        {   // Use Sound length data as counter
-            use_sound_length = sound_length_data;
-        }
-        else
-        {   // Use frequency as counter
-            use_sound_length = frequency;
+void AudioSquare::tickLengthCounter()
+{
+    if (stop_output_when_sound_length_ends && sound_length_data != 0)
+    {
+        sound_length_data--;
+
+        // Update register
+        registers[1] &= 0xC0;
+        registers[1] |= sound_length_data;
+
+        if (sound_length_data == 0)
+        {   // Length counter hit 0, stop sound output
+            is_enabled = false;
         }
     }
+}
 
-    outFile->write(reinterpret_cast<const char *>(audio_out.data()), audio_out.size());
+void AudioSquare::generateOutputClock()
+{
+    //size_t counter = 0;
+    //uint32_t use_sound_length;
+    uint8_t wave_duty = getWaveDuty();
+    //uint8_t wave_duty = 0x0F;
+
+    //if (stop_output_when_sound_length_ends)
+    //{   // Use Sound length data as counter
+    //    use_sound_length = sound_length_data;
+    //}
+    //else
+    //{   // Use frequency as counter
+    //    use_sound_length = frequency;
+    //}
+
+    if (is_enabled)
+    {
+        curr_sample = 0;
+        return;
+    }
+
+    curr_sample = (wave_duty >> (7 - duty_pos)) & 0x01;
 }

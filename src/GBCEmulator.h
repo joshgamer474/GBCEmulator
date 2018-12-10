@@ -26,7 +26,6 @@ extern "C" {
 #include <SDL.h>
 }
 
-
 class GBCEmulator
 {
 public:

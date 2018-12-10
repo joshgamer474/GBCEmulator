@@ -13,10 +13,14 @@ class GBCEmulator_qt(ConanFile):
     options = {"shared": [True, False]}
     generators = "cmake"
     requires = "GBCEmulator/0.0.2@josh/testing", \
+				"sdl2/2.0.8@bincrafters/stable", \
                 "Qt/5.11.0@bincrafters/stable"
     exports_sources = "src/*", "CMakeLists.txt"
     default_options = "shared=True"
     
+    def configure(self):
+        self.options["sdl2"].shared = True
+
     def imports(self):
         bin_dest = os.getenv("CONAN_IMPORT_PATH", "bin")
         lib_dest = os.getenv("CONAN_IMPORT_PATH", "lib")

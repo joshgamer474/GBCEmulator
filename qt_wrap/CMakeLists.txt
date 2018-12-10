@@ -12,6 +12,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 find_package(Qt5 REQUIRED Widgets)
+find_package(SDL2)
 
 set(GBC_HEADERS
     ../src/GBCEmulator.h
@@ -85,6 +86,7 @@ include_directories(${CONAN_INCLUDE_DIRS}
 target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator_qt
+    ${CONAN_TARGETS}
     ${CONAN_LIB_DIRS}
     ${CONAN_LIB_DIRS_GBCEMULATOR}
     Qt5::Widgets)

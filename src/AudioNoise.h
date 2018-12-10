@@ -12,6 +12,8 @@ public:
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
 
+    bool is_enabled;
+
 private:
     void parseRegister(const uint8_t & reg, const uint8_t & val);
     
