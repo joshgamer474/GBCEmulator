@@ -7,14 +7,18 @@
 #include <AudioSquare.h>
 #include <AudioWave.h>
 #include <AudioNoise.h>
+#include <spdlog/spdlog.h>
 
 #define SAMPLE_RATE 44100
-#define SAMPLE_BUFFER_SIZE 1024
-#define SAMPLE_BUFFER_UINT8_SIZE SAMPLE_BUFFER_SIZE * 4
+//#define SAMPLE_BUFFER_SIZE 1024
+#define SAMPLE_BUFFER_SIZE 770
+#define SAMPLE_BUFFER_UINT8_SIZE SAMPLE_BUFFER_SIZE * 2
 
 struct Sample {
-    uint16_t left   = 0;
-    uint16_t right  = 0;
+    uint8_t left   = 0;
+    uint8_t right  = 0;
+    //float left = 0;
+    //float right = 0;
 };
 
 class APU
@@ -27,7 +31,11 @@ public:
     uint8_t readByte(const uint16_t & addr);
     void run(const uint64_t & cpuTicks);
 
+    std::shared_ptr<spdlog::logger> logger;
+    uint64_t samplesPerFrame;
+
 private:
+    void initSDLAudio();
     bool isSoundOutLeft(uint8_t sound_number);
     bool isSoundOutRight(uint8_t sound_number);
 
@@ -41,9 +49,11 @@ private:
     uint8_t frame_sequence_step;
     uint8_t left_volume;
     uint8_t right_volume;
+    uint8_t sdl_silence_val;
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
     uint8_t sound_on;
+    uint16_t sample_buffer_counter;
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
     uint32_t audio_device_id;

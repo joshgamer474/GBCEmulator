@@ -23,6 +23,7 @@ public:
 
 private:
     void parseRegister(const uint8_t & reg, const uint8_t & val);
+    void reset();
     uint8_t getWaveDuty();
     void generateOutputClock();
  

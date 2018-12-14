@@ -14,7 +14,7 @@ AudioSquare::AudioSquare(const uint16_t & register_offset)
     envelope_sweep_num          = 0;
     frequency_16                = 0;
     frequency                   = 0;
-    timer                       = 0;
+    timer                       = 64;
     sweep_time                  = 0.0f;
     sound_length                = 0.0f;
     sweep_decrease              = false;
@@ -92,12 +92,6 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         frequency_16 &= 0x0F;
         frequency_16 |= (static_cast<uint16_t>(val) & 0x03) << 8;
         stop_output_when_sound_length_ends = val & BIT6;
-        restart_sound = val & BIT7;
-
-        if (restart_sound)
-        {
-            is_enabled = true;
-        }
 
         // Calculate frequency
         frequency = 131072 / (2048 - frequency_16);
@@ -106,8 +100,34 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         // Calculate period
         //period = CLOCK_SPEED / frequency;
         period = (2048 - frequency_16) * 4;
+
+        if (restart_sound == false && (val & BIT7))
+        {
+            reset();
+        }
+        restart_sound = val & BIT7;
+
         break;
     }
+}
+
+void AudioSquare::reset()
+{
+    is_enabled = true;
+    timer = period;
+
+    if (sound_length_data == 0)
+    {
+        sound_length_data = 64;
+
+        // Update register
+        registers[1] &= 0xC0;
+        registers[1] |= sound_length_data;
+    }
+
+    /// TODO
+    // Channel volume from NRx2 is reloaded
+    // Reset Channel 1's sweep
 }
 
 uint8_t AudioSquare::getWaveDuty()
@@ -123,12 +143,15 @@ uint8_t AudioSquare::getWaveDuty()
 
 void AudioSquare::tick()
 {
-    timer++;
+    if (timer > 0)
+    {
+        timer--;
+    }
 
-    if (timer >= period)
+    if (timer == 0)
     {
         generateOutputClock();
-        timer -= period;
+        timer = period;
         duty_pos++;
         duty_pos &= 0x07;
     }
@@ -136,7 +159,7 @@ void AudioSquare::tick()
 
 void AudioSquare::tickLengthCounter()
 {
-    if (stop_output_when_sound_length_ends && sound_length_data != 0)
+    if (stop_output_when_sound_length_ends && sound_length_data > 0)
     {
         sound_length_data--;
 
@@ -155,7 +178,7 @@ void AudioSquare::generateOutputClock()
 {
     //size_t counter = 0;
     //uint32_t use_sound_length;
-    uint8_t wave_duty = getWaveDuty();
+    const uint8_t & wave_duty = getWaveDuty();
     //uint8_t wave_duty = 0x0F;
 
     //if (stop_output_when_sound_length_ends)
@@ -167,7 +190,7 @@ void AudioSquare::generateOutputClock()
     //    use_sound_length = frequency;
     //}
 
-    if (is_enabled)
+    if (stop_output_when_sound_length_ends && !is_enabled)
     {
         curr_sample = 0;
         return;

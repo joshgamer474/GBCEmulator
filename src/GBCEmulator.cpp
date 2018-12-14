@@ -157,6 +157,9 @@ void GBCEmulator::runNextInstruction()
 
     if (gpu->frame_is_ready)
     {
+        //cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
+        cpu->memory->apu->samplesPerFrame = 0;
+
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
 
@@ -205,18 +208,20 @@ void GBCEmulator::init_logging(std::string logName)
     logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 20);
 
     // Create loggers for each class
-    cpu->logger = std::make_shared<spdlog::logger>("CPU", logger);
-    cpu->memory->logger = std::make_shared<spdlog::logger>("Memory", logger);
+    cpu->logger                 = std::make_shared<spdlog::logger>("CPU", logger);
+    cpu->memory->logger         = std::make_shared<spdlog::logger>("Memory", logger);
+    cpu->memory->apu->logger    = std::make_shared<spdlog::logger>("APU", logger);
     cpu->memory->joypad->logger = std::make_shared<spdlog::logger>("Joypad", logger);
-    mbc->logger = std::make_shared<spdlog::logger>("MBC", logger);
-    gpu->logger = std::make_shared<spdlog::logger>("GPU", logger);
-    cartridgeReader->logger = std::make_shared<spdlog::logger>("CartridgeReader", logger);
+    mbc->logger                 = std::make_shared<spdlog::logger>("MBC", logger);
+    gpu->logger                 = std::make_shared<spdlog::logger>("GPU", logger);
+    cartridgeReader->logger     = std::make_shared<spdlog::logger>("CartridgeReader", logger);
 }
 
 void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
 {
     cpu->logger->set_level(l);
     cpu->memory->logger->set_level(l);
+    cpu->memory->apu->logger->set_level(l);
     cpu->memory->joypad->logger->set_level(l);
     mbc->logger->set_level(l);
     gpu->logger->set_level(l);
