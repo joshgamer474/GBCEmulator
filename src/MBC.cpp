@@ -156,6 +156,10 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
+        if (mbc_num < 5 && curr_rom_bank == 0)
+        {
+            return romBanks[1][pos - 0x4000];
+        }
 		return romBanks[curr_rom_bank % num_rom_banks][pos - 0x4000];
 
 		// External RAM
@@ -229,9 +233,6 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         else if (mbc_num == 3)
 		{
 			curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);	// Set lower 5 bits of ROM bank number
-
-			// Write the RAM bank number to this address (?) http://gbdev.gg8.se/wiki/articles/MBC3
-			romBanks[curr_rom_bank % num_rom_banks][pos] = curr_ram_bank;
 		}
 		else if (mbc_num == 5)
         {
