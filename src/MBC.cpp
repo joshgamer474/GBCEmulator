@@ -7,10 +7,10 @@
 
 MBC::MBC()
 {
-	rom_banking_mode = true;
-	ram_banking_mode = false;
-	external_ram_enabled = false;
-    rtc_timer_enabled = false;
+	rom_banking_mode        = true;
+	ram_banking_mode        = false;
+	external_ram_enabled    = false;
+    rtc_timer_enabled       = false;
 
 	curr_rom_bank = 1;
 	curr_ram_bank = 1;
@@ -39,7 +39,7 @@ MBC::~MBC()
 
 void MBC::MBC_init(int mbcNum, int numROMBanks, int numRAMBanks)
 {
-	rom_banking_mode        = false;
+	rom_banking_mode        = true;
 	ram_banking_mode        = false;
 	external_ram_enabled    = false;
 	curr_rom_bank = 1;
@@ -156,6 +156,13 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
+        if (mbc_num == 1)
+        {
+            if (ram_banking_mode)
+            {   // Only ROM banks 0x00-0x1F can be used during RAM banking mode
+                return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
+            }
+        }
         if (mbc_num < 5 && curr_rom_bank == 0)
         {
             return romBanks[1][pos - 0x4000];
@@ -165,7 +172,18 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 		// External RAM
 	case 0xA000:
 	case 0xB000:
-        if (mbc_num == 3)
+        if (mbc_num == 1)
+        {
+            if (rom_banking_mode)
+            {   // Only RAM bank 0x00 is accessible in ROM banking mode
+                return ramBanks[0][pos - 0xA000];
+            }
+            else
+            {   // ram_banking_mode == true
+                return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
+            }
+        }
+        else if (mbc_num == 3)
         {
             if (curr_ram_bank <= 0x03)
             {
@@ -273,14 +291,22 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             return;
         }
 
-        if (rom_banking_mode && mbc_num == 1)
-        {   // Set upper bits of ROM bank number
-            curr_rom_bank = ((curr_rom_bank & 0x001F) | ((val & 0x03) << 5)) % num_rom_banks;
-        }
-        else if (mbc_num == 1)
-        {   // Set RAM bank number 
-            /// TODO: MBC3 RTC Register select
-            curr_ram_bank = (val & 0x03) % num_ram_banks;
+        if (mbc_num == 1)
+        {
+            if (rom_banking_mode)
+            {   // Set upper bits of ROM bank number
+                curr_rom_bank = ((curr_rom_bank & 0x001F) | ((val & 0x03) << 5)) % num_rom_banks;
+            }
+            else if (ram_banking_mode)
+            {   // Set RAM bank number 
+                curr_ram_bank = (val & 0x03) % num_ram_banks;
+            }
+            else
+            {
+                logger->warn("How'd you get here? Addr: 0x{0:x}, val: 0x{1:x}",
+                    pos,
+                    val);
+            }
         }
         else if (mbc_num == 3)
         {
@@ -316,7 +342,6 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         }
 
 		// 0x6000 - 0x7FFF : ROM/RAM mode select
-        /// TODO: MBC3 Latch Clock Data
         if (mbc_num == 1)
         {
 	        if (val == 0x00)
@@ -353,9 +378,17 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xA000:
 	case 0xB000:
 
-        if (ram_banking_mode && mbc_num == 1 && external_ram_enabled)
+        //if (ram_banking_mode && mbc_num == 1 && external_ram_enabled)
+        if (mbc_num == 1)
         {
-            ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+            if (rom_banking_mode)
+            {   // Only RAM bank 0x00 can be used during ROM banking mode
+                ramBanks[0][pos - 0xA000] = val;
+            }
+            else
+            {
+                ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+            }
         }
         else if (mbc_num == 3)
         {
