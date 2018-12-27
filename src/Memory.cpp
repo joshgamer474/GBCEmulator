@@ -67,7 +67,6 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		return cartridgeReader->bios[pos];
 	}
 
-
 	switch (pos & 0xF000)
 	{
 		/// ROM and RAM
@@ -109,8 +108,15 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			}
 			else if ((pos & 0xF000) < 0xE000)
 			{
-				// 0xD000 - 0xDFFF
-				return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
+                if (is_color_gb)
+                {
+                    // 0xD000 - 0xDFFF
+                    return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
+                }
+                else
+                {
+                    return 0xFF;
+                }
 			}
 			else
 			{
@@ -120,11 +126,15 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 					// 0xE000 - 0xEFFF
 					return working_ram_banks[0][pos - 0xE000];
 				}
-				else
+				else if (pos >= 0xF000 && is_color_gb)
 				{
 					// 0xF000 - 0xFDFF
 					return working_ram_banks[curr_working_ram_bank][pos - 0xF000];
 				}
+                else
+                {
+                    return 0xFF;
+                }
 			}
 
 		}
@@ -142,8 +152,6 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if ((pos & 0xFFF0) < 0xFF80)
 		{
 			// 0xFF00 - 0xFF7F : Hardware I/O
-			
-			
 			if (pos == 0xFF00)
 			{
 				// 0xFF0 : Gamepad
@@ -194,7 +202,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
             else if (pos == 0xFF70)
             {
                 // 0xFF70 : WRAM select (CBG Only)
-                return curr_working_ram_bank;
+                return curr_working_ram_bank | 0xF8;    // Bits 3-7 are masked with 1s
             }
             else if (is_color_gb)
             {
@@ -281,19 +289,21 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		}
 		else if ((pos & 0xF000) < 0xE000)
 		{
-			// 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
-			working_ram_banks[curr_working_ram_bank][(pos - 0xD000)] = val;
+            if (is_color_gb)
+            {   // 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
+                working_ram_banks[curr_working_ram_bank][(pos - 0xD000)] = val;
+            }
 		}
 		else if ((pos & 0xFF00) < 0xFE00)
 		{
 			// 0xE000 - 0xFDFF : (echo) Internal Work RAM of 0xC000 - 0xDDFF
 			if ((pos - 0xE000) < 0x1000)
-			{
-				working_ram_banks[0][(pos - 0xE000)] = val;	// 0xC000 - 0xCFFF : (echo) Internal Work RAM bank 0
+			{   // 0xC000 - 0xCFFF : (echo) Internal Work RAM bank 0
+				working_ram_banks[0][(pos - 0xE000)] = val;
 			}
-			else
-			{
-				working_ram_banks[curr_working_ram_bank][(pos - 0xF000)] = val;	// 0xD000 - 0xDFFF : (echo) Internal Work RAM bank 1-7
+			else if (pos >= 0xD000 && pos <= 0xDFFF && is_color_gb)
+			{   // 0xD000 - 0xDFFF : (echo) Internal Work RAM bank 1-7
+				working_ram_banks[curr_working_ram_bank][(pos - 0xF000)] = val;
 			}
 		}
 		else if ((pos & 0xFFF0) < 0xFEA0)
@@ -372,6 +382,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
             {
                 if ((val & 0x01) && (cgb_speed_mode & 0x01) == 0)
                 {
+                    gpu->setByte(0xFF40, gpu->readByte(0xFF40) & 0x7F); // Disable LCD 
                     cgb_perform_speed_switch = true;
                 }
                 cgb_speed_mode = val & 0x01;    // Only bit 0 is writable
@@ -573,8 +584,8 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 {
-	std::uint8_t & divider_reg = timer[0];
-	std::uint16_t timer_counter = timer[1];
+	std::uint8_t & divider_reg      = timer[0];
+	std::uint8_t & timer_counter    = timer[1];
 	curr_clock = ticks;
     std::uint64_t clock_div_rate    = clock_speed / TIMER_DIV_RATE;
     std::uint64_t clock_tima_rate   = clock_speed / clock_frequency;
@@ -594,7 +605,7 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
     if (timer_enabled && clock_tima_diff >= clock_tima_rate)
 	{
 		timer_counter++;
-		if (timer_counter > 0xFF)
+		if (timer_counter == 0x00)
 		{
 			timer_counter = timer[2];
 			interrupt_flag |= INTERRUPT_TIMER;
@@ -602,6 +613,5 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 		//prev_clock_tima = curr_clock;
         prev_clock_tima += clock_tima_rate;
         clock_tima_diff = curr_clock - prev_clock_tima;
-        timer[1] = timer_counter & 0xFF;
 	}
 }
