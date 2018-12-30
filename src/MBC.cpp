@@ -251,16 +251,16 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 		// 0x2000 - 0x3FFF : Set ROM bank number
         if (mbc_num == 1)
         {   // Set lower 5 bits of ROM bank number
-            curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);
+            curr_rom_bank = (curr_rom_bank & 0x60) | (val & 0x1F);
         }
         else if (mbc_num == 2 && (pos & 0x0100) > 0)
         {   // Set lower 5 bits of ROM bank number
-            curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);
+            curr_rom_bank = (curr_rom_bank & 0x60) | (val & 0x1F);
         }
         else if (mbc_num == 3)
-		{   // Set lower 5 bits of ROM bank number
-			curr_rom_bank = (curr_rom_bank & 0x0060) | (val & 0x1F);
-		}
+        {   // Set lower 7 bits of ROM bank number
+            curr_rom_bank = val & 0x7F;
+        }
 		else if (mbc_num == 5)
         {
             if (pos < 0x3000)
@@ -315,7 +315,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         }
         else if (mbc_num == 3)
         {
-            if (val <= 0x04)
+            if (val <= 0x03)
             {   // Set external RAM bank
                 curr_ram_bank = val & 0x03;
             }
@@ -402,8 +402,9 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else
             {
-                logger->warn("Tried to write val: {0:x} to RAM bank: {1:x} but writing to external RAM is disabled",
+                logger->warn("Tried to write val: 0x{0:x},\taddr: 0x{1:x},\tRAM bank: 0x{2:x} but writing to external RAM is disabled",
                     val,
+                    pos,
                     curr_ram_bank);
             }
         }
@@ -415,8 +416,9 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else
             {
-                logger->warn("Tried to write val: {0:x} to RAM bank: {1:x} but writing to external RAM is disabled",
+                logger->warn("Tried to write val: 0x{0:x},\taddr: 0x{1:x},\tRAM bank: 0x{2:x} but writing to external RAM is disabled",
                     val,
+                    pos,
                     curr_ram_bank);
             }
         }
