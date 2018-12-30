@@ -99,41 +99,35 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 	case 0xF000:
 
 		if ((pos & 0xFF00) < 0xFE00)
-		{
-			// 0xC000 - 0xFDFF : Internal work RAM and (echo) Internal work RAM
+		{   // 0xC000 - 0xFDFF : Internal work RAM and (echo) Internal work RAM
 			if ((pos & 0xF000) < 0xD000)
-			{
-				// 0xC000 - 0xCFFF
+			{   // 0xC000 - 0xCFFF
 				return working_ram_banks[0][pos - 0xC000];
 			}
 			else if ((pos & 0xF000) < 0xE000)
 			{
                 if (is_color_gb)
-                {
-                    // 0xD000 - 0xDFFF
+                {   // 0xD000 - 0xDFFF
                     return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
                 }
                 else
-                {
-                    return 0xFF;
+                {   // Can only access Working RAM bank 1 in non color gb mode
+                    return working_ram_banks[1][pos - 0xD000];
                 }
 			}
 			else
-			{
-				//0xE000 - 0xFDFF : (echo) Internal work RAM
+			{   //0xE000 - 0xFDFF : (echo) Internal work RAM
 				if ((pos & 0xF000) < 0xF000)
-				{
-					// 0xE000 - 0xEFFF
+				{   // 0xE000 - 0xEFFF
 					return working_ram_banks[0][pos - 0xE000];
 				}
 				else if (pos >= 0xF000 && is_color_gb)
-				{
-					// 0xF000 - 0xFDFF
+				{   // 0xF000 - 0xFDFF
 					return working_ram_banks[curr_working_ram_bank][pos - 0xF000];
 				}
                 else
-                {
-                    return 0xFF;
+                {   // Can only access Working RAM bank 1 in non color gb mode
+                    return working_ram_banks[1][pos - 0xF000];
                 }
 			}
 
@@ -283,46 +277,51 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0xF000:
 
 		if ((pos & 0xF000) < 0xD000)
-		{
-			// 0xC000 - 0xCFFF : Internal Work RAM bank 0
-			working_ram_banks[0][(pos - 0xC000)] = val;
+		{   // 0xC000 - 0xCFFF : Internal Work RAM bank 0
+			working_ram_banks[0][pos - 0xC000] = val;
 		}
 		else if ((pos & 0xF000) < 0xE000)
-		{
+		{   // 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
             if (is_color_gb)
-            {   // 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
-                working_ram_banks[curr_working_ram_bank][(pos - 0xD000)] = val;
+            {
+                working_ram_banks[curr_working_ram_bank][pos - 0xD000] = val;
+            }
+            else
+            {   // Only Work RAM bank 1 is available in non color gb mode
+                working_ram_banks[1][pos - 0xD000] = val;
             }
 		}
 		else if ((pos & 0xFF00) < 0xFE00)
-		{
-			// 0xE000 - 0xFDFF : (echo) Internal Work RAM of 0xC000 - 0xDDFF
+		{   // 0xE000 - 0xFDFF : (echo) Internal Work RAM of 0xC000 - 0xDDFF
 			if ((pos - 0xE000) < 0x1000)
 			{   // 0xC000 - 0xCFFF : (echo) Internal Work RAM bank 0
-				working_ram_banks[0][(pos - 0xE000)] = val;
+				working_ram_banks[0][pos - 0xE000] = val;
 			}
-			else if (pos >= 0xD000 && pos <= 0xDFFF && is_color_gb)
+			else if (pos >= 0xD000 && pos <= 0xDFFF)
 			{   // 0xD000 - 0xDFFF : (echo) Internal Work RAM bank 1-7
-				working_ram_banks[curr_working_ram_bank][(pos - 0xF000)] = val;
+                if (is_color_gb)
+                {
+                    working_ram_banks[curr_working_ram_bank][pos - 0xF000] = val;
+                }
+                else
+                {   // Only Work RAM bank 1 is available in non color gb mode
+                    working_ram_banks[1][pos - 0xF000] = val;
+                }
 			}
 		}
 		else if ((pos & 0xFFF0) < 0xFEA0)
-		{
-			// 0xFE00 - 0xFE9F : Sprite RAM
+		{   // 0xFE00 - 0xFE9F : Sprite RAM
 			gpu->setByte(pos, val);
 		}
 		else if ((pos & 0xFFF0) < 0xFF00)
-		{
-			// 0xFEA0 - 0xFEFF : Unused
+		{   // 0xFEA0 - 0xFEFF : Unused
 			logger->warn("Memory::setByte() doesn't handle address: 0x{0:x}, val: 0x{1:x}", pos, val);
 		}
 		else if ((pos & 0xFFF0) < 0xFF80)
-		{
-			// 0xFF00 - 0xFF7F : Hardware I/O
+		{   // 0xFF00 - 0xFF7F : Hardware I/O
 			
 			if (pos == 0xFF00)
-			{
-				// 0xFF00 : Gamepad
+			{   // 0xFF00 : Gamepad
 				joypad->set_joypad_byte(val & 0xF0);    // First four bits are read-only
 			}
 			else if (pos < 0xFF04)
