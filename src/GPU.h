@@ -95,7 +95,7 @@ public:
     const std::vector<int> & getUpdatedBGTileIndexes();
     uint8_t getTileBlockNum(int use_tile_num);
     uint8_t getSpriteTileBlockNum(int use_tile_num);
-    Tile * getTileFromBGTiles(bool use_vram_bank, uint8_t tile_block_num, int use_tile_num);
+    Tile * getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num);
 
     // Palette methods
     void updateBackgroundPalette(uint8_t val);

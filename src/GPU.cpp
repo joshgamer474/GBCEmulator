@@ -89,7 +89,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
         //    return 0xFF;
         //}
 
-		return vram_banks[curr_vram_bank][pos - 0x8000];
+		return vram_banks[curr_vram_bank % num_vram_banks][pos - 0x8000];
 
 	case 0xF000:
 
@@ -185,7 +185,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
         //    return;
         //}
 
-		vram_banks[curr_vram_bank][pos - 0x8000] = val;
+		vram_banks[curr_vram_bank % num_vram_banks][pos - 0x8000] = val;
 
 		// Background Tile Data: 0x8000 - 0x97FF
 		if (pos < 0x8800)
@@ -204,9 +204,9 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
         
 		if (tile_block_num < 3)
 		{   // Update Tiles[]
-			Tile * tile = updateTile(pos, val, curr_vram_bank, tile_block_num);
+			Tile * tile = updateTile(pos, val, curr_vram_bank % num_vram_banks, tile_block_num);
 
-            if (tile && is_color_gb && curr_vram_bank == 1)
+            if (tile && is_color_gb && (curr_vram_bank % num_vram_banks) == 1)
             {   // Update CGB Tile attribute byte
                 tile->setCGBAttribute(val);
             }
@@ -236,7 +236,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			// LCD Stuff, VRAM bank selector
 
             // CGB only
-            if (memory->cartridgeReader->isColorGB())
+            if (memory->is_color_gb)
             {
                 switch (pos)
                 {
@@ -1124,7 +1124,7 @@ uint8_t GPU::getSpriteTileBlockNum(int use_tile_num)
     return use_tile_num / 128;
 }
 
-Tile * GPU::getTileFromBGTiles(bool use_vram_bank, uint8_t tile_block_num, int use_tile_num)
+Tile * GPU::getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num)
 {
     Tile * tile;
 

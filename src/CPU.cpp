@@ -356,7 +356,7 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	{
 		memory->cartridgeReader->is_bios = false;
 
-        if (memory->cartridgeReader->isColorGB())
+        if (memory->is_color_gb)
         {   // Let games know that emulator is CGB
             set_register(CPU::REGISTERS::A, static_cast<uint8_t>(0x11));
         }
@@ -370,9 +370,18 @@ bool CPU::runInstruction(std::uint8_t instruc)
 	if (startLogging)
 	{
 		//startLogging = false;
-		//logger->set_level(spdlog::level::trace);
-		logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
-	}
+		logger->set_level(spdlog::level::trace);
+		//logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
+
+        logger->trace("PC: 0x{0:x},\tInstruction: 0x{1:x},\tBC: 0x{2:x}\tDE: 0x{3:x}\tHL: 0x{4:x}\tAF: 0x{5:x}\tSP: 0x{6:x}",
+            registers[PC],
+            instruc,
+            get_register_16(BC),
+            get_register_16(DE),
+            get_register_16(HL),
+            get_register_16(AF),
+            get_register_16(SP));
+    }
 
     if (halt_do_not_increment_pc)
     {
@@ -1076,12 +1085,6 @@ bool CPU::runInstruction(std::uint8_t instruc)
 		logger->error("Error - Do not know how to handle opcode 0x{0:x}", instruc);
 
 	}// end switch()
-
-	
-	if (startLogging)
-	{
-		printRegisters();
-	}
 
 	return false;
 }
@@ -2226,7 +2229,7 @@ void CPU::HALT()
 {
 	logger->trace("HALT");
 
-	is_halted = true;
+	//is_halted = true; // Do nothing
 	ticks += 4;
 }
 
