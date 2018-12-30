@@ -16,6 +16,13 @@
 
 #define TIMER_DIV_RATE 16384
 
+enum TIMER_REG {
+    DIV,    // 0xFF04
+    TIMA,   // 0xFF05
+    TMA,    // 0xFF06
+    TAC     // 0xFF07
+};
+
 class CartridgeReader;
 class MBC;
 class GPU;
@@ -33,7 +40,8 @@ public:
 	void initROMBanks();
 	void do_oam_dma_transfer(uint8_t start_address);
     void do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_address, uint8_t & hdma5);
-	void writeToTimerRegisters(uint16_t addr, uint8_t val);
+    void do_cgb_h_blank_dma(uint8_t & hdma5);
+    void writeToTimerRegisters(uint16_t addr, uint8_t val);
 	void updateTimer(uint64_t ticks, double clock_speed);
 
 	uint8_t readByte(uint16_t pos);
@@ -69,5 +77,10 @@ public:
 	bool timer_enabled;
 	uint64_t prev_clock_div, curr_clock, prev_clock_tima;
 	uint32_t clock_frequency;
+
+private:
+    uint16_t cgb_dma_start_addr_offset;
+    uint16_t cgb_dma_start_addr;
+    uint16_t cgb_dma_dest_addr;
 };
 #endif

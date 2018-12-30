@@ -51,6 +51,7 @@ GPU::GPU(SDL_Renderer *render)
 	cgb_auto_increment_sprite_palette_index = false;
 
     cgb_dma_in_progress = false;
+    cgb_dma_hblank_in_progress = false;
     cgb_dma_transfer_bytes_left = 0;
 
     frame_is_ready = false;
@@ -128,7 +129,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF52:	return hdma2;
 			case 0xFF53:	return hdma3;
 			case 0xFF54:	return hdma4;
-			case 0xFF55:	return (hdma5 & 0x7F) | (cgb_dma_in_progress << 7);
+			case 0xFF55:	return hdma5;
 			case 0xFF68:	return cgb_background_palette_index;
 			case 0xFF69:
                 // Block reading to VRAM when VRAM is being used
@@ -246,6 +247,26 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                 case 0xFF53:	hdma3 = val; return;
                 case 0xFF54:	hdma4 = val; return;
                 case 0xFF55:
+                    if ((val & BIT7) &&
+                        gpu_mode == GPU_MODE_HBLANK)
+                    {
+                        logger->warn("Cannot start H-Blank DMA during H-Blank...");
+                        hdma5 = 0xFF;
+                        return;
+                    }
+
+                    if (cgb_dma_in_progress &&
+                        cgb_dma_hblank_in_progress &&
+                        (val & BIT7) == 0)
+                    {   // Terminate current active H-Blank transfer
+                        logger->warn("Terminating current H-Blank DMA, num bytes left to transfer: 0x{0:x}",
+                            ((hdma5 & 0x7F) + 1) * 0x10);
+                        hdma5 |= 0x80;
+                        cgb_dma_in_progress = false;
+                        cgb_dma_hblank_in_progress = false;
+                        return;
+                    }
+
                     hdma5 = val;
                     cgb_dma_in_progress = true;
                     
@@ -314,7 +335,16 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
             case 0xFF41:	set_lcd_status(val); break;
 			case 0xFF42:	scroll_y = val; break;
 			case 0xFF43:	scroll_x = val; break;
-			case 0xFF44:	if (lcd_display_enable == false) lcd_y = 0; break;  // Read only - Writing to this register resets the counter
+			case 0xFF44:
+                if (lcd_display_enable == false)
+                {
+                    lcd_y = 0;
+                }
+                else
+                {
+                    logger->critical("yo");
+                }
+                break;  // Read only - Writing to this register resets the counter
 			case 0xFF45:	lcd_y_compare = val; set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare); break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
@@ -1196,6 +1226,13 @@ void GPU::run()
 
 			lcd_y++;
 
+            if (cgb_dma_in_progress &&
+                cgb_dma_hblank_in_progress &&
+                hdma5 != 0xFF)
+            {
+                memory->do_cgb_h_blank_dma(hdma5);
+            }
+
 			// Check if frame rendering has completed, start VBLANK interrupt
             if (lcd_y == 144)
             {
@@ -1220,6 +1257,7 @@ void GPU::run()
 
 			if (lcd_y > 153)
 			{
+                std::memcpy(curr_frame, frame, sizeof(SDL_Color) * SCREEN_PIXEL_W * SCREEN_PIXEL_H);
                 frame_is_ready = true;
 				display();
 				lcd_y = 0;
@@ -1301,9 +1339,9 @@ Tile * GPU::updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t ti
     return tile;
 }
 
-const SDL_Color * GPU::getFrame()
+SDL_Color * GPU::getFrame()
 {
-    return frame;
+    return curr_frame;
 }
 
 std::vector<std::vector<std::vector<Tile>>> GPU::getBGTiles()

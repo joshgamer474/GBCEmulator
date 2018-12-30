@@ -527,14 +527,55 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
         }
 
         hdma5 = 0xFF;
-
         gpu->bg_tiles_updated = true;
         gpu->cgb_dma_in_progress = false;
-        gpu->hdma5 = 0xFF;
     }
     else
     {
-        logger->error("H Blank DMA transfer is not implemented yet..");
+        cgb_dma_start_addr_offset = 0;
+        cgb_dma_start_addr = start_address;
+        cgb_dma_dest_addr = dest_address;
+        hdma5 &= 0x7F;  // Set BIT7 == 0 to tell games that transfer is active
+        gpu->cgb_dma_hblank_in_progress = true;
+        logger->info("Going to do H-Blank DMA transfer from addr: 0x{0:x} to addr: 0x{1:x}, length: 0x{2:x}",
+            cgb_dma_start_addr,
+            cgb_dma_dest_addr,
+            transfer_length);
+    }
+}
+
+void Memory::do_cgb_h_blank_dma(uint8_t & hdma5)
+{
+    uint8_t length = hdma5 & 0x7F;
+    uint16_t numBytesToTransfer = (length + 1) * 0x10;
+    uint8_t val = 0;
+
+    logger->info("Doing H-Blank DMA transfer from addr: 0x{0:x} to addr: 0x{1:x}, length: 0x{2:x}, offset: 0x{3:x}",
+        cgb_dma_start_addr,
+        cgb_dma_dest_addr,
+        numBytesToTransfer,
+        cgb_dma_start_addr_offset);
+
+    for (uint16_t i = 0; i < 0x10; i++)
+    {
+        val = readByte(cgb_dma_start_addr + cgb_dma_start_addr_offset);
+        setByte(cgb_dma_dest_addr + cgb_dma_start_addr_offset, val);
+        cgb_dma_start_addr_offset++;
+        numBytesToTransfer--;
+    }
+
+    // Calculate new length
+    length = (numBytesToTransfer / 0x10) - 1;
+
+    // Update HDMA5 length remaining
+    hdma5 = length;
+
+    if (hdma5 == 0xFF)
+    {   // Transfer has completed, set HDMA5 to 0xFF
+        logger->info("H-Blank DMA transfer complete");
+        gpu->bg_tiles_updated = true;
+        gpu->cgb_dma_in_progress = false;
+        gpu->cgb_dma_hblank_in_progress = false;
     }
 }
 
@@ -551,7 +592,8 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 		break;
 
         // TIMA, TMA - Timer Counter, Timer Modulo
-	case 0xFF05: case 0xFF06:
+	case 0xFF05:
+    case 0xFF06:
 		timer[addr - 0xFF04] = val;
 		break;
 
@@ -583,8 +625,8 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 {
-	std::uint8_t & divider_reg      = timer[0];
-	std::uint8_t & timer_counter    = timer[1];
+	std::uint8_t & divider_reg      = timer[DIV];
+	std::uint8_t & timer_counter    = timer[TIMA];
 	curr_clock = ticks;
     std::uint64_t clock_div_rate    = clock_speed / TIMER_DIV_RATE;
     std::uint64_t clock_tima_rate   = clock_speed / clock_frequency;
@@ -606,7 +648,7 @@ void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
 		timer_counter++;
 		if (timer_counter == 0x00)
 		{
-			timer_counter = timer[2];
+			timer_counter = timer[TMA];
 			interrupt_flag |= INTERRUPT_TIMER;
 		}
 		//prev_clock_tima = curr_clock;

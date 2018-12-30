@@ -34,7 +34,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     // Calculate number of CPU cycles that can run in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
     ticksRan = 0;
-    timePerFrame = std::chrono::duration<double>(1.0 / SCREEN_FRAMERATE);
+    prevTicks = 0;
+    setTimePerFrame(1.0 / SCREEN_FRAMERATE);
 }
 
 GBCEmulator::~GBCEmulator()
@@ -126,6 +127,7 @@ void GBCEmulator::init_gpu()
 {
     cpu->memory->gpu = gpu;
     gpu->memory = cpu->memory;
+
     if (cartridgeReader->isColorGB())
     {
         gpu->init_color_gb();
@@ -136,6 +138,10 @@ void GBCEmulator::run()
 {
     stopRunning = false;
 
+    // Update frameStartTime to current time
+    frameStartTime = getCurrentTime();
+
+    // Run emulator loop
     while (!stopRunning && !debugMode)
     {
         runNextInstruction();
@@ -148,6 +154,9 @@ void GBCEmulator::runNextInstruction()
     gpu->run();
     apu->run(cpu->ticks);
 
+    uint64_t tickDiff = cpu->ticks - prevTicks;
+    ticksRan += tickDiff;
+
     if (logCounter % 100 == 0)
     {
         logCounter = 0;
@@ -155,15 +164,35 @@ void GBCEmulator::runNextInstruction()
     }
     logCounter++;
 
-    if (gpu->frame_is_ready)
+    //if (gpu->frame_is_ready)
+    //{
+    //    ////cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
+    //    //cpu->memory->apu->samplesPerFrame = 0;
+
+    //    frameIsUpdatedFunction();
+    //    gpu->frame_is_ready = false;
+
+    //    //// Sleep until next frame should start
+    //    //waitToStartNextFrame();
+
+    //    //// Update frameStartTime to current time
+    //    //frameStartTime = getCurrentTime();
+    //}
+
+    if (ticksRan >= ticksPerFrame)
     {
+        ticksRan -= ticksPerFrame;
+
+        if (gpu->frame_is_ready)
+        {
+            frameIsUpdatedFunction();
+            gpu->frame_is_ready = false;
+        }
+
         //cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
         cpu->memory->apu->samplesPerFrame = 0;
 
-        frameIsUpdatedFunction();
-        gpu->frame_is_ready = false;
-
-        // Sleep until next frame should start
+        // Sleep until next burst of ticks is ready to be ran
         waitToStartNextFrame();
 
         // Update frameStartTime to current time
@@ -181,6 +210,7 @@ void GBCEmulator::runNextInstruction()
         cpu->memory->cgb_speed_mode |= BIT7;
     }
 
+    prevTicks = cpu->ticks;
     ranInstruction = true;
 }
 
@@ -235,7 +265,7 @@ bool GBCEmulator::frame_is_ready()
 
 SDL_Color * GBCEmulator::get_frame()
 {
-    return gpu->frame;
+    return gpu->getFrame();
 }
 
 std::shared_ptr<CPU> GBCEmulator::get_CPU()
@@ -305,8 +335,6 @@ void GBCEmulator::release_joypad_button(Joypad::BUTTON button)
 
 void GBCEmulator::waitToStartNextFrame()
 {
-    ticksRan = cpu->ticks;
-
     // Calculate time elapsed since start of frame
     auto currTimeDouble = getCurrentTime();
     auto timeElapsedMilli = currTimeDouble - frameStartTime;
@@ -316,6 +344,10 @@ void GBCEmulator::waitToStartNextFrame()
     if (timeToWaitMilli.count() > 0)
     {   // Sleep until next frame needs to start rendering
         std::this_thread::sleep_for(timeToWaitMilli);
+    }
+    else
+    {
+        int j = 0;
     }
 }
 

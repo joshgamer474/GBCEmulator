@@ -82,7 +82,7 @@ private:
     std::string filenameNoExtension;
 
     uint64_t ticksPerFrame;
-    uint64_t ticksRan;
+    uint64_t ticksRan, prevTicks;
     std::chrono::duration<double> frameStartTime;
     std::chrono::duration<double> timePerFrame;
 

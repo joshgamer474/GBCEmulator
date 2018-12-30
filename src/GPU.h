@@ -35,6 +35,9 @@ private:
 	std::vector<unsigned char> object_attribute_memory;
 	std::vector<std::vector<std::vector<Tile>>> bg_tiles;
 
+	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+    SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+
 public:
 
 	GPU(SDL_Renderer *render);
@@ -45,11 +48,10 @@ public:
 	std::shared_ptr<CPU> cpu;
     std::shared_ptr<Memory> memory;
 	bool is_color_gb;
-	int num_vram_banks;	// 1 for regular GB, 2 for GB color
+	int num_vram_banks;
 	int curr_vram_bank;
 	std::uint64_t ticks, last_ticks;
 
-	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
     std::vector<SDL_Color> bg_frame;
 	SDL_Color bg_palette_color[PALETTE_DATA_SIZE];
 	SDL_Color object_palette0_color[PALETTE_DATA_SIZE];
@@ -89,7 +91,7 @@ public:
     void set_lcd_status_mode_flag(GPU_MODE);
     void set_lcd_status_coincidence_flag(bool flag);
     void printFrame();
-    const SDL_Color * getFrame();
+    SDL_Color * getFrame();
 
     std::vector<std::vector<std::vector<Tile>>> getBGTiles();
     const std::vector<int> & getUpdatedBGTileIndexes();
@@ -135,6 +137,7 @@ public:
 	// LCD VRAM DMA Transfers (GBC only)
 	unsigned char hdma1, hdma2, hdma3, hdma4, hdma5;
     bool cgb_dma_in_progress;
+    bool cgb_dma_hblank_in_progress;
     uint8_t cgb_dma_transfer_bytes_left;
 
 
