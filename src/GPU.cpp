@@ -922,16 +922,17 @@ void GPU::drawOAMLine()
         }
 
         // Calculate sprite_y_start and sprite_y_end
-        sprite_y_end = object_attribute_memory[i];
-
+        sprite_y_end = sprite_y + object_size;  // Will naturally roll over
+        
         if (object_attribute_memory[i] < 16)
         {
             sprite_y_start = 0;
         }
         else
         {
-            sprite_y_start = object_attribute_memory[i] - 16;
+            sprite_y_start = sprite_y;
         }
+
 
         // Check if sprite is being drawn anywhere on the visible screen
         if (sprite_x >= 168 && sprite_x <= 248)
@@ -946,14 +947,19 @@ void GPU::drawOAMLine()
             // Then check if we should be using the next sprite 8x8 sprite to draw
             if (object_size == 16)
             {
-                uint8_t curr_sprite_y = (sprite_y + object_size) - lcd_y;
-                if (!sprite_y_flip && curr_sprite_y <= 8)
-                {   // Get bottom 8x8 sprite
-                    sprite_tile_num++;
+                uint8_t curr_sprite_y = lcd_y - sprite_y;
+
+                if (!sprite_y_flip && curr_sprite_y > 7)
+                {   // Select bottom 8x8 sprite
+                    sprite_tile_num |= 0x01;
                 }
-                else if (sprite_y_flip && curr_sprite_y >= 8)
-                {   // Get bottom 8x8 sprite
-                    sprite_tile_num++;
+                else if (sprite_y_flip && curr_sprite_y <= 7)
+                {   // Select bottom 8x8 sprite
+                    sprite_tile_num |= 0x01;
+                }
+                else
+                {   // Select upper 8x8 sprite
+                    sprite_tile_num &= 0xFE;    // Last bit is ignored for upper 8x8 tile
                 }
             }
 
@@ -1043,7 +1049,7 @@ void GPU::drawOAMLine()
 
                 if (object_size == 16)
                 {
-                    if (pixel_y >= 8)
+                    if (pixel_y > 7)
                     {
                         pixel_y -= 8;
                     }
