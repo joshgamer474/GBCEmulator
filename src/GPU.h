@@ -8,6 +8,7 @@
 
 #define VRAM_SIZE 0x2000
 #define OAM_SIZE 0xA0
+#define OAM_NUM_SPRITES OAM_SIZE / 4
 #define PALETTE_DATA_SIZE 4
 #define CGB_PALETTE_DATA_SIZE 8
 #define CGB_PALETTE_DATA_SIZE_RAW 64
@@ -30,13 +31,14 @@ class GPU
 
 private:
     bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
+    void sortNonCGBOAMSpriteOrder();
 
 	std::vector<std::vector<unsigned char>> vram_banks;
 	std::vector<unsigned char> object_attribute_memory;
 	std::vector<std::vector<std::vector<Tile>>> bg_tiles;
-
 	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
     SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+    std::vector<uint8_t> objects_pos_to_use;
 
 public:
 

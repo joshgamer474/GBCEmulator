@@ -56,6 +56,8 @@ GPU::GPU(SDL_Renderer *render)
 
     frame_is_ready = false;
     bg_tiles_updated = false;
+
+    objects_pos_to_use.resize(OAM_NUM_SPRITES);
 }
 
 
@@ -74,6 +76,12 @@ void GPU::init_color_gb()
     bg_tiles.resize(num_vram_banks);
     bg_tiles[0].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
     bg_tiles[1].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+
+    // Initialize OAM sprite order for CGB
+    for (int i = 0; i < OAM_NUM_SPRITES; i++)
+    {
+        objects_pos_to_use[i] = (OAM_NUM_SPRITES - i - 1) * 4;
+    }
 }
 
 std::uint8_t GPU::readByte(std::uint16_t pos)
@@ -918,7 +926,13 @@ void GPU::drawOAMLine()
 
     uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
-    for (int i = 0; i < object_attribute_memory.size(); i += 4)
+    if (!is_color_gb)
+    {   // Sort OAM objects by X position (largest = lower priority = draw first)
+        sortNonCGBOAMSpriteOrder();
+    }
+
+    //for (int i = 0; i < object_attribute_memory.size(); i += 4)
+    for (const int & i : objects_pos_to_use)
     {
         // Parse current sprite's 4 bytes of data
         curr_sprite     = i / 4;
@@ -1416,4 +1430,30 @@ void GPU::updateSpritePalette(uint8_t val)
     logger->info("Updating Sprite color palette {0:x} with val {1:x}",
         cgb_sprite_palette_index,
         val);
+}
+
+// Sorts OAM objects by X position (largest = lower priority = draw first)
+void GPU::sortNonCGBOAMSpriteOrder()
+{
+    std::vector<uint8_t> indices(OAM_NUM_SPRITES);
+    std::vector<uint8_t> xPositions(OAM_NUM_SPRITES);
+
+    // Get list of X positions
+    for (int i = 0; i < OAM_NUM_SPRITES; i++)
+    {
+        xPositions[i] = object_attribute_memory[(i * 4) + 1];
+        indices[i] = i;
+    }
+
+    // Get indices of sorted vector
+    std::sort(indices.begin(), indices.end(), [&](const uint8_t & i, const uint8_t & j)
+    {
+        return xPositions[i] > xPositions[j];
+    });
+
+    // Update object_pos_to_use by indices
+    for (int i = 0; i < xPositions.size(); i++)
+    {
+        objects_pos_to_use[i] = indices[i] * 4;
+    }
 }
