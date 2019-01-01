@@ -156,10 +156,6 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
-        //if (mbc_num < 5 && curr_rom_bank == 0)
-        //{
-        //    return romBanks[1][pos - 0x4000];
-        //}
         if (mbc_num == 1)
         {
             if (ram_banking_mode)
@@ -232,7 +228,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
                 rtc_timer_enabled = true;
             }
         }
-        else
+        else if (val == 0)
         {
             external_ram_enabled = false;
             rtc_timer_enabled = false;
@@ -269,7 +265,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else if (pos >= 0x3000 && pos <= 0x3FFF)
             {   // Set 9th bit of ROM bank number
-                curr_rom_bank = (curr_rom_bank & 0x00FF) | ((val & 0x01) << 8);
+                curr_rom_bank = (curr_rom_bank & 0x00FF) | (static_cast<uint16_t>(val & 0x01) << 8);
             }
         }
 
