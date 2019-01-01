@@ -337,21 +337,31 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF43:	scroll_x = val; break;
 			case 0xFF44:
                 if (lcd_display_enable == false)
-                {
+                {   // Read only - Writing to this register resets the counter
+                    logger->trace("Writing to 0xFF44, setting lcd_y to 0");
                     lcd_y = 0;
                 }
                 else
                 {
                     logger->critical("yo");
                 }
-                break;  // Read only - Writing to this register resets the counter
-			case 0xFF45:	lcd_y_compare = val; set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare); break;
+                break;
+			case 0xFF45:
+                lcd_y_compare = val;
+                logger->trace("Setting lcd_y_compare: 0x{0:x} -> {0:d}", lcd_y_compare);
+                break;
 			case 0xFF46:	memory->do_oam_dma_transfer(val); break;
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
 			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val, true); break;
 			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val, true); break;
-			case 0xFF4A:	window_y_pos = val; break;
-			case 0xFF4B:	window_x_pos = val; break;
+            case 0xFF4A:
+                window_y_pos = val;
+                logger->trace("Setting window_y_pos: 0x{0:x} -> {0:d}", window_y_pos);
+                break;
+			case 0xFF4B:
+                window_x_pos = val;
+                logger->trace("Setting window_x_pos: 0x{0:x} -> {0:d}", window_x_pos);
+                break;
 
 			default:
 				logger->warn("GPU::setByte() doesn't handle address: 0x{0:x}", pos);
@@ -414,16 +424,19 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 
 	if (old_lcd_display_enable == true && lcd_display_enable == false)
 	{
+        logger->info("Turning off display, setting lcd_y to 0");
 		lcd_y = 0;
-		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
+		update_lcd_status_coincidence_flag();
         set_lcd_status_mode_flag(GPU_MODE_VBLANK);
         ticks = 0;
 	}
-	else if ((old_lcd_display_enable == false && lcd_display_enable == true)
-		|| (old_lcd_display_enable == true && lcd_display_enable == true))
+	else if ((old_lcd_display_enable == false && lcd_display_enable == true))
 	{
+        logger->info("Turning display on, setting lcd_y to 0, old_lcd_display_enable: {0:b}, lcd_display_enable: {1:b}",
+            old_lcd_display_enable,
+            lcd_display_enable);
 		lcd_y = 0;
-		set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
+		update_lcd_status_coincidence_flag();
         ticks = 0;
 	}
 }
@@ -474,15 +487,20 @@ void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
     }
 }
 
-void GPU::set_lcd_status_coincidence_flag(bool flag)
+void GPU::update_lcd_status_coincidence_flag()
 {
+    bool flag = (lcd_y == lcd_y_compare);
+
     // Update lcd_status' lcd_y == lcd_y_compare bit
     if (flag)
     {   // lcd_y == lcd_y_compare
+        logger->debug("lcd_y == lcd_y_compare, lcd_y: 0x{0:x} -> {0:d}", lcd_y);
+
         lcd_status |= BIT2;
 
         if (lcd_status & BIT6)
         {
+            logger->debug("Requesting LCDY Compare interrupt");
             memory->interrupt_flag |= INTERRUPT_LCD_STATUS;
         }
     }
@@ -776,7 +794,6 @@ void GPU::drawWindowLine()
     bool cgb_bg_to_OAM_priority;
 
     // Calculate which row of the Tile we're in (0..7)
-    //uint8_t curr_tile_row = (lcd_y + window_y_pos) & 0x07;
     uint8_t curr_tile_row = (lcd_y - window_y_pos) & 0x07;
 
     // Get VRAM offset for which set of tiles to use
@@ -797,7 +814,7 @@ void GPU::drawWindowLine()
         return;
     }
 
-    if (lcd_y < window_y_pos)
+    if (window_y_pos > lcd_y)
     {
         return;
     }
@@ -1227,10 +1244,12 @@ void GPU::run()
 		{
             if (lcd_y == 0)
             {
-                logger->debug("Start Frame");
+                logger->trace("Start Frame");
             }
 
 			lcd_y++;
+            logger->trace("Incrementing lcd_y: 0x{0:x} -> {0:d}", lcd_y);
+            update_lcd_status_coincidence_flag();
 
             if (cgb_dma_in_progress &&
                 cgb_dma_hblank_in_progress &&
@@ -1260,6 +1279,8 @@ void GPU::run()
 		if (ticks >= 456 * cgb_double_speed_multiplier)
 		{
 			lcd_y++;
+            logger->trace("Incrementing lcd_y: 0x{0:x} -> {0:d}", lcd_y);
+            update_lcd_status_coincidence_flag();
 
 			if (lcd_y > 153)
 			{
@@ -1267,8 +1288,9 @@ void GPU::run()
                 frame_is_ready = true;
 				display();
 				lcd_y = 0;
+                update_lcd_status_coincidence_flag();
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
-				logger->debug("End Frame");
+				logger->trace("End Frame");
 			}
 
 			ticks = 0;
@@ -1290,14 +1312,13 @@ void GPU::run()
 
 		if (ticks >= 172 * cgb_double_speed_multiplier)
 		{
+            logger->trace("Rendering line lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             renderLine();
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
 			ticks = 0;
 		}
 		break;
 	}
-
-    set_lcd_status_coincidence_flag(lcd_y == lcd_y_compare);
 }
 
 
