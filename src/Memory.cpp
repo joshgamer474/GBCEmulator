@@ -39,6 +39,7 @@ void Memory::reset()
     mbc.reset();
     gpu.reset();
     joypad.reset();
+    apu.reset();
 }
 
 void Memory::initWorkRAM(bool isColorGB)
@@ -198,7 +199,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
                 // 0xFF70 : WRAM select (CBG Only)
                 return curr_working_ram_bank | 0xF8;    // Bits 3-7 are masked with 1s
             }
-            else if (is_color_gb)
+            else if (pos >= 0xFF72 && pos <= 0xFF77 && is_color_gb)
             {
                 if (pos == 0xFF75)
                 {
@@ -405,13 +406,13 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 
                 curr_working_ram_bank = val & 0x07;
             }
-            else if (is_color_gb)
+            else if (pos >= 0xFF72 && pos <= 0xFF77 && is_color_gb)
             {
                 if (pos == 0xFF75)
                 {
                     cgb_undoc_regs[pos - 0xFF72] = 0x8F | val;  // Only bits 4-6 are writable, rest are 1s
                 }
-                else if (pos >= 0xFF72 && pos <= 0xFF77)
+                else
                 {
                     cgb_undoc_regs[pos - 0xFF72] = val;
                 }
