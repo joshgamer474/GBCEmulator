@@ -49,6 +49,7 @@ EmuView::~EmuView()
         if (thread)
         {
             thread->join();
+            thread.reset();
         }
         emu.reset();
     }
@@ -183,6 +184,7 @@ void EmuView::updateScene()
 
     // Refresh QGraphicsScene
     this->clear();
+    this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
     this->addPixmap(frame_pixmap);
     this->setSceneRect(frame_pixmap.rect());
 }
