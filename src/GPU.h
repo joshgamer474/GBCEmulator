@@ -126,6 +126,8 @@ public:
 	// LCD Color Palettes (GBC only)
 	unsigned char cgb_background_palette_index, cgb_sprite_palette_index;
 	bool cgb_auto_increment_background_palette_index, cgb_auto_increment_sprite_palette_index;
+    bool is_cgb_tile_palette_updated;
+    bool is_tile_palette_updated;
 	std::array<unsigned char, CGB_PALETTE_DATA_SIZE_RAW> cgb_background_palette_data;
 	std::array<unsigned char, CGB_PALETTE_DATA_SIZE_RAW> cgb_sprite_palette_data;
     std::array<ColorPalette, 8> cgb_background_palettes;

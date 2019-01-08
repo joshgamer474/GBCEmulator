@@ -49,6 +49,8 @@ GPU::GPU(SDL_Renderer *render)
 	bg_tile_map_select_method = false;
 	cgb_auto_increment_background_palette_index = false;
 	cgb_auto_increment_sprite_palette_index = false;
+    is_cgb_tile_palette_updated = false;
+    is_tile_palette_updated     = false;
 
     cgb_dma_in_progress = false;
     cgb_dma_hblank_in_progress = false;
@@ -63,6 +65,8 @@ GPU::GPU(SDL_Renderer *render)
 
 GPU::~GPU()
 {
+    cpu.reset();
+    memory.reset();
     logger.reset();
 }
 
@@ -245,7 +249,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			// LCD Stuff, VRAM bank selector
 
             // CGB only
-            if (memory->is_color_gb)
+            if (is_color_gb)
             {
                 switch (pos)
                 {
@@ -304,6 +308,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
                     cgb_background_palette_data[cgb_background_palette_index] = val;
                     updateBackgroundPalette(val);
+
                     if (cgb_auto_increment_background_palette_index)
                     {
                         cgb_background_palette_index++;
@@ -386,6 +391,8 @@ void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_t
 {
 	unsigned char color_val = 0;
     unsigned char alpha = 255;
+
+    is_tile_palette_updated = true;
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -974,6 +981,11 @@ void GPU::drawOAMLine()
         // Check to see if sprite is rendered on current line (Y position)
         if (sprite_y_start <= lcd_y && sprite_y_end > lcd_y)
         {
+
+            logger->info("Drawing OAM sprite: %{0:d},\tlcd_y: %{1:d}",
+                curr_sprite,
+                lcd_y);
+
             // Check for case of object_size = 16, ie sprite size is 8x16
             // Then check if we should be using the next sprite 8x8 sprite to draw
             if (object_size == 16)
@@ -1414,6 +1426,8 @@ void GPU::updateBackgroundPalette(uint8_t val)
     // Update color palette
     colorPalette.updateRawByte(cgb_background_palette_index % 8, val);
 
+    is_cgb_tile_palette_updated = true;
+
     logger->info("Updating Background color palette {0:x} with val {1:x}",
         cgb_background_palette_index,
         val);
@@ -1426,6 +1440,8 @@ void GPU::updateSpritePalette(uint8_t val)
 
     // Update color palette
     colorPalette.updateRawByte(cgb_sprite_palette_index % 8, val);
+
+    is_cgb_tile_palette_updated = true;
 
     logger->info("Updating Sprite color palette {0:x} with val {1:x}",
         cgb_sprite_palette_index,

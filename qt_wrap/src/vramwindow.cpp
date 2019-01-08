@@ -215,7 +215,10 @@ void VRAMWindow::initBackgroundMapImage()
     initColorTable();
 
     // Create QImage from raw data
-    bgImage = std::make_unique<QImage>((unsigned char *)gpu->bg_frame.data(), 256, 256, QImage::Format_RGBA8888);
+    bgImage = std::make_unique<QImage>((unsigned char *)gpu->bg_frame.data(), 
+        gpu->bg_frame.size() / 256,
+        gpu->bg_frame.size() / 256,
+        QImage::Format_RGBA8888);
 
     // Set QImage to QLabel
     bgImageLabel->setPixmap(QPixmap::fromImage(*bgImage));
@@ -227,7 +230,14 @@ void VRAMWindow::initBackgroundMapImage()
 void VRAMWindow::updateTileViews()
 {
     std::vector<std::vector<std::vector<Tile>>> & tiles = gpu->getBGTiles();
-    updateColorTable();
+
+    if (gpu->is_cgb_tile_palette_updated ||
+        gpu->is_tile_palette_updated)
+    {
+        gpu->is_tile_palette_updated        = false;
+        gpu->is_cgb_tile_palette_updated    = false;
+        updateColorTable();
+    }
 
     for (int i = 0; i < tiles.size(); i++)
     {
