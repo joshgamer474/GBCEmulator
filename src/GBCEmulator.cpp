@@ -1,5 +1,7 @@
 #include "GBCEmulator.h"
 
+//#define USE_FRAME_TIMING
+
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     : cpu(std::make_shared<CPU>()),
     cartridgeReader(std::make_shared<CartridgeReader>()),
@@ -49,7 +51,6 @@ GBCEmulator::~GBCEmulator()
     // Write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
-    cpu->memory->apu.reset();
     cpu->memory->reset();
     cpu.reset();
     cartridgeReader.reset();
@@ -164,21 +165,21 @@ void GBCEmulator::runNextInstruction()
     }
     logCounter++;
 
-    //if (gpu->frame_is_ready)
-    //{
-    //    ////cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
-    //    //cpu->memory->apu->samplesPerFrame = 0;
+#ifdef USE_FRAME_TIMING
+    if (gpu->frame_is_ready)
+    {
+        cpu->memory->apu->samplesPerFrame = 0;
 
-    //    frameIsUpdatedFunction();
-    //    gpu->frame_is_ready = false;
+        frameIsUpdatedFunction();
+        gpu->frame_is_ready = false;
+        
+        // Sleep until next frame should start
+        waitToStartNextFrame();
 
-    //    //// Sleep until next frame should start
-    //    //waitToStartNextFrame();
-
-    //    //// Update frameStartTime to current time
-    //    //frameStartTime = getCurrentTime();
-    //}
-
+        // Update frameStartTime to current time
+        frameStartTime = getCurrentTime();
+    }
+#else
     if (ticksRan >= ticksPerFrame)
     {
         ticksRan -= ticksPerFrame;
@@ -198,6 +199,7 @@ void GBCEmulator::runNextInstruction()
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
     }
+#endif
 
     if (cpu->memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
@@ -208,6 +210,7 @@ void GBCEmulator::runNextInstruction()
 
         // Set double speed flag
         cpu->memory->cgb_speed_mode |= BIT7;
+        cpu->memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
 
     prevTicks = cpu->ticks;
@@ -344,10 +347,6 @@ void GBCEmulator::waitToStartNextFrame()
     if (timeToWaitMilli.count() > 0)
     {   // Sleep until next frame needs to start rendering
         std::this_thread::sleep_for(timeToWaitMilli);
-    }
-    else
-    {
-        int j = 0;
     }
 }
 
