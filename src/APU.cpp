@@ -35,6 +35,8 @@ APU::APU()
 
     sample_buffer.resize(SAMPLE_BUFFER_SIZE);
 
+    //return;
+
     initSDLAudio();
 }
 
@@ -69,7 +71,6 @@ void APU::initSDLAudio()
     SDL_AudioSpec obtainedSpec;
 
     // Open SDL Audio instance
-    //SDL_OpenAudio(&desiredSpec, &obtainedSpec);
     audio_device_id = SDL_OpenAudioDevice(NULL,
         0,
         &desiredSpec,
@@ -186,8 +187,9 @@ uint8_t APU::readByte(const uint16_t & addr)
 
 void APU::run(const uint64_t & cpuTicks)
 {
-    uint64_t diff = cpuTicks - prev_cpu_ticks;
+    //return;
 
+    uint64_t diff = cpuTicks - prev_cpu_ticks;
     prev_cpu_ticks = cpuTicks;
 
     while (diff > 0)
@@ -218,8 +220,8 @@ void APU::run(const uint64_t & cpuTicks)
 
             if (frame_sequence_step == 7)
             {   // Tick Volume Envelope
-                //sound_channel_1->tickVolumeEnvelope();
-                //sound_channel_2->tickVolumeEnvelope();
+                sound_channel_1->tickVolumeEnvelope();
+                sound_channel_2->tickVolumeEnvelope();
                 //sound_channel_4->tickVolumeEnvelope();
             }
 
@@ -243,8 +245,8 @@ void APU::run(const uint64_t & cpuTicks)
             if ((sound_on & BIT7))
             {   // Audio is enabled
                 // Get samples
-                const uint8_t & channel_1_sample = sound_channel_1->curr_sample;
-                const uint8_t & channel_2_sample = sound_channel_2->curr_sample;
+                const uint8_t & channel_1_sample = sound_channel_1->output_volume;
+                const uint8_t & channel_2_sample = sound_channel_2->output_volume;
 
 #ifdef USE_FLOAT
                 float left = 0;
@@ -293,9 +295,15 @@ void APU::run(const uint64_t & cpuTicks)
                 }
             } // end if(sound_on)
 
+#ifndef USE_FLOAT
             // Multiply left and right samples by volume
-            //sample.left *= (left_volume + 1);
-            //sample.right *= (right_volume + 1);
+            sample.left *= (left_volume + 1);
+            sample.right *= (right_volume + 1);
+
+
+            // Convert 4-bit unsigned audio to 8-bit unsigned audio
+            //sample.left  = (sample.left << 4) | sample.left;
+            //sample.right = (sample.right << 4) | sample.right;
 
             //if (sample.left == 0)
             //{
@@ -306,11 +314,6 @@ void APU::run(const uint64_t & cpuTicks)
             //{
             //    sample.right = sdl_silence_val;
             //}
-
-#ifndef USE_FLOAT
-            // Convert 4-bit unsigned audio to 8-bit unsigned audio
-            sample.left  = (sample.left << 4) | sample.left;
-            sample.right = (sample.right << 4) | sample.right;
 #endif
 
 //#ifdef USE_FLOAT
@@ -320,7 +323,6 @@ void APU::run(const uint64_t & cpuTicks)
 
             // Add current sample to sample buffer
             sample_buffer[sample_buffer_counter++] = sample;
-
             samplesPerFrame++;
 
             // Check if sample buffer is full

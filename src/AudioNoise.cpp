@@ -4,7 +4,7 @@ AudioNoise::AudioNoise(const uint16_t & register_offset)
     : reg_offset(register_offset)
 {
     initial_volume_of_envelope          = 0;
-    envelope_sweep_num                  = 0;
+    envelope_period_load                  = 0;
     shift_clock_frequency               = 0;
     counter_step                        = 0;
     sound_length                        = 0.0f;
@@ -62,7 +62,7 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
     case 1:
         initial_volume_of_envelope = val >> 4;
         envelope_increase = val & 0x08;
-        envelope_sweep_num = val & 0x03;
+        envelope_period_load = val & 0x03;
         break;
 
     case 2:

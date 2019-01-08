@@ -21,7 +21,7 @@ private:
     uint16_t reg_offset;
 
     uint8_t initial_volume_of_envelope = 0;
-    uint8_t envelope_sweep_num = 0;
+    uint8_t envelope_period_load = 0;
     uint8_t shift_clock_frequency = 0;
     uint8_t counter_step = 0;
     float sound_length = 0.0f;

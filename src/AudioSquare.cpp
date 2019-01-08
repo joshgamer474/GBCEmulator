@@ -6,22 +6,29 @@
 AudioSquare::AudioSquare(const uint16_t & register_offset)
     : reg_offset(register_offset)
 {
-    duty_pos                = 0;
+    duty_pos                    = 0;
     sweep_shift_num             = 0;
     wave_pattern_duty           = 0;
     sound_length_data           = 0;
     initial_volume_of_envelope  = 0;
-    envelope_sweep_num          = 0;
+    envelope_period_load        = 0;
+    envelope_period             = 0;
     frequency_16                = 0;
     frequency                   = 0;
     timer                       = 64;
+    curr_sample                 = 0;
+    volume                      = 0;
+    output_volume               = 0;
     sweep_time                  = 0.0f;
     sound_length                = 0.0f;
     sweep_decrease              = false;
     envelope_increase           = false;
+    envelope_running            = false;
     stop_output_when_sound_length_ends = false;
     restart_sound               = false;
     is_enabled                  = false;
+
+    initWaveDutyTable();
 }
 
 AudioSquare::~AudioSquare()
@@ -72,34 +79,33 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         break;
 
     case 1:
-        wave_pattern_duty = (val & 0xC0) >> 6;
+        wave_pattern_duty = (val >> 6) & 0x03;
         sound_length_data = val & 0x3F;
         sound_length = (64.0f - sound_length_data) * (1.0f / 256.0f);
         break;
 
     case 2:
-        initial_volume_of_envelope = val >> 4;
-        envelope_increase = val & BIT3;
-        envelope_sweep_num = val & 0x03;
+        initial_volume_of_envelope  = val >> 4;
+        envelope_increase           = val & BIT3;
+        envelope_period_load        = val & 0x03;
+
+        envelope_period = envelope_period_load;
+        volume = initial_volume_of_envelope;
         break;
 
     case 3:
-        frequency_16 &= 0xF0;
+        frequency_16 &= 0xFF00;
         frequency_16 |= val;
+
         break;
 
     case 4:
-        frequency_16 &= 0x0F;
-        frequency_16 |= (static_cast<uint16_t>(val) & 0x03) << 8;
+        frequency_16 &= 0x00FF;
+        frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
         stop_output_when_sound_length_ends = val & BIT6;
 
         // Calculate frequency
         frequency = 131072 / (2048 - frequency_16);
-        //frequency = 1000;
-
-        // Calculate period
-        //period = CLOCK_SPEED / frequency;
-        period = (2048 - frequency_16) * 4;
 
         if (restart_sound == false && (val & BIT7))
         {
@@ -114,11 +120,23 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 void AudioSquare::reset()
 {
     is_enabled = true;
+    envelope_running = true;
+
+    // Calculate period
+    period = (2048 - frequency_16) * 4;
+
+    // Reload frequency period
     timer = period;
+
+    // Reload envelope period
+    envelope_period = envelope_period_load;
+
+    // Reload envelope volume
+    volume = initial_volume_of_envelope;
 
     if (sound_length_data == 0)
     {
-        sound_length_data = 64;
+        sound_length_data = 63;
 
         // Update register
         registers[1] &= 0xC0;
@@ -130,15 +148,12 @@ void AudioSquare::reset()
     // Reset Channel 1's sweep
 }
 
-uint8_t AudioSquare::getWaveDuty()
+void AudioSquare::initWaveDutyTable()
 {
-    switch (wave_pattern_duty)
-    {
-    case 0: return 0x7F;    // _--- ----
-    case 1: return 0x3F;    // __-- ----
-    case 2: return 0x0F;    // ____ ----
-    case 3: return 0x03;    // ____ __--
-    }
+    wave_duty_table[0] = { 0, 1, 1, 1, 1, 1, 1, 1 };    // 12.5% duty
+    wave_duty_table[1] = { 0, 0, 1, 1, 1, 1, 1, 1 };    // 25% duty
+    wave_duty_table[2] = { 0, 0, 0, 0, 1, 1, 1, 1 };    // 50% duty
+    wave_duty_table[3] = { 0, 0, 0, 0, 0, 0, 1, 1 };    // 75% duty
 }
 
 void AudioSquare::tick()
@@ -150,10 +165,26 @@ void AudioSquare::tick()
 
     if (timer == 0)
     {
-        generateOutputClock();
-        timer = period;
+        // Calculate period
+        period = (2048 - frequency_16) * 4;
+
+        timer = period; // Reload frequency period
         duty_pos++;
         duty_pos &= 0x07;
+    }
+
+    curr_sample = wave_duty_table[wave_pattern_duty][duty_pos];
+
+    // Update output
+    if (is_enabled &&
+        initial_volume_of_envelope != 0 &&
+        curr_sample != 0)
+    {
+        output_volume = volume;
+    }
+    else
+    {
+        output_volume = 0;
     }
 }
 
@@ -170,31 +201,48 @@ void AudioSquare::tickLengthCounter()
         if (sound_length_data == 0)
         {   // Length counter hit 0, stop sound output
             is_enabled = false;
+            curr_sample = 0;
         }
     }
 }
 
-void AudioSquare::generateOutputClock()
+void AudioSquare::tickVolumeEnvelope()
 {
-    //size_t counter = 0;
-    //uint32_t use_sound_length;
-    const uint8_t & wave_duty = getWaveDuty();
-    //uint8_t wave_duty = 0x0F;
-
-    //if (stop_output_when_sound_length_ends)
-    //{   // Use Sound length data as counter
-    //    use_sound_length = sound_length_data;
-    //}
-    //else
-    //{   // Use frequency as counter
-    //    use_sound_length = frequency;
-    //}
-
-    if (stop_output_when_sound_length_ends && !is_enabled)
+    if (envelope_period > 0)
     {
-        curr_sample = 0;
-        return;
+        envelope_period--;
+
+        if (envelope_period == 0)
+        {   // Reload period
+            if (envelope_period_load > 0)
+            {
+                envelope_period = envelope_period_load;
+            }
+            else
+            {
+                envelope_period = 8;
+            }
+
+            if (envelope_running && envelope_period > 0)
+            {   // Envelope is enabled and running
+                // Increase or decrease volume
+                if (envelope_increase && volume < 0x0F)
+                {
+                    volume++;
+                }
+                else if (!envelope_increase && volume > 0)
+                {
+                    volume--;
+                }
+            }
+
+            // Check if Envelope should be disabled
+            if (volume == 0x00 ||
+                volume == 0x0F)
+            {
+                envelope_running = false;
+            }
+        }
     }
 
-    curr_sample = (wave_duty >> (7 - duty_pos)) & 0x01;
 }
