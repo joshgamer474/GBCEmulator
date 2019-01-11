@@ -79,5 +79,7 @@ public:
 
 private:
     void latchCurrTimeToRTC();
+
+    bool wroteToRAMBanks;
 };
 #endif

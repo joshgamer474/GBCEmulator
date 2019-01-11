@@ -11,6 +11,7 @@ MBC::MBC()
 	ram_banking_mode        = false;
 	external_ram_enabled    = false;
     rtc_timer_enabled       = false;
+    wroteToRAMBanks         = false;
 
 	curr_rom_bank = 1;
 	curr_ram_bank = 1;
@@ -380,10 +381,12 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             if (rom_banking_mode)
             {   // Only RAM bank 0x00 can be used during ROM banking mode
                 ramBanks[0][pos - 0xA000] = val;
+                wroteToRAMBanks = true;
             }
             else
             {
                 ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+                wroteToRAMBanks = true;
             }
         }
         else if (mbc_num == 3)
@@ -391,10 +394,12 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             if (curr_ram_bank <= 0x03 && external_ram_enabled)
             {
                 ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+                wroteToRAMBanks = true;
             }
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C && rtc_timer_enabled)
             {
                 rtcRegisters[curr_ram_bank - 0x08] = val;
+                wroteToRAMBanks = true;
             }
             else
             {
@@ -409,6 +414,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             if (external_ram_enabled)
             {
                 ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+                wroteToRAMBanks = true;
             }
             else
             {
@@ -461,6 +467,12 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
 
 void MBC::saveRAMToFile(const std::string & filename)
 {
+    if (!wroteToRAMBanks)
+    {
+        logger->info("Game did not write to RAM, not writing out .sav file");
+        return;
+    }
+
     // Open file
     std::ofstream file;
     file.open(filename, std::ios::binary);
