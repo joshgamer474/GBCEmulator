@@ -1,8 +1,5 @@
 #include "GBCEmulator.h"
 
-//#define USE_FRAME_TIMING
-#define USE_AUDIO_TIMING
-
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     : cpu(std::make_shared<CPU>()),
     cartridgeReader(std::make_shared<CartridgeReader>()),
@@ -197,7 +194,7 @@ void GBCEmulator::runNextInstruction()
 
 #ifndef USE_AUDIO_TIMING
         // Sleep until next burst of ticks is ready to be ran
-        //waitToStartNextFrame();
+        waitToStartNextFrame();
 
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
@@ -208,6 +205,8 @@ void GBCEmulator::runNextInstruction()
     if (cpu->memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
         cpu->memory->cgb_perform_speed_switch = false;
+
+        apu->initCGB();
 
         // Calculate number of CPU cycles that can tick in one frame's time
         ticksPerFrame = CLOCK_SPEED_GBC_MAX / SCREEN_FRAMERATE; // cycles per frame

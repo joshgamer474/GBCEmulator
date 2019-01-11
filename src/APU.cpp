@@ -1,4 +1,5 @@
 #include "APU.h"
+#include <GBCEmulator.h>
 #include <CPU.h>
 #include <Joypad.h>
 #include <SDL2/SDL.h>
@@ -276,8 +277,8 @@ void APU::run(const uint64_t & cpuTicks)
                 sendChannelOutputToSample(sample, channel_2_sample, 2);
                 //sendChannelOutputToSample(sample, channel_3_sample, 3);
 #else
-                //sendChannelOutputToSampleFloat(sample, channel_1_sample, 1);
-                //sendChannelOutputToSampleFloat(sample, channel_2_sample, 2);
+                sendChannelOutputToSampleFloat(sample, channel_1_sample, 1);
+                sendChannelOutputToSampleFloat(sample, channel_2_sample, 2);
                 sendChannelOutputToSampleFloat(sample, channel_3_sample, 3);
 #endif
             } // end if(sound_on)
@@ -289,6 +290,7 @@ void APU::run(const uint64_t & cpuTicks)
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
             {
+#ifdef USE_AUDIO_TIMING
                 // Drain audio buffer (?)
                 uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
 
@@ -305,6 +307,7 @@ void APU::run(const uint64_t & cpuTicks)
                     std::this_thread::sleep_for(std::chrono::microseconds(100));
                     queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
                 }
+#endif // USE_AUDIO_TIMING
 
                 //logger->info("Pushing sample");
 
@@ -435,4 +438,13 @@ void APU::logSamples()
     }
 
     logger->trace(stringToLog);
+}
+
+void APU::initCGB()
+{
+    sample_timer_val            = CLOCK_SPEED_GBC_MAX / SAMPLE_RATE;
+    frame_sequence_timer_val    = CLOCK_SPEED_GBC_MAX / 512;
+
+    sample_timer                = sample_timer_val;
+    frame_sequence_timer        = frame_sequence_timer_val;
 }
