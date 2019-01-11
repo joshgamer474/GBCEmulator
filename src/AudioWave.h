@@ -14,12 +14,12 @@ public:
     uint8_t readByte(const uint16_t & addr);
     void tick();
     void tickLengthCounter();
+    void reset();
 
     uint8_t output_volume;
     bool is_enabled;
 
 private:
-    void reset();
     void parseRegister(const uint8_t & reg, const uint8_t & val);
     void updateSample();
 

@@ -144,10 +144,7 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         }
         else if (!sound_on && (val & BIT7))
         {   // Enabling sound
-            frame_sequence_step = 0;
-
-            sound_channel_1->duty_pos = 0;
-            sound_channel_2->duty_pos = 0;
+            reset();
         }
 
         sound_on &= 0x7F;
@@ -192,6 +189,20 @@ uint8_t APU::readByte(const uint16_t & addr)
     }
 
     return 0xFF;
+}
+
+void APU::reset()
+{
+    frame_sequence_timer    = frame_sequence_timer_val;
+    frame_sequence_step     = 0;
+    sample_timer            = sample_timer_val;
+    sample_buffer_counter   = 0;
+    samplesPerFrame         = 0;
+
+    sound_channel_1->reset();
+    sound_channel_2->reset();
+    sound_channel_3->reset();
+    //sound_channel_4->reset();
 }
 
 void APU::run(const uint64_t & cpuTicks)

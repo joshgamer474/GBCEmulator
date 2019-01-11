@@ -18,6 +18,7 @@ public:
     void tickLengthCounter();
     void tickVolumeEnvelope();
     void tickSweep();
+    void reset();
 
     uint8_t duty_pos;
     uint8_t output_volume;
@@ -27,7 +28,6 @@ private:
     uint16_t calculateSweepFrequency();
     void initWaveDutyTable();
     void parseRegister(const uint8_t & reg, const uint8_t & val);
-    void reset();
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
  
     std::array<std::array<bool, 8>, 4> wave_duty_table;

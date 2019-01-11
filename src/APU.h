@@ -52,6 +52,7 @@ public:
 
 private:
     void initSDLAudio();
+    void reset();
     bool isSoundOutLeft(uint8_t sound_number);
     bool isSoundOutRight(uint8_t sound_number);
     void sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum);

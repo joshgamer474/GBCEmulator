@@ -231,11 +231,11 @@ void AudioSquare::tickLengthCounter()
         if (sound_length_data == 0)
         {   // Length counter hit 0, stop sound output
             is_enabled = false;
-            curr_sample = 0;
         }
     }
 }
 
+// http://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
 void AudioSquare::tickVolumeEnvelope()
 {
     if (envelope_period == 0)
@@ -245,29 +245,30 @@ void AudioSquare::tickVolumeEnvelope()
 
     envelope_period--;
 
+    if (envelope_running && envelope_period > 0)
+    {   // Envelope is enabled and running
+        // Increase or decrease volume
+        if (envelope_increase && volume < 0x0F)
+        {
+            volume++;
+        }
+        else if (!envelope_increase && volume > 0)
+        {
+            volume--;
+        }
+    }
+
     if (envelope_period == 0)
     {   // Reload period
         reloadPeriod(envelope_period, envelope_period_load);
 
-        if (envelope_running && envelope_period > 0)
-        {   // Envelope is enabled and running
-            // Increase or decrease volume
-            if (envelope_increase && volume < 0x0F)
-            {
-                volume++;
-            }
-            else if (!envelope_increase && volume > 0)
-            {
-                volume--;
-            }
-        }
+    }
 
-        // Check if Envelope should be disabled
-        if (volume == 0x00 ||
-            volume == 0x0F)
-        {
-            envelope_running = false;
-        }
+    // Check if Envelope should be disabled
+    if (volume == 0x00 ||
+        volume == 0x0F)
+    {
+        envelope_running = false;
     }
 }
 
