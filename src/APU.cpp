@@ -14,6 +14,8 @@ APU::APU()
     prev_cpu_ticks          = 0;
     left_volume             = 0;
     right_volume            = 0;
+    left_volume_use         = 0;
+    right_volume_use        = 0;
     sample_buffer_counter   = 0;
     samplesPerFrame         = 0;
     left_out_enabled        = false;
@@ -92,6 +94,9 @@ void APU::initSDLAudio()
 
     // Start playing audio
     SDL_PauseAudioDevice(audio_device_id, 0);
+
+    // Clear current audio queue
+    SDL_ClearQueuedAudio(audio_device_id);
 }
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
@@ -125,6 +130,9 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         right_out_enabled   = val & BIT3;
         left_volume         = (val & 0x70) >> 4;
         right_volume        = val & 0x07;
+
+        left_volume_use     = (128 * left_volume) / 7;
+        right_volume_use    = (128 * right_volume) / 7;
         break;
     case 0xFF25: selection_of_sound_output  = val; break;
     case 0xFF26:
@@ -194,10 +202,6 @@ void APU::run(const uint64_t & cpuTicks)
 
     while (diff > 0)
     {
-        // Tick sound channels
-        sound_channel_1->tick();
-        sound_channel_2->tick();
-
         // Tick frame sequencer
         if (frame_sequence_timer > 0)
         {
@@ -206,23 +210,28 @@ void APU::run(const uint64_t & cpuTicks)
 
         if (frame_sequence_timer == 0)
         {
-            if (frame_sequence_step % 2 == 0)
-            {   // Tick Length counter, is updated every even step (0, 2, 4, 6)
+            switch (frame_sequence_step)
+            {
+            case 0:
+            case 4:
                 sound_channel_1->tickLengthCounter();
                 sound_channel_2->tickLengthCounter();
-            }
-
-            if (frame_sequence_step == 2 ||
-                frame_sequence_step == 6)
-            {   // Tick Sweep
-                //sound_channel_1->tickSweep();
-            }
-
-            if (frame_sequence_step == 7)
-            {   // Tick Volume Envelope
+                sound_channel_3->tickLengthCounter();
+                //sound_channel_4->tickLengthCounter();
+                break;
+            case 2:
+            case 6:
+                sound_channel_1->tickSweep();
+                sound_channel_1->tickLengthCounter();
+                sound_channel_2->tickLengthCounter();
+                sound_channel_3->tickLengthCounter();
+                //sound_channel_4->tickLengthCounter();
+                break;
+            case 7:
                 sound_channel_1->tickVolumeEnvelope();
                 sound_channel_2->tickVolumeEnvelope();
                 //sound_channel_4->tickVolumeEnvelope();
+                break;
             }
 
             frame_sequence_step++;
@@ -231,6 +240,12 @@ void APU::run(const uint64_t & cpuTicks)
             // Reset frame_sequence_timer
             frame_sequence_timer = frame_sequence_timer_val;
         }
+
+        // Tick sound channels
+        sound_channel_1->tick();
+        sound_channel_2->tick();
+        sound_channel_3->tick();
+        //sound_channel_4->tick();
 
         // Tick sample_timer
         if (sample_timer > 0)
@@ -245,81 +260,27 @@ void APU::run(const uint64_t & cpuTicks)
             if ((sound_on & BIT7))
             {   // Audio is enabled
                 // Get samples
-                const uint8_t & channel_1_sample = sound_channel_1->output_volume;
-                const uint8_t & channel_2_sample = sound_channel_2->output_volume;
-
-#ifdef USE_FLOAT
-                float left = 0;
-                float right = 0;
+#ifndef USE_FLOAT
+                uint8_t channel_1_sample = sound_channel_1->output_volume;
+                uint8_t channel_2_sample = sound_channel_2->output_volume;
+                uint8_t channel_3_sample = sound_channel_3->output_volume;
+#else
+                float channel_1_sample = ((float)sound_channel_1->output_volume) / 100.0;
+                float channel_2_sample = ((float)sound_channel_2->output_volume) / 100.0;
+                float channel_3_sample = ((float)sound_channel_3->output_volume) / 100.0;
 #endif
 
                 // Apply samples to left and/or right out channels
-                if (isSoundOutLeft(1))
-                {
 #ifndef USE_FLOAT
-                    sample.left += channel_1_sample;
+                sendChannelOutputToSample(sample, channel_1_sample, 1);
+                sendChannelOutputToSample(sample, channel_2_sample, 2);
+                //sendChannelOutputToSample(sample, channel_3_sample, 3);
 #else
-                    left = (((float)channel_1_sample) * 12 * (left_volume + 1) / 100.0f);
-                    SDL_MixAudioFormat((uint8_t*)&sample.left, (uint8_t*)&left, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME / 2);
+                //sendChannelOutputToSampleFloat(sample, channel_1_sample, 1);
+                //sendChannelOutputToSampleFloat(sample, channel_2_sample, 2);
+                sendChannelOutputToSampleFloat(sample, channel_3_sample, 3);
 #endif
-                }
-
-                if (isSoundOutRight(1))
-                {
-#ifndef USE_FLOAT
-                    sample.right += channel_1_sample;
-#else
-                    right = (((float)channel_1_sample) * 12 * (right_volume + 1) / 100.0f);
-                    SDL_MixAudioFormat((uint8_t*)&sample.right, (uint8_t*)&right, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME / 2);
-#endif
-                }
-
-                if (isSoundOutLeft(2))
-                {
-#ifndef USE_FLOAT
-                    sample.left += channel_2_sample;
-#else
-                    left = (((float)channel_2_sample) * 12 * (left_volume + 1) / 100.0f);
-                    SDL_MixAudioFormat((uint8_t*)&sample.left, (uint8_t*)&left, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME / 2);
-#endif
-                }
-
-                if (isSoundOutRight(2))
-                {
-#ifndef USE_FLOAT
-                    sample.right += channel_2_sample;
-#else
-                    right = (((float)channel_2_sample) * 12 * (right_volume + 1) / 100.0f);
-                    SDL_MixAudioFormat((uint8_t*)&sample.right, (uint8_t*)&right, AUDIO_F32SYS, sizeof(float), SDL_MIX_MAXVOLUME / 2);
-#endif
-                }
             } // end if(sound_on)
-
-#ifndef USE_FLOAT
-            // Multiply left and right samples by volume
-            sample.left *= (left_volume + 1);
-            sample.right *= (right_volume + 1);
-
-
-            // Convert 4-bit unsigned audio to 8-bit unsigned audio
-            //sample.left  = (sample.left << 4) | sample.left;
-            //sample.right = (sample.right << 4) | sample.right;
-
-            //if (sample.left == 0)
-            //{
-            //    sample.left = sdl_silence_val;
-            //}
-
-            //if (sample.right == 0)
-            //{
-            //    sample.right = sdl_silence_val;
-            //}
-#endif
-
-//#ifdef USE_FLOAT
-//            sample.left     /= 100.0f;
-//            sample.right    /= 100.0f;
-//#endif
 
             // Add current sample to sample buffer
             sample_buffer[sample_buffer_counter++] = sample;
@@ -331,16 +292,21 @@ void APU::run(const uint64_t & cpuTicks)
                 // Drain audio buffer (?)
                 uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
 
-//#ifndef USE_FLOAT
-//                while (queuedAudioSize > SAMPLE_BUFFER_MEM_SIZE)
-//#else
-//                while (queuedAudioSize > SAMPLE_BUFFER_MEM_SIZE_FLOAT)
-//#endif
-//                {
-//                    logger->info("queuedAudioSize: {0:d}", queuedAudioSize);
-//                    SDL_Delay(1);
-//                    queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
-//                }
+#ifndef USE_FLOAT
+                while (queuedAudioSize > SAMPLE_BUFFER_MEM_SIZE)
+#else
+                while (queuedAudioSize >= SAMPLE_BUFFER_MEM_SIZE_FLOAT)
+                //while (queuedAudioSize > SAMPLE_BUFFER_SIZE * sizeof(float))
+#endif
+                {
+                    //logger->info("queuedAudioSize: {0:d}", queuedAudioSize);
+                    //SDL_Delay(1);
+                    //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                    queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
+                }
+
+                //logger->info("Pushing sample");
 
                 // Push sample_buffer to SDL
 #ifndef USE_FLOAT
@@ -354,11 +320,13 @@ void APU::run(const uint64_t & cpuTicks)
                     logger->error("ret: {0:d}", ret);
                 }
 
+#ifdef WRITE_AUDIO_OUT
 #ifndef USE_FLOAT
                 outLeftChannel->write(reinterpret_cast<char *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE);
 #else
                 outLeftChannel->write(reinterpret_cast<char *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE_FLOAT);
-#endif
+#endif // USE_FLOAT
+#endif // WRITE_AUDIO_OUT
 
                 // Clear sample_buffer
                 sample_buffer_counter = 0;
@@ -397,6 +365,64 @@ bool APU::isSoundOutRight(uint8_t sound_number)
     case 1: return selection_of_sound_output & BIT0;
     default: return false;
     }
+}
+
+#ifndef USE_FLOAT
+void APU::sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum)
+{
+    if (isSoundOutLeft(channelNum))
+    {
+        //sample.left += audio;
+       SDL_MixAudioFormat(&sample.left, &audio, AUDIO_U8, 1, left_volume_use);
+        //sample.left = mixAudio(sample.left, audio);
+    }
+
+    if (isSoundOutRight(channelNum))
+    {
+        //sample.right += audio;
+        SDL_MixAudioFormat(&sample.right, &audio, AUDIO_U8, 1, right_volume_use);
+        //sample.right = mixAudio(sample.right, audio);
+    }
+}
+#else
+void APU::sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum)
+{
+    if (isSoundOutLeft(channelNum))
+    {
+        SDL_MixAudioFormat((uint8_t *)&sample.left, 
+            (uint8_t *)&audio,
+            AUDIO_F32SYS,
+            sizeof(float),
+            left_volume_use);
+    }
+
+    if (isSoundOutRight(channelNum))
+    {
+        SDL_MixAudioFormat((uint8_t *)&sample.right,
+            (uint8_t *)&audio,
+            AUDIO_F32SYS,
+            sizeof(float),
+            right_volume_use);
+    }
+}
+#endif
+
+// http://www.vttoth.com/CMS/index.php/technical-notes/68
+uint8_t APU::mixAudio(const uint8_t & audio1, const uint8_t & audio2)
+{
+    uint8_t ret = 0;
+
+    if (audio1 < 128 && audio2 < 128)
+    {
+        ret = (static_cast<uint16_t>(audio1) * static_cast<uint16_t>(audio2)) / 128;
+    }
+    else
+    {
+        ret = (2 * (static_cast<uint16_t>(audio1) + static_cast<uint16_t>(audio2))) -
+            ((static_cast<uint16_t>(audio1) * static_cast<uint16_t>(audio2)) / 128) -
+            256;
+    }
+    return ret;
 }
 
 void APU::logSamples()

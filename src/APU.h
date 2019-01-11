@@ -10,13 +10,14 @@
 #include <spdlog/spdlog.h>
 
 #define SAMPLE_RATE 44100
-//#define SAMPLE_BUFFER_SIZE 1024
+#define SAMPLE_BUFFER_SIZE 1470
+//#define SAMPLE_BUFFER_SIZE 735
 #define SAMPLE_OUTPUT_CHANNEL_SIZE 2
-#define SAMPLE_BUFFER_SIZE 735
 #define SAMPLE_BUFFER_MEM_SIZE SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
 #define SAMPLE_BUFFER_MEM_SIZE_FLOAT SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
 
-//#define USE_FLOAT
+#define USE_FLOAT
+#define WRITE_AUDIO_OUT
 
 struct Sample {
 #ifndef USE_FLOAT
@@ -52,6 +53,9 @@ private:
     void initSDLAudio();
     bool isSoundOutLeft(uint8_t sound_number);
     bool isSoundOutRight(uint8_t sound_number);
+    void sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum);
+    void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
+    uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
 
     std::unique_ptr<std::ofstream> outRightChannel;
@@ -64,6 +68,8 @@ private:
     uint8_t frame_sequence_step;
     uint8_t left_volume;
     uint8_t right_volume;
+    uint8_t left_volume_use;
+    uint8_t right_volume_use;
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
     uint8_t sound_on;
