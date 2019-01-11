@@ -1,6 +1,7 @@
 #include "GBCEmulator.h"
 
 //#define USE_FRAME_TIMING
+#define USE_AUDIO_TIMING
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     : cpu(std::make_shared<CPU>()),
@@ -33,7 +34,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
     mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
 
-    // Calculate number of CPU cycles that can run in one frame's time
+    // Calculate number of CPU cycles that can tick in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
     ticksRan = 0;
     prevTicks = 0;
@@ -168,11 +169,12 @@ void GBCEmulator::runNextInstruction()
 #ifdef USE_FRAME_TIMING
     if (gpu->frame_is_ready)
     {
+        //cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
         cpu->memory->apu->samplesPerFrame = 0;
 
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
-        
+
         // Sleep until next frame should start
         waitToStartNextFrame();
 
@@ -190,22 +192,24 @@ void GBCEmulator::runNextInstruction()
             gpu->frame_is_ready = false;
         }
 
-        //cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
+        cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
         cpu->memory->apu->samplesPerFrame = 0;
 
+#ifndef USE_AUDIO_TIMING
         // Sleep until next burst of ticks is ready to be ran
-        waitToStartNextFrame();
+        //waitToStartNextFrame();
 
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
+#endif // USE_AUDIO_TIMING
     }
-#endif
+#endif // USE_FRAME_TIMING
 
     if (cpu->memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
         cpu->memory->cgb_perform_speed_switch = false;
 
-        // Calculate number of CPU cycles that can run in one frame's time
+        // Calculate number of CPU cycles that can tick in one frame's time
         ticksPerFrame = CLOCK_SPEED_GBC_MAX / SCREEN_FRAMERATE; // cycles per frame
 
         // Set double speed flag
