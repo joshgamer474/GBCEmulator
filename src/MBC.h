@@ -23,10 +23,9 @@ enum MBC_Type {
 class MBC
 {
 public:
-	MBC();
+	MBC(int mbc_num, int num_rom_banks, int num_ram_banks, std::shared_ptr<spdlog::logger> logger);
 	~MBC();
 
-	void MBC_init(int mbc_num, int num_rom_banks, int num_ram_banks);
 	void MBC1_init();
 	void MBC2_init();
     void MMM01_init();

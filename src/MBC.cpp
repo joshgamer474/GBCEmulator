@@ -5,46 +5,13 @@
 #include <chrono>
 #include <ctime>
 
-MBC::MBC()
+MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::logger> _logger)
 {
-	rom_banking_mode        = true;
-	ram_banking_mode        = false;
-	external_ram_enabled    = false;
-    rtc_timer_enabled       = false;
-    wroteToRAMBanks         = false;
-
-	curr_rom_bank = 1;
-	curr_ram_bank = 1;
-
-	num_rom_banks = 2;
-	num_ram_banks = 1;
-
-	romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
-	ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
-
-	mbc_num     = 0;
-    mbc_type    = UNKNOWN;
-
-    prev_mbc3_latch = -1;
-    curr_mbc3_latch = -1;
-
-	setFromTo(&rom_from_to, 0x0000, 0x7FFF);
-	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
-}
-
-
-MBC::~MBC()
-{
-    logger.reset();
-}
-
-void MBC::MBC_init(int mbcNum, int numROMBanks, int numRAMBanks)
-{
-	rom_banking_mode        = true;
-	ram_banking_mode        = false;
-	external_ram_enabled    = false;
-	curr_rom_bank = 1;
-	curr_ram_bank = 1;
+    rom_banking_mode = true;
+    ram_banking_mode = false;
+    external_ram_enabled = false;
+    curr_rom_bank = 1;
+    curr_ram_bank = 1;
 
     num_rom_banks = numROMBanks;
     num_ram_banks = numRAMBanks;
@@ -52,23 +19,32 @@ void MBC::MBC_init(int mbcNum, int numROMBanks, int numRAMBanks)
     romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
     ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
 
-	mbc_num = mbcNum;
+    mbc_num = mbcNum;
     mbc_type = static_cast<MBC_Type>(mbcNum);
 
-	switch (mbc_num)
-	{
-	case MBC1:  MBC1_init(); break;
-	case MBC2:  MBC2_init(); break;
-	case MBC3:  MBC3_init(); break;
-	case MBC5:  MBC5_init(); break;
-	case MBC6:  MBC6_init(); break;
-	case MBC7:  MBC7_init(); break;
+    switch (mbc_num)
+    {
+    case MBC1:  MBC1_init(); break;
+    case MBC2:  MBC2_init(); break;
+    case MBC3:  MBC3_init(); break;
+    case MBC5:  MBC5_init(); break;
+    case MBC6:  MBC6_init(); break;
+    case MBC7:  MBC7_init(); break;
     case HuC1:  HuC1_init(); break;
     case HuC3:  HuC3_init(); break;
     case MMM01: MMM01_init(); break;
     case TAMA5: TAMA5_init(); break;
-	}
+    }
+
+    logger = _logger;
+
     logger->info("Using MBC: {}", mbc_num);
+}
+
+
+MBC::~MBC()
+{
+    logger.reset();
 }
 
 void MBC::MBC1_init()

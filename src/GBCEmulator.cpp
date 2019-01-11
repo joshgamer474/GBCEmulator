@@ -3,7 +3,6 @@
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     : cpu(std::make_shared<CPU>()),
     cartridgeReader(std::make_shared<CartridgeReader>()),
-    mbc(std::make_shared<MBC>()),
     stopRunning(false),
     debugMode(false),
     ranInstruction(false),
@@ -16,10 +15,6 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu = std::make_shared<GPU>(renderer);
 
     init_logging(logName);
-    set_logging_level(spdlog::level::trace);
-    gpu->logger->set_level(spdlog::level::info);
-    cpu->logger->set_level(spdlog::level::info);
-    logCounter = 0;
 
     read_rom(romName);
 
@@ -36,6 +31,12 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     ticksRan = 0;
     prevTicks = 0;
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
+
+    // Set log levels
+    set_logging_level(spdlog::level::trace);
+    gpu->logger->set_level(spdlog::level::info);
+    cpu->logger->set_level(spdlog::level::info);
+    logCounter = 0;
 }
 
 GBCEmulator::~GBCEmulator()
@@ -109,9 +110,10 @@ void GBCEmulator::read_rom(std::string filename)
 void GBCEmulator::init_memory()
 {
     // Setup Memory Bank Controller
-    mbc->MBC_init(cartridgeReader->getMBCNum(),
+    mbc = std::make_shared<MBC>(cartridgeReader->getMBCNum(),
         cartridgeReader->num_ROM_banks,
-        cartridgeReader->num_RAM_banks);
+        cartridgeReader->num_RAM_banks,
+        std::make_shared<spdlog::logger>("MBC", logger));
 
     // Set GB object pointers, move game cartridge into ROM banks
     cpu->memory->cartridgeReader = cartridgeReader;
@@ -156,13 +158,6 @@ void GBCEmulator::runNextInstruction()
     uint64_t tickDiff = cpu->ticks - prevTicks;
     ticksRan += tickDiff;
 
-    if (logCounter % 100 == 0)
-    {
-        logCounter = 0;
-        logger->flush();
-    }
-    logCounter++;
-
 #ifdef USE_FRAME_TIMING
     if (gpu->frame_is_ready)
     {
@@ -178,6 +173,17 @@ void GBCEmulator::runNextInstruction()
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
     }
+#endif
+
+#ifdef USE_AUDIO_TIMING
+    if (gpu->frame_is_ready)
+    {
+        frameIsUpdatedFunction();
+        gpu->frame_is_ready = false;
+
+        cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
+        cpu->memory->apu->samplesPerFrame = 0;
+    }
 #else
     if (ticksRan >= ticksPerFrame)
     {
@@ -192,15 +198,13 @@ void GBCEmulator::runNextInstruction()
         cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
         cpu->memory->apu->samplesPerFrame = 0;
 
-#ifndef USE_AUDIO_TIMING
         // Sleep until next burst of ticks is ready to be ran
         waitToStartNextFrame();
 
         // Update frameStartTime to current time
         frameStartTime = getCurrentTime();
-#endif // USE_AUDIO_TIMING
     }
-#endif // USE_FRAME_TIMING
+#endif // USE_AUDIO_TIMING
 
     if (cpu->memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
@@ -215,6 +219,13 @@ void GBCEmulator::runNextInstruction()
         cpu->memory->cgb_speed_mode |= BIT7;
         cpu->memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
+
+    if (logCounter % 100 == 0)
+    {
+        logCounter = 0;
+        logger->flush();
+    }
+    logCounter++;
 
     prevTicks = cpu->ticks;
     ranInstruction = true;
@@ -248,7 +259,6 @@ void GBCEmulator::init_logging(std::string logName)
     cpu->memory->logger         = std::make_shared<spdlog::logger>("Memory", logger);
     cpu->memory->apu->logger    = std::make_shared<spdlog::logger>("APU", logger);
     cpu->memory->joypad->logger = std::make_shared<spdlog::logger>("Joypad", logger);
-    mbc->logger                 = std::make_shared<spdlog::logger>("MBC", logger);
     gpu->logger                 = std::make_shared<spdlog::logger>("GPU", logger);
     cartridgeReader->logger     = std::make_shared<spdlog::logger>("CartridgeReader", logger);
 }
