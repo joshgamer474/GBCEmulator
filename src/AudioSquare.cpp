@@ -7,21 +7,23 @@ AudioSquare::AudioSquare(const uint16_t & register_offset)
     : reg_offset(register_offset)
 {
     duty_pos                    = 0;
-    sweep_shift_num             = 0;
+    sweep_period                = 0;
+    sweep_period_load           = 0;
+    sweep_shift                 = 0;
     wave_pattern_duty           = 0;
     sound_length_data           = 0;
     initial_volume_of_envelope  = 0;
     envelope_period_load        = 0;
     envelope_period             = 0;
     frequency_16                = 0;
-    frequency                   = 0;
+    sweep_frequency_16          = 0;
     timer                       = 64;
     curr_sample                 = 0;
     volume                      = 0;
     output_volume               = 0;
-    sweep_time                  = 0.0f;
     sound_length                = 0.0f;
     sweep_decrease              = false;
+    sweep_running               = false;
     envelope_increase           = false;
     envelope_running            = false;
     stop_output_when_sound_length_ends = false;
@@ -40,9 +42,8 @@ void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
 {
     uint16_t useAddr = addr - reg_offset;
 
-    if (useAddr < registers.size())
+    if (useAddr <= 4)
     {
-        registers[useAddr] = val;
         parseRegister(useAddr, val);
     }
     else
@@ -54,10 +55,35 @@ void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
 uint8_t AudioSquare::readByte(const uint16_t & addr)
 {
     uint16_t useAddr = addr - reg_offset;
+    uint8_t ret = 0;
 
-    if (useAddr < registers.size())
+    if (useAddr <= 4)
     {
-        return registers[useAddr];
+        switch (useAddr)
+        {
+        case 0:
+            ret = sweep_period_load << 4;
+            ret |= (static_cast<uint8_t>(sweep_decrease) << 3);
+            ret |= (sweep_shift & 0x07);
+            break;
+        case 1:
+            ret = (wave_pattern_duty << 6) & 0xC0; // Only bits 6-7 are readable
+            break;
+        case 2:
+            ret = initial_volume_of_envelope << 4;
+            ret |= (static_cast<uint8_t>(envelope_increase) << 3);
+            ret |= (sound_length_data & 0x03);
+            break;
+        case 3:
+            ret = 0xFF; // Not readable
+            break;
+        case 4:
+            // Only bit 6 is readable
+            ret = (static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6);
+            break;
+        }
+
+        return ret;
     }
     else
     {
@@ -71,11 +97,9 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     switch (reg)
     {
     case 0:
-        sweep_time = (val & 0x70) >> 4;
-        sweep_decrease = val & BIT3;
-        sweep_shift_num = val & 0x07;
-
-        sweep_time *= (1.0f / 128.0f);
+        sweep_period_load   = (val >> 4) & 0x07;
+        sweep_decrease      = val & BIT3;
+        sweep_shift         = val & 0x07;
         break;
 
     case 1:
@@ -96,7 +120,6 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     case 3:
         frequency_16 &= 0xFF00;
         frequency_16 |= val;
-
         break;
 
     case 4:
@@ -104,15 +127,11 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
         stop_output_when_sound_length_ends = val & BIT6;
 
-        // Calculate frequency
-        frequency = 131072 / (2048 - frequency_16);
-
         if (restart_sound == false && (val & BIT7))
         {
             reset();
         }
         restart_sound = val & BIT7;
-
         break;
     }
 }
@@ -128,24 +147,39 @@ void AudioSquare::reset()
     // Reload frequency period
     timer = period;
 
-    // Reload envelope period
+    // Reload Envelope period
     envelope_period = envelope_period_load;
 
-    // Reload envelope volume
+    // Reload Envelope volume
     volume = initial_volume_of_envelope;
 
     if (sound_length_data == 0)
     {
-        sound_length_data = 63;
-
-        // Update register
-        registers[1] &= 0xC0;
-        registers[1] |= sound_length_data;
+        //sound_length_data = 0x3F;
+        sound_length_data = 0x40;
     }
 
-    /// TODO
-    // Channel volume from NRx2 is reloaded
-    // Reset Channel 1's sweep
+    /// Reset Sweep
+    sweep_period = sweep_period_load;
+    sweep_frequency_16 = frequency_16;
+
+    // Reload Sweep period
+    reloadPeriod(sweep_period, sweep_period_load);
+
+    // Check if Sweep is enabled
+    if (sweep_period > 0 || sweep_shift > 0)
+    {
+        sweep_running = true;
+    }
+    else
+    {
+        sweep_running = false;
+    }
+
+    if (sweep_shift > 0)
+    {   // Calculate frequency
+        calculateSweepFrequency();
+    }
 }
 
 void AudioSquare::initWaveDutyTable()
@@ -194,10 +228,6 @@ void AudioSquare::tickLengthCounter()
     {
         sound_length_data--;
 
-        // Update register
-        registers[1] &= 0xC0;
-        registers[1] |= sound_length_data;
-
         if (sound_length_data == 0)
         {   // Length counter hit 0, stop sound output
             is_enabled = false;
@@ -208,41 +238,94 @@ void AudioSquare::tickLengthCounter()
 
 void AudioSquare::tickVolumeEnvelope()
 {
-    if (envelope_period > 0)
+    if (envelope_period == 0)
     {
-        envelope_period--;
+        return;
+    }
 
-        if (envelope_period == 0)
-        {   // Reload period
-            if (envelope_period_load > 0)
-            {
-                envelope_period = envelope_period_load;
-            }
-            else
-            {
-                envelope_period = 8;
-            }
+    envelope_period--;
 
-            if (envelope_running && envelope_period > 0)
-            {   // Envelope is enabled and running
-                // Increase or decrease volume
-                if (envelope_increase && volume < 0x0F)
-                {
-                    volume++;
-                }
-                else if (!envelope_increase && volume > 0)
-                {
-                    volume--;
-                }
-            }
+    if (envelope_period == 0)
+    {   // Reload period
+        reloadPeriod(envelope_period, envelope_period_load);
 
-            // Check if Envelope should be disabled
-            if (volume == 0x00 ||
-                volume == 0x0F)
+        if (envelope_running && envelope_period > 0)
+        {   // Envelope is enabled and running
+            // Increase or decrease volume
+            if (envelope_increase && volume < 0x0F)
             {
-                envelope_running = false;
+                volume++;
+            }
+            else if (!envelope_increase && volume > 0)
+            {
+                volume--;
+            }
+        }
+
+        // Check if Envelope should be disabled
+        if (volume == 0x00 ||
+            volume == 0x0F)
+        {
+            envelope_running = false;
+        }
+    }
+}
+
+void AudioSquare::tickSweep()
+{
+    if (sweep_period == 0)
+    {
+        return;
+    }
+
+    sweep_period--;
+
+    if (sweep_period == 0)
+    {   // Reload period
+        reloadPeriod(sweep_period, sweep_period_load);
+
+        if (sweep_running && sweep_period_load > 0)
+        {
+            uint16_t newFrequency = calculateSweepFrequency();
+
+            if (newFrequency <= 2047 && sweep_shift > 0)
+            {   // Set variables to use new frequency
+                sweep_frequency_16 = newFrequency;
+                frequency_16 = newFrequency;
             }
         }
     }
+}
 
+uint16_t AudioSquare::calculateSweepFrequency()
+{
+    uint16_t freq = sweep_frequency_16 >> sweep_shift;
+
+    if (sweep_decrease)
+    {
+        freq = sweep_frequency_16 - freq;
+    }
+    else
+    {
+        freq = sweep_frequency_16 + freq;
+    }
+
+    if (freq > 2047)
+    {   // Calculated frequency cannot be above 2047, turn off sweep
+        sweep_running = false;
+    }
+
+    return freq;
+}
+
+void AudioSquare::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
+{
+    if (periodLoad > 0)
+    {
+        period = periodLoad;
+    }
+    else
+    {
+        period = 8;
+    }
 }
