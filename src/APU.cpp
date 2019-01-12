@@ -5,8 +5,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
-APU::APU()
+APU::APU(std::shared_ptr<spdlog::logger> _logger)
 {
+    logger = _logger;
     frame_sequence_step     = 0;
     channel_control         = 0;
     selection_of_sound_output = 0;
@@ -62,9 +63,9 @@ void APU::initSDLAudio()
     SDL_AudioSpec desiredSpec;
     desiredSpec.callback = NULL;
 #ifndef USE_FLOAT
-    desiredSpec.format = AUDIO_U8;
+    desiredSpec.format  = AUDIO_U8;
 #else
-    desiredSpec.format      = AUDIO_F32SYS;
+    desiredSpec.format  = AUDIO_F32SYS;
 #endif
     desiredSpec.freq = 44100;
     desiredSpec.channels = 2;

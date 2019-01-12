@@ -28,7 +28,8 @@ private:
 
 public:
 
-	CPU();
+	CPU(std::shared_ptr<spdlog::logger> logger,
+        std::shared_ptr<Memory> memory);
 	~CPU();
 
     void runNextInstruction();

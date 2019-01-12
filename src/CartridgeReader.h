@@ -12,8 +12,7 @@
 class CartridgeReader
 {
 public:
-	CartridgeReader();
-	CartridgeReader(std::string filename);
+	CartridgeReader(std::shared_ptr<spdlog::logger> logger);
 	~CartridgeReader();
 
 

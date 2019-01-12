@@ -32,7 +32,12 @@ class APU;
 class Memory
 {
 public:
-	Memory();
+	Memory(std::shared_ptr<spdlog::logger> logger,
+        std::shared_ptr<CartridgeReader> cartidgeReader,
+        std::shared_ptr<MBC> mbc,
+        std::shared_ptr<GPU> gpu,
+        std::shared_ptr<Joypad> joypad,
+        std::shared_ptr<APU> apu);
 	~Memory();
 
     void reset();

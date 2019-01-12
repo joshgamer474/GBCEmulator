@@ -37,7 +37,7 @@ struct Sample {
 class APU
 {
 public:
-    APU();
+    APU(std::shared_ptr<spdlog::logger> logger);
     virtual ~APU();
 
     void setByte(const uint16_t & addr, const uint8_t & val);

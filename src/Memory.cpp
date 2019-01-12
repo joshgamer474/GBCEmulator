@@ -8,11 +8,20 @@
 #include "Debug.h"
 #include <string>
 
-Memory::Memory()
+Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
+    std::shared_ptr<CartridgeReader> _cartidgeReader,
+    std::shared_ptr<MBC> _mbc,
+    std::shared_ptr<GPU> _gpu,
+    std::shared_ptr<Joypad> _joypad,
+    std::shared_ptr<APU> _apu)
+    :
+    logger(_logger),
+    cartridgeReader(_cartidgeReader),
+    mbc(_mbc),
+    gpu(_gpu),
+    joypad(_joypad),
+    apu(_apu)
 {
-	joypad = std::make_shared<Joypad>();
-    apu = std::make_shared<APU>();
-
 	timer_enabled   = false;
 	prev_clock_div  = prev_clock_tima = curr_clock = 0;
 	clock_frequency = 4096;
@@ -24,7 +33,8 @@ Memory::Memory()
     cgb_undoc_reg_ff6c  = 0;
     cgb_perform_speed_switch = false;
 
-	initWorkRAM(false);
+	initWorkRAM(cartridgeReader->isColorGB());
+    initROMBanks();
 }
 
 Memory::~Memory()

@@ -2,7 +2,8 @@
 #include "Joypad.h"
 #include "Debug.h"
 
-Joypad::Joypad()
+Joypad::Joypad(std::shared_ptr<spdlog::logger> _logger)
+    : logger(_logger)
 {
 	joypad_byte     = 0xFF;
     joypad_state    = 0xFF;

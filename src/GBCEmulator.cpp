@@ -1,27 +1,31 @@
 #include "GBCEmulator.h"
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
-    : cpu(std::make_shared<CPU>()),
-    cartridgeReader(std::make_shared<CartridgeReader>()),
-    stopRunning(false),
-    debugMode(false),
-    ranInstruction(false),
-    logFileBaseName(logName)
+    :   stopRunning(false),
+        debugMode(false),
+        ranInstruction(false),
+        logFileBaseName(logName)
 {
 #ifdef SDL_DRAW
     init_SDL();
 #endif
 
-    gpu = std::make_shared<GPU>(renderer);
-
     init_logging(logName);
+    
+    cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", logger));
+    apu     = std::make_shared<APU>(std::make_shared<spdlog::logger>("APU", logger));
+    joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", logger));
 
     read_rom(romName);
 
-    // Initialize memory objects, link GB components together
-    init_memory();
+    // Initialize GPU and memory objects, link GB components together
     init_gpu();
+    init_memory();
 
+    // Initialize CPU
+    cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", logger),
+        memory);
+    
     // Read in game save
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
     mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
@@ -115,19 +119,21 @@ void GBCEmulator::init_memory()
         cartridgeReader->num_RAM_banks,
         std::make_shared<spdlog::logger>("MBC", logger));
 
-    // Set GB object pointers, move game cartridge into ROM banks
-    cpu->memory->cartridgeReader = cartridgeReader;
-    cpu->memory->mbc = mbc;
-    cpu->memory->initWorkRAM(cartridgeReader->isColorGB());
-    cpu->memory->initROMBanks();
-    apu = cpu->memory->apu;
-    gpu->cpu = cpu;
+    // Setup Memory
+    memory = std::make_shared<Memory>(std::make_shared<spdlog::logger>("Memory", logger),
+        cartridgeReader,
+        mbc,
+        gpu,
+        joypad,
+        apu);
+
+    gpu->memory = memory;
 }
 
 void GBCEmulator::init_gpu()
 {
-    cpu->memory->gpu = gpu;
-    gpu->memory = cpu->memory;
+    gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", logger),
+        renderer);
 
     if (cartridgeReader->isColorGB())
     {
@@ -152,7 +158,7 @@ void GBCEmulator::run()
 void GBCEmulator::runNextInstruction()
 {
     cpu->runNextInstruction();
-    gpu->run();
+    gpu->run(cpu->ticks);
     apu->run(cpu->ticks);
 
     uint64_t tickDiff = cpu->ticks - prevTicks;
@@ -161,8 +167,8 @@ void GBCEmulator::runNextInstruction()
 #ifdef USE_FRAME_TIMING
     if (gpu->frame_is_ready)
     {
-        //cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
-        cpu->memory->apu->samplesPerFrame = 0;
+        //apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
+        apu->samplesPerFrame = 0;
 
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
@@ -181,8 +187,8 @@ void GBCEmulator::runNextInstruction()
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
 
-        cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
-        cpu->memory->apu->samplesPerFrame = 0;
+        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->samplesPerFrame = 0;
     }
 #else
     if (ticksRan >= ticksPerFrame)
@@ -195,8 +201,8 @@ void GBCEmulator::runNextInstruction()
             gpu->frame_is_ready = false;
         }
 
-        cpu->memory->apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
-        cpu->memory->apu->samplesPerFrame = 0;
+        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->samplesPerFrame = 0;
 
         // Sleep until next burst of ticks is ready to be ran
         waitToStartNextFrame();
@@ -206,9 +212,9 @@ void GBCEmulator::runNextInstruction()
     }
 #endif // USE_AUDIO_TIMING
 
-    if (cpu->memory->cgb_perform_speed_switch)
+    if (memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
-        cpu->memory->cgb_perform_speed_switch = false;
+        memory->cgb_perform_speed_switch = false;
 
         apu->initCGB();
 
@@ -216,8 +222,8 @@ void GBCEmulator::runNextInstruction()
         ticksPerFrame = CLOCK_SPEED_GBC_MAX / SCREEN_FRAMERATE; // cycles per frame
 
         // Set double speed flag
-        cpu->memory->cgb_speed_mode |= BIT7;
-        cpu->memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
+        memory->cgb_speed_mode |= BIT7;
+        memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
 
     if (logCounter % 100 == 0)
@@ -253,22 +259,14 @@ void GBCEmulator::init_logging(std::string logName)
 {
     // Create logger
     logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 20);
-
-    // Create loggers for each class
-    cpu->logger                 = std::make_shared<spdlog::logger>("CPU", logger);
-    cpu->memory->logger         = std::make_shared<spdlog::logger>("Memory", logger);
-    cpu->memory->apu->logger    = std::make_shared<spdlog::logger>("APU", logger);
-    cpu->memory->joypad->logger = std::make_shared<spdlog::logger>("Joypad", logger);
-    gpu->logger                 = std::make_shared<spdlog::logger>("GPU", logger);
-    cartridgeReader->logger     = std::make_shared<spdlog::logger>("CartridgeReader", logger);
 }
 
 void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
 {
     cpu->logger->set_level(l);
-    cpu->memory->logger->set_level(l);
-    cpu->memory->apu->logger->set_level(l);
-    cpu->memory->joypad->logger->set_level(l);
+    memory->logger->set_level(l);
+    apu->logger->set_level(l);
+    joypad->logger->set_level(l);
     mbc->logger->set_level(l);
     gpu->logger->set_level(l);
     cartridgeReader->logger->set_level(l);
@@ -315,7 +313,7 @@ std::vector<uint8_t> GBCEmulator::get_memory_map()
 
     for (uint16_t i = 0; i < 0xFFFF; i++)
     {
-        memory_map.push_back(cpu->memory->readByte(i));
+        memory_map.push_back(memory->readByte(i));
     }
 
     return memory_map;
@@ -328,24 +326,24 @@ std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uin
 
     for (uint16_t i = start_pos; i < end_pos; i++)
     {
-        partial_memory_map.push_back(cpu->memory->readByte(i));
+        partial_memory_map.push_back(memory->readByte(i));
     }
     return partial_memory_map;
 }
 
 void GBCEmulator::set_joypad_button(Joypad::BUTTON button)
 {
-    if (cpu->memory->joypad)
+    if (joypad)
     {
-        cpu->memory->joypad->set_joypad_button(button);
+        joypad->set_joypad_button(button);
     }
 }
 
 void GBCEmulator::release_joypad_button(Joypad::BUTTON button)
 {
-    if (cpu->memory->joypad)
+    if (joypad)
     {
-        cpu->memory->joypad->release_joypad_button(button);
+        joypad->release_joypad_button(button);
     }
 }
 

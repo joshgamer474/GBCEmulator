@@ -7,10 +7,12 @@
 #include <iomanip>
 #include <sstream>
 
-CPU::CPU()
+CPU::CPU(std::shared_ptr<spdlog::logger> _logger,
+    std::shared_ptr<Memory> _memory)
+    :
+    logger(_logger),
+    memory(_memory)
 {
-    memory = std::make_shared<Memory>();
-
 	registers.resize(NUM_OF_REGISTERS);
 	ticks = 0;
 	interrupt_master_enable = false;

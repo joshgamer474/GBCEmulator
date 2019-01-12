@@ -72,6 +72,8 @@ private:
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;
     std::shared_ptr<GPU> gpu;
+    std::shared_ptr<Memory> memory;
+    std::shared_ptr<Joypad> joypad;
 
     SDL_GLContext glContext;
     SDL_Surface *screenSurface;

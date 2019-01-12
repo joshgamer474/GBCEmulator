@@ -1,14 +1,15 @@
 #include "stdafx.h"
 
 #include "GPU.h"
-#include "Memory.h"
-#include "CPU.h"
 #include "Joypad.h"
-#include "CartridgeReader.h"
+#include "Memory.h"
 #include "Debug.h"
 #include "Tile.h"
 
-GPU::GPU(SDL_Renderer *render)
+GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
+    SDL_Renderer *render)
+    :
+    logger(_logger)
 {
 	is_color_gb = false;
 	num_vram_banks = 1;
@@ -65,7 +66,6 @@ GPU::GPU(SDL_Renderer *render)
 
 GPU::~GPU()
 {
-    cpu.reset();
     memory.reset();
     logger.reset();
 }
@@ -1239,11 +1239,11 @@ void GPU::display()
 #endif
 }
 
-void GPU::run()
+void GPU::run(const uint64_t & cpuTicks)
 {
     if (lcd_display_enable == false)
     {
-        last_ticks = cpu->ticks;
+        last_ticks = cpuTicks;
 
         if ((lcd_status & 0x03) != GPU_MODE_HBLANK)
         {
@@ -1252,8 +1252,8 @@ void GPU::run()
         return;
     }
 
-	ticks += cpu->ticks - last_ticks;
-	last_ticks = cpu->ticks;
+	ticks += cpuTicks - last_ticks;
+	last_ticks = cpuTicks;
 
     // Account for double speed mode
     uint16_t cgb_double_speed_multiplier = 1;

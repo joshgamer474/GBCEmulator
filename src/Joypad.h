@@ -20,7 +20,7 @@
 class Joypad
 {
 public:
-	Joypad();
+	Joypad(std::shared_ptr<spdlog::logger> logger);
 	~Joypad();
 
 	enum BUTTON

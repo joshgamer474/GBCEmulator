@@ -3,20 +3,12 @@
 #include "Debug.h"
 #include "MBC.h"
 
-CartridgeReader::CartridgeReader()
-    : is_bios(true)
+CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger)
+    : is_bios(true),
+    logger(_logger)
 {
 
 }
-
-
-CartridgeReader::CartridgeReader(std::string filename)
-    : is_bios(true)
-{
-	// Set game cartridge name
-	setRomDestination(filename);
-}
-
 
 CartridgeReader::~CartridgeReader()
 {

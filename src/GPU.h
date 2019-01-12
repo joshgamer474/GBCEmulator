@@ -23,32 +23,20 @@
 #define TOTAL_SCREEN_TILE_W 32
 
 class Memory;
-class CPU;
 class Tile;
 
 class GPU
 {
-
-private:
-    bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
-    void sortNonCGBOAMSpriteOrder();
-
-	std::vector<std::vector<unsigned char>> vram_banks;
-	std::vector<unsigned char> object_attribute_memory;
-	std::vector<std::vector<std::vector<Tile>>> bg_tiles;
-	SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-    SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-    std::vector<uint8_t> objects_pos_to_use;
-
 public:
 
-	GPU(SDL_Renderer *render);
+	GPU(std::shared_ptr<spdlog::logger> logger,
+        SDL_Renderer *render);
 	~GPU();
 
 	void init_gbc();
 
-	std::shared_ptr<CPU> cpu;
     std::shared_ptr<Memory> memory;
+    std::shared_ptr<spdlog::logger> logger;
 	bool is_color_gb;
 	int num_vram_banks;
 	int curr_vram_bank;
@@ -78,7 +66,7 @@ public:
 	int gpu_mode;
 
 	void init_color_gb();
-	void run();
+	void run(const uint64_t & cpuTicks);
     void renderLine();
     void drawBackgroundLine();
     void drawWindowLine();
@@ -177,11 +165,19 @@ public:
 	SDL_Renderer *renderer;
 	SDL_Texture *game_screen;
 
-
-	std::shared_ptr<spdlog::logger> logger;
-
     bool frame_is_ready;
     bool bg_tiles_updated;
     bool lcd_status_interrupt_signal;
+
+    private:
+        bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
+        void sortNonCGBOAMSpriteOrder();
+
+        std::vector<std::vector<unsigned char>> vram_banks;
+        std::vector<unsigned char> object_attribute_memory;
+        std::vector<std::vector<std::vector<Tile>>> bg_tiles;
+        SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+        SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+        std::vector<uint8_t> objects_pos_to_use;
 };
 #endif
