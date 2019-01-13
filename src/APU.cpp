@@ -183,10 +183,10 @@ uint8_t APU::readByte(const uint16_t & addr)
     case 0xFF25: return selection_of_sound_output;
     case 0xFF26:
         return (sound_on & 0x80)
-            | static_cast<uint8_t>(sound_channel_1->is_enabled)
-            | static_cast<uint8_t>((sound_channel_2->is_enabled)) << 1
-            | static_cast<uint8_t>((sound_channel_3->is_enabled)) << 2
-            | static_cast<uint8_t>((sound_channel_4->is_enabled)) << 3;
+            | static_cast<uint8_t>(sound_channel_1->sound_length_data)
+            | static_cast<uint8_t>((sound_channel_2->sound_length_data) << 1)
+            | static_cast<uint8_t>((sound_channel_3->is_enabled) << 2)
+            | static_cast<uint8_t>((sound_channel_4->is_enabled) << 3);
     }
 
     return 0xFF;
