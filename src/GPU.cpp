@@ -288,7 +288,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
                     dest_address = hdma3;
                     dest_address = (dest_address << 8) | hdma4;
 
-                    memory->do_cgb_oam_dma_transfer(source_address, dest_address, hdma5);
+                    memory->do_cgb_oam_dma_transfer(hdma1, hdma2, hdma3, hdma4, hdma5);
                     return;
 
                     // Background Palette Index
@@ -1281,7 +1281,7 @@ void GPU::run(const uint64_t & cpuTicks)
                 cgb_dma_hblank_in_progress &&
                 hdma5 != 0xFF)
             {
-                memory->do_cgb_h_blank_dma(hdma5);
+                memory->do_cgb_h_blank_dma(hdma1, hdma2, hdma3, hdma4, hdma5);
             }
 
 			// Check if frame rendering has completed, start VBLANK interrupt

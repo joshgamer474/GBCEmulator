@@ -44,8 +44,8 @@ public:
 	void initWorkRAM(bool isColorGB);
 	void initROMBanks();
 	void do_oam_dma_transfer(uint8_t start_address);
-    void do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_address, uint8_t & hdma5);
-    void do_cgb_h_blank_dma(uint8_t & hdma5);
+    void do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5);
+    void do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5);
     void writeToTimerRegisters(uint16_t addr, uint8_t val);
 	void updateTimer(uint64_t ticks, double clock_speed);
 
@@ -82,10 +82,5 @@ public:
 	bool timer_enabled;
 	uint64_t prev_clock_div, curr_clock, prev_clock_tima;
 	uint32_t clock_frequency;
-
-private:
-    uint16_t cgb_dma_start_addr_offset;
-    uint16_t cgb_dma_start_addr;
-    uint16_t cgb_dma_dest_addr;
 };
 #endif

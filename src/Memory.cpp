@@ -505,16 +505,18 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 }
 
 // Performs copying of ROM/RAM to GPU->OAM memory
-void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_address, uint8_t & hdma5)
+void Memory::do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5)
 {
     uint8_t val;
+    uint16_t startAddress = (static_cast<uint16_t>(hdma1) << 8) | hdma2;
+    uint16_t destAddress = (static_cast<uint16_t>(hdma3) << 8) | hdma4;
 
     // Should be between range 0x0000-0x7FF0 or 0xA000-0xDFF0
-    start_address &= 0xFFF0;    // Lower 4-bits are treated as 0s
+    startAddress &= 0xFFF0;    // Lower 4-bits are treated as 0s
 
     // Should be between range 0x8000-0x9FF0
-    dest_address &= 0x1FF0;     // Only bits 12-4 are respected
-    dest_address |= 0x8000;     // Dest is at a minimum 0x8000
+    destAddress &= 0x1FF0;     // Only bits 12-4 are respected
+    destAddress |= 0x8000;     // Dest is at a minimum 0x8000
 
     uint16_t transfer_length = hdma5 & 0x7F;
     bool h_blank_dma        = hdma5 & 0x80;
@@ -523,8 +525,8 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
     transfer_length = (transfer_length + 1) * 0x10;
 
     logger->info("Performing HDMA5 DMA from starting source: {0:x}, dest source: {1:x}, length: {2:x}, DMA type: {3:b}",
-        start_address,
-        dest_address,
+        startAddress,
+        destAddress,
         transfer_length,
         h_blank_dma);
 
@@ -533,8 +535,8 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
         // Copy memory from Source address to Dest address
         for (uint16_t i = 0; i < transfer_length; i++)
         {
-            val = readByte(start_address + i);
-            setByte(dest_address + i, val);
+            val = readByte(startAddress++);
+            setByte(destAddress++, val);
         }
 
         hdma5 = 0xFF;
@@ -543,40 +545,49 @@ void Memory::do_cgb_oam_dma_transfer(uint16_t start_address, uint16_t dest_addre
     }
     else
     {
-        cgb_dma_start_addr_offset = 0;
-        cgb_dma_start_addr = start_address;
-        cgb_dma_dest_addr = dest_address;
         hdma5 &= 0x7F;  // Set BIT7 == 0 to tell games that transfer is active
         gpu->cgb_dma_hblank_in_progress = true;
         logger->info("Going to do H-Blank DMA transfer from addr: 0x{0:x} to addr: 0x{1:x}, length: 0x{2:x}",
-            cgb_dma_start_addr,
-            cgb_dma_dest_addr,
+            startAddress,
+            destAddress,
             transfer_length);
     }
+
+    // Update HDMA registers
+    hdma1 = startAddress >> 8;
+    hdma2 = startAddress & 0x00FF;
+    hdma3 = destAddress >> 8;
+    hdma4 = destAddress & 0x00FF;
 }
 
-void Memory::do_cgb_h_blank_dma(uint8_t & hdma5)
+void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5)
 {
+    uint8_t val = 0;
     uint8_t length = hdma5 & 0x7F;
     uint16_t numBytesToTransfer = (length + 1) * 0x10;
-    uint8_t val = 0;
+    uint16_t startAddress = (static_cast<uint16_t>(hdma1) << 8) | hdma2;
+    uint16_t destAddress = (static_cast<uint16_t>(hdma3) << 8) | hdma4;
 
-    logger->info("Doing H-Blank DMA transfer from addr: 0x{0:x} to addr: 0x{1:x}, length: 0x{2:x}, offset: 0x{3:x}",
-        cgb_dma_start_addr,
-        cgb_dma_dest_addr,
-        numBytesToTransfer,
-        cgb_dma_start_addr_offset);
+    logger->info("Doing H-Blank DMA transfer from addr: 0x{0:x} to addr: 0x{1:x}, length: 0x{2:x}",
+        startAddress,
+        destAddress,
+        numBytesToTransfer);
 
     for (uint16_t i = 0; i < 0x10; i++)
     {
-        val = readByte(cgb_dma_start_addr + cgb_dma_start_addr_offset);
-        setByte(cgb_dma_dest_addr + cgb_dma_start_addr_offset, val);
-        cgb_dma_start_addr_offset++;
+        val = readByte(startAddress++);
+        setByte(destAddress++, val);
         numBytesToTransfer--;
     }
 
     // Calculate new length
     length = (numBytesToTransfer / 0x10) - 1;
+
+    // Update HDMA registers
+    hdma1 = startAddress >> 8;
+    hdma2 = startAddress & 0x00FF;
+    hdma3 = destAddress >> 8;
+    hdma4 = destAddress & 0x00FF;
 
     // Update HDMA5 length remaining
     hdma5 = length;
