@@ -53,24 +53,28 @@ uint8_t AudioWave::readByte(const uint16_t & addr)
         {
         case 0:
             ret = static_cast<uint8_t>(channel_is_enabled) << 7;
+            ret |= 0x7F;    // Unused bits are 1s
             break;
         case 1:
             ret = sound_length_data;
             break;
         case 2:
             ret = volume << 5;
+            ret |= 0xD0;    // Unused bits are 1s
             break;
         case 3:
             ret = 0xFF; // Write only
             break;
         case 4:
             ret = static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6;
+            ret |= 0xBF;    // Unused bits are 1s
             break;
         }
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {
-        return wave_pattern_RAM[addr - 0xFF30];
+        //return wave_pattern_RAM[addr - 0xFF30];
+        return wave_pattern_RAM[nibble_pos / 2];    // Return current selected byte in wave data
     }
     else
     {

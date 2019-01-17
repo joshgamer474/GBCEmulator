@@ -103,6 +103,12 @@ void APU::initSDLAudio()
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
 {
+    if (sound_on == false &&
+        addr < 0xFF26)
+    {
+        return;
+    }
+
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {   // Channel 1 - Square 1
         sound_channel_1->setByte(addr, val);
@@ -141,7 +147,11 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
 
         if (sound_on && (val & BIT7) == 0)
         {   // Disabling sound, reset APU
-
+            // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
+            for (uint16_t i = 0xFF10; i < 0xFF26; i++)
+            {
+                setByte(i, 0);
+            }
         }
         else if (!sound_on && (val & BIT7))
         {   // Enabling sound
@@ -185,7 +195,7 @@ uint8_t APU::readByte(const uint16_t & addr)
         return (sound_on & 0x80)
             | static_cast<uint8_t>(sound_channel_1->sound_length_data)
             | static_cast<uint8_t>((sound_channel_2->sound_length_data) << 1)
-            | static_cast<uint8_t>((sound_channel_3->is_enabled) << 2)
+            | static_cast<uint8_t>((sound_channel_3->sound_length_data) << 2)
             | static_cast<uint8_t>((sound_channel_4->is_enabled) << 3);
     }
 
@@ -230,7 +240,7 @@ void APU::run(const uint64_t & cpuTicks)
                 sound_channel_1->tickLengthCounter();
                 sound_channel_2->tickLengthCounter();
                 sound_channel_3->tickLengthCounter();
-                //sound_channel_4->tickLengthCounter();
+                sound_channel_4->tickLengthCounter();
                 break;
             case 2:
             case 6:
@@ -238,12 +248,12 @@ void APU::run(const uint64_t & cpuTicks)
                 sound_channel_1->tickLengthCounter();
                 sound_channel_2->tickLengthCounter();
                 sound_channel_3->tickLengthCounter();
-                //sound_channel_4->tickLengthCounter();
+                sound_channel_4->tickLengthCounter();
                 break;
             case 7:
                 sound_channel_1->tickVolumeEnvelope();
                 sound_channel_2->tickVolumeEnvelope();
-                //sound_channel_4->tickVolumeEnvelope();
+                sound_channel_4->tickVolumeEnvelope();
                 break;
             }
 
@@ -258,7 +268,7 @@ void APU::run(const uint64_t & cpuTicks)
         sound_channel_1->tick();
         sound_channel_2->tick();
         sound_channel_3->tick();
-        //sound_channel_4->tick();
+        sound_channel_4->tick();
 
         // Tick sample_timer
         if (sample_timer > 0)
@@ -277,21 +287,25 @@ void APU::run(const uint64_t & cpuTicks)
                 uint8_t channel_1_sample = sound_channel_1->output_volume;
                 uint8_t channel_2_sample = sound_channel_2->output_volume;
                 uint8_t channel_3_sample = sound_channel_3->output_volume;
+                uint8_t channel_4_sample = sound_channel_4->output_volume;
 #else
                 float channel_1_sample = ((float)sound_channel_1->output_volume) / 100.0;
                 float channel_2_sample = ((float)sound_channel_2->output_volume) / 100.0;
                 float channel_3_sample = ((float)sound_channel_3->output_volume) / 100.0;
+                float channel_4_sample = ((float)sound_channel_4->output_volume) / 100.0;
 #endif
 
                 // Apply samples to left and/or right out channels
 #ifndef USE_FLOAT
                 sendChannelOutputToSample(sample, channel_1_sample, 1);
                 sendChannelOutputToSample(sample, channel_2_sample, 2);
-                //sendChannelOutputToSample(sample, channel_3_sample, 3);
+                sendChannelOutputToSample(sample, channel_3_sample, 3);
+                sendChannelOutputToSample(sample, channel_4_sample, 4);
 #else
                 sendChannelOutputToSampleFloat(sample, channel_1_sample, 1);
                 sendChannelOutputToSampleFloat(sample, channel_2_sample, 2);
                 sendChannelOutputToSampleFloat(sample, channel_3_sample, 3);
+                sendChannelOutputToSampleFloat(sample, channel_4_sample, 4);
 #endif
             } // end if(sound_on)
 

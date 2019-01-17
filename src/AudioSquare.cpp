@@ -69,6 +69,7 @@ uint8_t AudioSquare::readByte(const uint16_t & addr)
             break;
         case 1:
             ret = (wave_pattern_duty << 6) & 0xC0; // Only bits 6-7 are readable
+            ret |= 0x3F;    // Unused bits are 1s
             break;
         case 2:
             ret = initial_volume_of_envelope << 4;
@@ -81,6 +82,7 @@ uint8_t AudioSquare::readByte(const uint16_t & addr)
         case 4:
             // Only bit 6 is readable
             ret = (static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6);
+            ret |= 0xBF;    // Unused bits are 1s
             break;
         }
 
@@ -102,7 +104,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         sweep_decrease      = val & BIT3;
         sweep_shift         = val & 0x07;
         
-        sweep_period = sweep_period_load;
+        reloadPeriod(sweep_period, sweep_period_load);
         break;
 
     case 1:
@@ -116,7 +118,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         envelope_increase           = val & BIT3;
         envelope_period_load        = val & 0x07;
 
-        envelope_period = envelope_period_load;
+        reloadPeriod(envelope_period, envelope_period_load);
         volume = initial_volume_of_envelope;
 
         if ((val & 0xF8) > 0)
@@ -139,11 +141,15 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
         stop_output_when_sound_length_ends = val & BIT6;
 
-        if (!restart_sound && (val & BIT7))
+        //if (!restart_sound && (val & BIT7))
+        //{
+        //    reset();
+        //}
+        restart_sound = val & BIT7;
+        if (restart_sound)
         {
             reset();
         }
-        restart_sound = val & BIT7;
         break;
     }
 }
@@ -157,7 +163,7 @@ void AudioSquare::reset()
     period = (2048 - frequency_16) * 4;
 
     // Reload frequency period
-    timer = period;
+    timer = (timer & 0x03) | period;    // Lower 2 bits of frequency timer are not modified
 
     // Reload Envelope period
     reloadPeriod(envelope_period, envelope_period_load);
@@ -171,7 +177,6 @@ void AudioSquare::reset()
     }
 
     /// Reset Sweep
-    sweep_period = sweep_period_load;
     sweep_frequency_16 = frequency_16;
 
     // Reload Sweep period
@@ -183,7 +188,7 @@ void AudioSquare::reset()
     }
 
     // Check if Sweep is enabled
-    if (sweep_period > 0 || sweep_shift > 0)
+    if (sweep_period != 0 || sweep_shift != 0)
     {
         sweep_running = true;
     }
@@ -192,7 +197,7 @@ void AudioSquare::reset()
         sweep_running = false;
     }
 
-    if (sweep_shift > 0)
+    if (sweep_shift != 0)
     {   // Calculate frequency
         calculateSweepFrequency();
     }
@@ -294,7 +299,8 @@ void AudioSquare::tickVolumeEnvelope()
         }
     }
 }
-
+// http://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
+// Frequency Sweep
 void AudioSquare::tickSweep()
 {
     if (sweep_period == 0)
@@ -315,6 +321,17 @@ void AudioSquare::tickSweep()
             reloadPeriod(sweep_period, sweep_period_load);
         }
 
+        sweep_frequency_16 = frequency_16;
+
+        if (sweep_period != 0 || sweep_shift != 0)
+        {
+            sweep_running = true;
+        }
+        else
+        {
+            sweep_running = false;
+        }
+
         if (sweep_running && sweep_period_load > 0)
         {
             uint16_t newFrequency = calculateSweepFrequency();
@@ -323,7 +340,7 @@ void AudioSquare::tickSweep()
             {   // Set variables to use new frequency
                 sweep_frequency_16 = newFrequency;
                 frequency_16 = newFrequency;
-                calculateSweepFrequency();
+                calculateSweepFrequency();  
             }
         }
     }
@@ -343,8 +360,9 @@ uint16_t AudioSquare::calculateSweepFrequency()
         freq = sweep_frequency_16 + freq;
     }
 
+    // Overflow check
     if (freq > 2047)
-    {   // Calculated frequency cannot be above 2047, turn off sweep
+    {   // Calculated frequency cannot be above 2047, turn off channel
         is_enabled = false;
         sweep_running = false;
     }

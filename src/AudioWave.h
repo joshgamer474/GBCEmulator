@@ -17,6 +17,7 @@ public:
     void reset();
 
     uint8_t output_volume;
+    uint8_t sound_length_data;
     bool is_enabled;
 
 private:
@@ -27,7 +28,6 @@ private:
 
     uint8_t curr_sample;
     uint8_t volume;
-    uint8_t sound_length_data;
     uint8_t nibble_pos;
     uint16_t frequency_16;
     uint32_t frequency;

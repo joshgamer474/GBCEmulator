@@ -1,6 +1,7 @@
 #ifndef AUDIO_NOISE_H
 #define AUDIO_NOISE_H
 
+#include <cstdint>
 #include <array>
 
 class AudioNoise
@@ -11,25 +12,37 @@ public:
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
+    void tick();
+    void tickLengthCounter();
+    void tickVolumeEnvelope();
 
+    uint8_t output_volume;
     bool is_enabled;
 
 private:
+    void reset();
     void parseRegister(const uint8_t & reg, const uint8_t & val);
-    
-    std::array<uint8_t, 4> registers;
-    uint16_t reg_offset;
+    void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
 
-    uint8_t initial_volume_of_envelope = 0;
-    uint8_t envelope_period_load = 0;
-    uint8_t shift_clock_frequency = 0;
-    uint8_t counter_step = 0;
-    float sound_length = 0.0f;
-    float dividing_ratio_of_frequencies = 0.0f;
-    float frequency = 0.0f;
-    bool envelope_increase = false;
-    bool stop_output_when_sound_length_ends = false;
-    bool restart_sound = false;
+    uint16_t reg_offset;
+    std::array<uint8_t, 8> divisors;
+
+    uint8_t timer;
+    uint8_t initial_volume_of_envelope;
+    uint8_t envelope_period;
+    uint8_t envelope_period_load;
+    uint8_t shift_clock_frequency;
+    uint8_t counter_step;
+    uint8_t sound_length_data;
+    uint8_t dividing_ratio_of_frequencies;
+    uint8_t volume;
+    uint16_t lfsr;
+    bool half_counter_step;
+    bool envelope_enabled;
+    bool envelope_increase;
+    bool envelope_running;
+    bool stop_output_when_sound_length_ends;
+    bool restart_sound;
 };
 
 #endif
