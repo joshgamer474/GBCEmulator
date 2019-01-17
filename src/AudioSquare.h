@@ -46,7 +46,6 @@ private:
     uint16_t sweep_frequency_16;
     uint64_t timer;
     uint64_t period;
-    float sound_length;
     bool sweep_decrease;
     bool sweep_running;
     bool envelope_increase;

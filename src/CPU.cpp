@@ -363,18 +363,16 @@ bool CPU::runInstruction(std::uint8_t instruc)
             set_register(CPU::REGISTERS::A, static_cast<uint8_t>(0x11));
         }
 
-		printRegisters();
+		//printRegisters();
 		logger->info("Done running bootstrap, moving on to cartridge");
-		//startLogging = true;
+		startLogging = true;
 	}
 
 
 	if (startLogging)
 	{
 		//startLogging = false;
-		logger->set_level(spdlog::level::trace);
-		//logger->info("PC: 0x{0:x}, instruction: 0x{1:x}", registers[PC], instruc);
-
+		//logger->set_level(spdlog::level::trace);
         logger->trace("PC: 0x{0:x},\tInstruction: 0x{1:x},\tBC: 0x{2:x}\tDE: 0x{3:x}\tHL: 0x{4:x}\tAF: 0x{5:x}\tSP: 0x{6:x}",
             registers[PC],
             instruc,
@@ -2416,6 +2414,8 @@ void CPU::handle_CB(std::uint8_t instruc)
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
+    logger->trace("CB 0x{0:x}", instruc);
+
 	ticks += 4;
 	registers[PC]++;
 
@@ -3120,7 +3120,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
         case 0x04:
         case 0x05:
         case 0x06:
-			ret = "LD " + REGISTERS_STR[regPattern1] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
+			ret = "LD " + REGISTERS_STR[reg_list[regPattern1]] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
 			break;
         case 0x07:
 			if (lower8 <= 0x05)

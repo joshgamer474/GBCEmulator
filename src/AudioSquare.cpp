@@ -21,7 +21,6 @@ AudioSquare::AudioSquare(const uint16_t & register_offset)
     curr_sample                 = 0;
     volume                      = 0;
     output_volume               = 0;
-    sound_length                = 0.0f;
     sweep_decrease              = false;
     sweep_running               = false;
     envelope_increase           = false;
@@ -103,14 +102,11 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         sweep_period_load   = (val >> 4) & 0x07;
         sweep_decrease      = val & BIT3;
         sweep_shift         = val & 0x07;
-        
-        reloadPeriod(sweep_period, sweep_period_load);
         break;
 
     case 1:
         wave_pattern_duty = (val >> 6) & 0x03;
         sound_length_data = val & 0x3F;
-        sound_length = (64.0f - sound_length_data) * (1.0f / 256.0f);
         break;
 
     case 2:
@@ -118,10 +114,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         envelope_increase           = val & BIT3;
         envelope_period_load        = val & 0x07;
 
-        reloadPeriod(envelope_period, envelope_period_load);
-        volume = initial_volume_of_envelope;
-
-        if ((val & 0xF8) > 0)
+        if (val & 0xF8)
         {
             envelope_enabled = true;
         }
@@ -141,10 +134,6 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
         stop_output_when_sound_length_ends = val & BIT6;
 
-        //if (!restart_sound && (val & BIT7))
-        //{
-        //    reset();
-        //}
         restart_sound = val & BIT7;
         if (restart_sound)
         {
@@ -226,9 +215,9 @@ void AudioSquare::tick()
         timer = period; // Reload frequency period
         duty_pos++;
         duty_pos &= 0x07;
+        
+        curr_sample = wave_duty_table[wave_pattern_duty][duty_pos];
     }
-
-    curr_sample = wave_duty_table[wave_pattern_duty][duty_pos];
 
     // Update output
     if (is_enabled &&
@@ -245,7 +234,6 @@ void AudioSquare::tick()
 
 void AudioSquare::tickLengthCounter()
 {
-
     if (stop_output_when_sound_length_ends)
     {
         if (sound_length_data == 0)
@@ -278,7 +266,7 @@ void AudioSquare::tickVolumeEnvelope()
     {
         reloadPeriod(envelope_period, envelope_period_load);
 
-        if (envelope_running)
+        if (envelope_running && envelope_period_load)
         {   // Envelope is enabled
             // Increase or decrease volume
             if (envelope_increase && volume < 0x0F)

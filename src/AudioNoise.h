@@ -15,12 +15,13 @@ public:
     void tick();
     void tickLengthCounter();
     void tickVolumeEnvelope();
+    void reset();
 
     uint8_t output_volume;
+    uint8_t sound_length_data;
     bool is_enabled;
 
 private:
-    void reset();
     void parseRegister(const uint8_t & reg, const uint8_t & val);
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
 
@@ -32,8 +33,6 @@ private:
     uint8_t envelope_period;
     uint8_t envelope_period_load;
     uint8_t shift_clock_frequency;
-    uint8_t counter_step;
-    uint8_t sound_length_data;
     uint8_t dividing_ratio_of_frequencies;
     uint8_t volume;
     uint16_t lfsr;

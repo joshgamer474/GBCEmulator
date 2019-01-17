@@ -193,10 +193,10 @@ uint8_t APU::readByte(const uint16_t & addr)
     case 0xFF25: return selection_of_sound_output;
     case 0xFF26:
         return (sound_on & 0x80)
-            | static_cast<uint8_t>(sound_channel_1->sound_length_data)
-            | static_cast<uint8_t>((sound_channel_2->sound_length_data) << 1)
-            | static_cast<uint8_t>((sound_channel_3->sound_length_data) << 2)
-            | static_cast<uint8_t>((sound_channel_4->is_enabled) << 3);
+            | static_cast<uint8_t>(sound_channel_1->sound_length_data  > 0)
+            | static_cast<uint8_t>((sound_channel_2->sound_length_data > 0) << 1)
+            | static_cast<uint8_t>((sound_channel_3->sound_length_data > 0) << 2)
+            | static_cast<uint8_t>((sound_channel_4->sound_length_data > 0) << 3);
     }
 
     return 0xFF;
@@ -210,10 +210,16 @@ void APU::reset()
     sample_buffer_counter   = 0;
     samplesPerFrame         = 0;
 
+    // Reset Wave RAM
+    for (uint16_t i = 0xFF30; i < 0xFF3F; i++)
+    {
+        sound_channel_3->setByte(i, 0);
+    }
+
     sound_channel_1->reset();
     sound_channel_2->reset();
     sound_channel_3->reset();
-    //sound_channel_4->reset();
+    sound_channel_4->reset();
 }
 
 void APU::run(const uint64_t & cpuTicks)

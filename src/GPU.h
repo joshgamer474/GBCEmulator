@@ -168,6 +168,7 @@ public:
     bool frame_is_ready;
     bool bg_tiles_updated;
     bool lcd_status_interrupt_signal;
+    bool wait_frame_to_render_window;
 
     private:
         bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);

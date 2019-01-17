@@ -18,6 +18,7 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
     last_ticks = 0;
     lcd_display_enable = false;
     lcd_status_interrupt_signal = false;
+    wait_frame_to_render_window = false;
 
 	lcd_control = NULL;
 
@@ -367,14 +368,18 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
 			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val, true); break;
 			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val, true); break;
-            case 0xFF4A:
-                window_y_pos = val;
-                logger->trace("Setting window_y_pos: 0x{0:x} -> {0:d}", window_y_pos);
+			case 0xFF4A:	
+                if (gpu_mode == GPU_MODE_VBLANK)
+                {
+                    logger->info("setByte() WY, val: {0:d}", val);
+                    window_y_pos = val;
+                }
+                else
+                {
+                    logger->info("Ignoring setByte() for WY during frame rendering, val {0:d}", val);
+                }
                 break;
-			case 0xFF4B:
-                window_x_pos = val;
-                logger->trace("Setting window_x_pos: 0x{0:x} -> {0:d}", window_x_pos);
-                break;
+			case 0xFF4B:	window_x_pos = val; break;
 
 			default:
 				logger->warn("GPU::setByte() doesn't handle address: 0x{0:x}", pos);
@@ -420,22 +425,23 @@ void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_t
 void GPU::set_lcd_control(unsigned char lcdControl)
 {
 	lcd_control = lcdControl;
-	bool old_lcd_display_enable = lcd_display_enable;
+	bool old_lcd_display_enable     = lcd_display_enable;
+    bool old_window_display_enable  = window_display_enable;
 
-	lcd_display_enable =					(lcd_control & 0x80) ? true : false;
-	window_tile_map_display_select.start =	(lcd_control & 0x40) ? 0x9C00 : 0x9800;
-	window_tile_map_display_select.end =	(lcd_control & 0x40) ? 0x9FFF : 0x9BFF;
-	window_display_enable =					(lcd_control & 0x20) ? true : false;
-	bg_tile_data_select.start =				(lcd_control & 0x10) ? 0x8000 : 0x8800;
-	bg_tile_data_select.end =				(lcd_control & 0x10) ? 0x8FFF : 0x97FF;
-	bg_tile_data_select_method =			(lcd_control & 0x10) ? true : false;
+	lcd_display_enable =					(lcd_control & BIT7) ? true : false;
+	window_tile_map_display_select.start =	(lcd_control & BIT6) ? 0x9C00 : 0x9800;
+	window_tile_map_display_select.end =	(lcd_control & BIT6) ? 0x9FFF : 0x9BFF;
+	window_display_enable =					(lcd_control & BIT5) ? true : false;
+	bg_tile_data_select.start =				(lcd_control & BIT4) ? 0x8000 : 0x8800;
+	bg_tile_data_select.end =				(lcd_control & BIT4) ? 0x8FFF : 0x97FF;
+	bg_tile_data_select_method =			(lcd_control & BIT4) ? true : false;
 
-	bg_tile_map_select.start =				(lcd_control & 0x08) ? 0x9C00 : 0x9800;
-	bg_tile_map_select.end =				(lcd_control & 0x08) ? 0x9FFF : 0x9BFF;
-	bg_tile_map_select_method =				(lcd_control & 0x08) ? true : false;
-	object_size =							(lcd_control & 0x04) ? 16 : 8;
-	object_display_enable =					(lcd_control & 0x02) ? true : false;
-	bg_display_enable =						(lcd_control & 0x01) ? true : false;
+	bg_tile_map_select.start =				(lcd_control & BIT3) ? 0x9C00 : 0x9800;
+	bg_tile_map_select.end =				(lcd_control & BIT3) ? 0x9FFF : 0x9BFF;
+	bg_tile_map_select_method =				(lcd_control & BIT3) ? true : false;
+	object_size =							(lcd_control & BIT2) ? 16 : 8;
+	object_display_enable =					(lcd_control & BIT1) ? true : false;
+	bg_display_enable =						(lcd_control & BIT0) ? true : false;
 
 	if (old_lcd_display_enable == true && lcd_display_enable == false)
 	{
@@ -454,6 +460,20 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 		update_lcd_status_coincidence_flag();
         ticks = 0;
 	}
+
+    if (old_window_display_enable &&
+        !window_display_enable &&
+        lcd_y >= 0 &&
+        lcd_y <= 143)
+    {   // Turned off Window drawing
+        logger->info("Turned off Window rendering while drawing mid-frame, lcd_y: {0:d}", lcd_y);
+    }
+    else if (!old_window_display_enable &&
+        window_display_enable)
+    {
+        wait_frame_to_render_window = true;
+        logger->info("Waiting one frame before enabling window display");
+    }
 }
 
 void GPU::set_lcd_status(unsigned char lcdStatus)
@@ -819,9 +839,24 @@ void GPU::drawWindowLine()
 
     uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
+    //if (use_pixel_y > SCREEN_PIXEL_H)
+    //{
+    //    use_pixel_y -= SCREEN_PIXEL_H;
+    //}
+
     if (window_x_pos < 7)
     {
         pixel_x_start = 0;
+    }
+
+    //if (scroll_y - window_y_pos >= 144)
+    //{
+    //    return;
+    //}
+
+    if (window_x_pos >= 167)
+    {
+        return;
     }
 
     if (window_y_pos >= SCREEN_PIXEL_H)
@@ -832,6 +867,15 @@ void GPU::drawWindowLine()
     if (window_y_pos > lcd_y)
     {
         return;
+    }
+
+    //logger->info("Window frame_y_offset: {0:d}, use_pixel_y: {1:d}",
+    //    frame_y_offset,
+    //    use_pixel_y);
+
+    if (use_pixel_y == 0 || use_pixel_y >= SCREEN_PIXEL_H)
+    {
+
     }
 
     // Draw scanline
@@ -982,9 +1026,9 @@ void GPU::drawOAMLine()
         if (sprite_y_start <= lcd_y && sprite_y_end > lcd_y)
         {
 
-            logger->info("Drawing OAM sprite: %{0:d},\tlcd_y: %{1:d}",
-                curr_sprite,
-                lcd_y);
+            //logger->info("Drawing OAM sprite: %{0:d},\tlcd_y: %{1:d}",
+            //    curr_sprite,
+            //    lcd_y);
 
             // Check for case of object_size = 16, ie sprite size is 8x16
             // Then check if we should be using the next sprite 8x8 sprite to draw
@@ -1135,7 +1179,7 @@ void GPU::renderLine()
         drawBackgroundLine();
     }
 
-    if (window_display_enable)
+    if (window_display_enable && !wait_frame_to_render_window)
     {
         drawWindowLine();
     }
@@ -1317,6 +1361,11 @@ void GPU::run(const uint64_t & cpuTicks)
                 update_lcd_status_coincidence_flag();
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
 				logger->trace("End Frame");
+
+                if (wait_frame_to_render_window)
+                {   // Done waiting for frame to finish, can now enable window display
+                    wait_frame_to_render_window = false;
+                }
 			}
 
 			ticks = 0;

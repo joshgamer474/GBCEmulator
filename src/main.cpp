@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 
     GBCEmulator emu(romName, romName + ".log");
 
-    // Have emulator run in its own thread
+    // Have emulator tick in its own thread
     std::thread thread([&]()
     {
         emu.run();

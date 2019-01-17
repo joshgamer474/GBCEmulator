@@ -9,7 +9,7 @@ AudioNoise::AudioNoise(const uint16_t & register_offset)
     envelope_period                     = 0;
     envelope_period_load                = 0;
     shift_clock_frequency               = 0;
-    counter_step                        = 0;
+    stop_output_when_sound_length_ends  = 0;
     sound_length_data                   = 0;
     dividing_ratio_of_frequencies       = 0;
     volume                              = 0;
@@ -76,7 +76,7 @@ uint8_t AudioNoise::readByte(const uint16_t & addr)
         ret |= (dividing_ratio_of_frequencies & 0x07);
         break;
     case 3:
-        ret = (static_cast<uint8_t>(counter_step) << 6);
+        ret = (static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6);
         ret |= 0xBF;    // Unused bits are 1s
         break;
     default:
@@ -96,13 +96,10 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
         break;
 
     case 1:
-        initial_volume_of_envelope = val >> 4;
-        envelope_increase = val & 0x08;
-        envelope_period_load = val & 0x07;
+        initial_volume_of_envelope  = val >> 4;
+        envelope_increase           = val & BIT3;
+        envelope_period_load        = val & 0x07;
 
-        //volume = initial_volume_of_envelope;
-        //reloadPeriod(envelope_period, envelope_period_load);
-        
         if (val & 0xF8)
         {
             envelope_enabled = true;
@@ -115,14 +112,14 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
         break;
 
     case 2:
-        shift_clock_frequency = val >> 4;
-        half_counter_step = val & BIT3;
-        dividing_ratio_of_frequencies = val & 0x07;
+        shift_clock_frequency           = val >> 4;
+        half_counter_step               = val & BIT3;
+        dividing_ratio_of_frequencies   = val & 0x07;
         break;
 
     case 3:
-        counter_step = val & BIT6;
-        restart_sound = val & BIT7;
+        restart_sound                       = val & BIT7;
+        stop_output_when_sound_length_ends  = val & BIT6;
 
         if (restart_sound)
         {   // Sound turning on
@@ -143,7 +140,7 @@ void AudioNoise::reset()
     // Reload Length timer
     if (sound_length_data == 0)
     {
-        sound_length_data = 64;
+        sound_length_data = 0x40;
     }
 
     // Reload volume envelope
@@ -170,14 +167,14 @@ void AudioNoise::tick()
     {   // Reload timer
         timer = divisors[dividing_ratio_of_frequencies] << shift_clock_frequency;
 
-        uint8_t result = (lfsr & 0x01) ^ ((lfsr >> 1) & 0x01);
+        uint8_t xor_result = (lfsr & 0x01) ^ ((lfsr >> 1) & 0x01);
         lfsr = lfsr >> 1;
-        lfsr |= (result << 14);
+        lfsr |= (xor_result << 14);
 
         if (half_counter_step)
         {
-            lfsr &= ~0x40;
-            lfsr |= (result << 8);
+            lfsr &= 0xFFBF;             // Mask off bit 6
+            lfsr |= (xor_result << 6);  // Put XOR result into bit 6
         }
 
         if (is_enabled &&
@@ -195,12 +192,19 @@ void AudioNoise::tick()
 
 void AudioNoise::tickLengthCounter()
 {
-    if (sound_length_data > 0)
+    if (stop_output_when_sound_length_ends)
     {
-        sound_length_data--;
+        if (sound_length_data == 0)
+        {
+            return;
+        }
+        else
+        {   // sound_length_data > 0;
+            sound_length_data--;
+        }
 
         if (sound_length_data == 0)
-        {   // Disable the channel
+        {   // Length counter hit 0, stop sound output
             is_enabled = false;
         }
     }
@@ -221,7 +225,7 @@ void AudioNoise::tickVolumeEnvelope()
     {
         reloadPeriod(envelope_period, envelope_period_load);
 
-        if (envelope_running && envelope_period > 0)
+        if (envelope_running && envelope_period_load)
         {
             if (envelope_increase && volume < 0x0F)
             {
