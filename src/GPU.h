@@ -94,8 +94,8 @@ public:
     void updateSpritePalette(uint8_t val);
 
     // Reading and writing methods
-    std::uint8_t readByte(std::uint16_t pos);
-    void setByte(std::uint16_t pos, std::uint8_t val);
+    std::uint8_t readByte(std::uint16_t pos, bool limit_access = true);
+    void setByte(std::uint16_t pos, std::uint8_t val, bool limit_access = true);
 
 
 	/*

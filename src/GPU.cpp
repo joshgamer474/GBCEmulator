@@ -89,7 +89,7 @@ void GPU::init_color_gb()
     }
 }
 
-std::uint8_t GPU::readByte(std::uint16_t pos)
+std::uint8_t GPU::readByte(std::uint16_t pos, bool limit_access)
 {
 	switch (pos & 0xF000)
 	{
@@ -97,11 +97,12 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 	case 0x9000:
 
         // Block writing to VRAM during VRAM Mode
-        //if (lcd_status & 0x03 == GPU_MODE_VRAM)
-        //{
-        //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
-        //    return 0xFF;
-        //}
+        if (limit_access && 
+           (lcd_status & 0x03) == GPU_MODE_VRAM)
+        {
+            logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+            return 0xFF;
+        }
 
 		return vram_banks[curr_vram_bank % num_vram_banks][pos - 0x8000];
 
@@ -110,12 +111,16 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 		if (pos < 0xFF00)
 		{
             // Block writing to OAM during Modes VRAM and OAM
-            //if (lcd_status & 0x03 == GPU_MODE_OAM ||
-            //    lcd_status & 0x03 == GPU_MODE_VRAM)
-            //{
-            //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
-            //    return 0xFF;
-            //}
+            if (limit_access)
+            {
+                switch (lcd_status & 0x03)
+                {
+                case GPU_MODE_OAM:
+                case GPU_MODE_VRAM:
+                    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+                    return 0xFF;
+                }
+            }
 
 			// 0xFE00 - 0xFE9F : Sprite RAM (OAM)
 			return object_attribute_memory[pos - 0xFE00];
@@ -158,15 +163,18 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 			case 0xFF6A:	return cgb_sprite_palette_index;
             case 0xFF6B:
                 // Block reading to VRAM when VRAM is being used
-                if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
+                if (limit_access)
                 {
-                    logger->info("Blocking read to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
-                    return 0xFF;
+                    switch (lcd_status & 0x03)
+                    {
+                    case GPU_MODE_OAM:
+                    case GPU_MODE_VRAM:
+                        logger->info("Blocking read to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
+                        return 0xFF;
+                    }
                 }
-                else
-                {
-                    return cgb_sprite_palette_data[cgb_sprite_palette_index];
-                }
+
+                return cgb_sprite_palette_data[cgb_sprite_palette_index];
 
 			default:
 				logger->warn("GPU::readByte() doesn't handle address: 0x{0:x}", pos);
@@ -181,7 +189,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos)
 }
 
 
-void GPU::setByte(std::uint16_t pos, std::uint8_t val)
+void GPU::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 {
 	uint8_t tile_block_num = 3;
     uint16_t source_address;
@@ -193,11 +201,12 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 	case 0x9000:
 
         // Block writing to VRAM during Modes VRAM
-        //if (lcd_status & 0x03 == GPU_MODE_VRAM)
-        //{
-        //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
-        //    return;
-        //}
+        if (limit_access &&
+           (lcd_status & 0x03) == GPU_MODE_VRAM)
+        {
+            logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+            return;
+        }
 
 		vram_banks[curr_vram_bank % num_vram_banks][pos - 0x8000] = val;
 
@@ -230,18 +239,20 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 		break;
 
 	case 0xF000:
-
 		if (pos < 0xFF00)
-		{
+		{   // 0xFE00 - 0xFE9F : Sprite RAM (OAM)
             // Block writing to VRAM during Modes VRAM and OAM
-            //if (lcd_status & 0x03 == GPU_MODE_OAM ||
-            //    lcd_status & 0x03 == GPU_MODE_VRAM)
-            //{
-            //    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
-            //    return;
-            //}
+            if (limit_access)
+            {
+                switch (lcd_status & 0x03)
+                {
+                case GPU_MODE_OAM:
+                case GPU_MODE_VRAM:
+                    logger->info("CPU cannot access OAM when GPU is using OAM, blocking CPU write");
+                    return;
+                }
+            }
 
-			// 0xFE00 - 0xFE9F : Sprite RAM (OAM)
 			object_attribute_memory[pos - 0xFE00] = val;
 			break;
 		}
@@ -300,13 +311,6 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
                     // Background Palette Data
                 case 0xFF69:
-                    // Block writing to VRAM when VRAM is being used
-                    //if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
-                    //{
-                    //    logger->warn("Blocking write to 0xFF69 Background Palette Data, gpu_mode: {}", gpu_mode);
-                    //    return;
-                    //}
-
                     cgb_background_palette_data[cgb_background_palette_index] = val;
                     updateBackgroundPalette(val);
 
@@ -325,13 +329,6 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val)
 
                     // Sprite Palette Data
                 case 0xFF6B:
-                    // Block writing to VRAM when VRAM is being used
-                    //if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
-                    //{
-                    //    logger->warn("Blocking write to 0xFF6B Sprite Palette Data, gpu_mode: {}", gpu_mode);
-                    //    return;
-                    //}
-
                     cgb_sprite_palette_data[cgb_sprite_palette_index] = val;
                     updateSpritePalette(val);
                     if (cgb_auto_increment_sprite_palette_index)

@@ -71,7 +71,7 @@ void Memory::initWorkRAM(bool isColorGB)
 }
 
 
-std::uint8_t Memory::readByte(std::uint16_t pos)
+std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 {
 	if (cartridgeReader->is_bios && pos < 256)
 	{
@@ -100,8 +100,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		// 0x8000 - 0x97FF : Tile RAM
 		// 0x9800 - 0x9BFF : BG Map Data 1
 		// 0x9C00 - 0x9FFF : BG Map Data 2
-		return gpu->readByte(pos);
-		
+		return gpu->readByte(pos, limit_access);
 
 		/// GB Work RAM, GPU Object Attribute Memory (OAM), Hardware I/O, High RAM, Interrupt enable reg
 	case 0xC000:
@@ -146,7 +145,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 		else if ((pos & 0xFFF0) < 0xFEA0)
 		{
 			// 0xFE00 - 0xFE9F : Sprite RAM
-			return gpu->readByte(pos);
+			return gpu->readByte(pos, limit_access);
 		}
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{
@@ -198,7 +197,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 			else if (pos < 0xFF6C)
 			{
 				// 0xFF40 - 0xFF6B : GPU LCD
-				return gpu->readByte(pos);
+				return gpu->readByte(pos, limit_access);
 			}
             else if (pos == 0xFF6C && is_color_gb)
             {
@@ -255,7 +254,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos)
 	//return cartridgeReader->readByte(pos);
 }
 
-void Memory::setByte(std::uint16_t pos, std::uint8_t val)
+void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 {
 	switch (pos & 0xF000)
 	{
@@ -278,7 +277,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		// VRAM
 	case 0x8000:
 	case 0x9000:
-		gpu->setByte(pos, val);
+		gpu->setByte(pos, val, limit_access);
 		break;
 
 		// Work RAM, echo Work RAM, GPU memory, I/O, Interrupts
@@ -322,7 +321,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 		}
 		else if ((pos & 0xFFF0) < 0xFEA0)
 		{   // 0xFE00 - 0xFE9F : Sprite RAM
-			gpu->setByte(pos, val);
+			gpu->setByte(pos, val, limit_access);
 		}
 		else if ((pos & 0xFFF0) < 0xFF00)
 		{   // 0xFEA0 - 0xFEFF : Unused
@@ -392,7 +391,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
             {
                 if ((val & 0x01) && (cgb_speed_mode & 0x01) == 0)
                 {
-                    gpu->setByte(0xFF40, gpu->readByte(0xFF40) & 0x7F); // Disable LCD 
+                    gpu->setByte(0xFF40, gpu->readByte(0xFF40, limit_access) & 0x7F); // Disable LCD 
                     cgb_perform_speed_switch = true;
                 }
                 cgb_speed_mode = val & 0x01;    // Only bit 0 is writable
@@ -400,7 +399,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			else if (pos < 0xFF6C)
 			{
 				// 0xFF40 - 0xFF6B : GPU LCD
-				gpu->setByte(pos, val);
+				gpu->setByte(pos, val, limit_access);
 			}
             else if (pos == 0xFF6C && is_color_gb)
             {
@@ -449,8 +448,9 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val)
 			 Bit 3: Serial   Interrupt Enable  (INT 58h)  (1=Enable)
 			 Bit 4: Joypad   Interrupt Enable  (INT 60h)  (1=Enable)
 			*/
-            interrupt_enable = 0xE0 | val;
-            //interrupt_enable = val;
+            //interrupt_enable = 0xE0 | val;
+            logger->info("Writing 0x{0:x} to interrupt_enable", val);
+            interrupt_enable = val;
 		}
 		else
 		{
@@ -497,8 +497,8 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
 	for (dest_addr; dest_addr < 0xFEA0; dest_addr++, source_addr++)
 	{
-		val = readByte(source_addr);
-		setByte(dest_addr, val);
+		val = readByte(source_addr, false);
+		setByte(dest_addr, val, false);
 	}
 	
     gpu->bg_tiles_updated = true;
@@ -535,8 +535,8 @@ void Memory::do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t &
         // Copy memory from Source address to Dest address
         for (uint16_t i = 0; i < transfer_length; i++)
         {
-            val = readByte(startAddress++);
-            setByte(destAddress++, val);
+            val = readByte(startAddress++, false);
+            setByte(destAddress++, val, false);
         }
 
         hdma5 = 0xFF;
@@ -575,8 +575,8 @@ void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma
 
     for (uint16_t i = 0; i < 0x10; i++)
     {
-        val = readByte(startAddress++);
-        setByte(destAddress++, val);
+        val = readByte(startAddress++, false);
+        setByte(destAddress++, val, false);
         numBytesToTransfer--;
     }
 

@@ -49,8 +49,8 @@ public:
     void writeToTimerRegisters(uint16_t addr, uint8_t val);
 	void updateTimer(uint64_t ticks, double clock_speed);
 
-	uint8_t readByte(uint16_t pos);
-	void setByte(uint16_t pos, uint8_t val);
+	uint8_t readByte(uint16_t pos, bool limit_access = true);
+	void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
 
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;
