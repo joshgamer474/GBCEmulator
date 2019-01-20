@@ -159,9 +159,14 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
             {   // Only RAM bank 0x00 is accessible in ROM banking mode
                 return ramBanks[0][pos - 0xA000];
             }
-            else
+            else if (ram_banking_mode)
             {   // ram_banking_mode == true
                 return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
+            }
+            else
+            {
+                logger->warn("How'd you get here??");
+                return 0xFF;
             }
         }
         else if (mbc_num == 3)
@@ -247,13 +252,16 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         }
 
 		// Don't use ROM banks 0x00, 0x20, 0x40, or 0x60 for MBC1
-        if (mbc_num == 1 &&
-            ((val & 0x1F) == 0x00 ||
-            (val & 0x1F) == 0x20 ||
-            (val & 0x1F) == 0x40 ||
-            (val & 0x1F) == 0x60))
+        if (mbc_num == 1)
         {
-            curr_rom_bank += 1;
+            switch (curr_rom_bank)
+            {
+            case 0x20:
+            case 0x040:
+            case 0x60:
+                curr_rom_bank++;
+                break;
+            }
         }
 
         curr_rom_bank %= num_rom_banks;
@@ -277,13 +285,24 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             }
             else if (ram_banking_mode)
             {   // Set RAM bank number 
-                curr_ram_bank = (val & 0x03) % num_ram_banks;
+                //curr_ram_bank = (val & 0x03) % num_ram_banks;
+                curr_ram_bank = val % num_ram_banks;
             }
             else
             {
                 logger->warn("How'd you get here? Addr: 0x{0:x}, val: 0x{1:x}",
                     pos,
                     val);
+            }
+
+            // Don't use ROM banks 0x00, 0x20, 0x40, or 0x60 for MBC1
+            switch (curr_rom_bank)
+            {
+            case 0x20:
+            case 0x040:
+            case 0x60:
+                curr_rom_bank++;
+                break;
             }
         }
         else if (mbc_num == 3)
@@ -346,7 +365,6 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
         }
 
 		break;
-
 
 		// RAM 0x00 - 0x03
 	case 0xA000:
