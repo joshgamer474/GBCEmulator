@@ -20,6 +20,7 @@ public:
     uint8_t output_volume;
     uint8_t sound_length_data;
     bool is_enabled;
+    bool restart_sound;
 
 private:
     void parseRegister(const uint8_t & reg, const uint8_t & val);
@@ -41,7 +42,6 @@ private:
     bool envelope_increase;
     bool envelope_running;
     bool stop_output_when_sound_length_ends;
-    bool restart_sound;
 };
 
 #endif

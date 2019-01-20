@@ -56,31 +56,27 @@ void AudioNoise::setByte(const uint16_t & addr, const uint8_t & val)
 
 uint8_t AudioNoise::readByte(const uint16_t & addr)
 {
-    uint16_t useAddr = addr - reg_offset;
-    uint8_t ret = 0;
+    uint8_t ret = 0xFF;
   
-    switch (useAddr)
+    switch (addr)
     {
-    case 0:
-        ret = sound_length_data & 0x3F;
-        ret |= 0xC0;    // Unused bits are 1s
+    case 0xFF20:
+        ret = 0xFF;
         break;
-    case 1:
+    case 0xFF21:
         ret = initial_volume_of_envelope << 4;
         ret |= (envelope_increase << 3);
         ret |= (envelope_period_load & 0x07);
         break;
-    case 2:
+    case 0xFF22:
         ret = (shift_clock_frequency & 0x0F) << 4;
         ret |= (static_cast<uint8_t>(half_counter_step) << 3);
         ret |= (dividing_ratio_of_frequencies & 0x07);
         break;
-    case 3:
+    case 0xFF23:
         ret = (static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6);
         ret |= 0xBF;    // Unused bits are 1s
         break;
-    default:
-        ret = 0xFF;
     }
 
     return ret;
@@ -92,7 +88,7 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
     switch (reg)
     {
     case 0:
-        sound_length_data = val & 0x3F;
+        sound_length_data = 0x3F - (val & 0x3F);
         break;
 
     case 1:

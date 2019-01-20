@@ -74,7 +74,6 @@ private:
     uint8_t right_volume_use;
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
-    uint8_t sound_on;
     uint16_t sample_buffer_counter;
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
@@ -82,6 +81,7 @@ private:
     uint64_t prev_cpu_ticks;
     uint64_t sample_timer;
     uint64_t sample_timer_val;
+    bool sound_on;
     bool left_out_enabled;
     bool right_out_enabled;
 };

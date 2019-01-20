@@ -44,42 +44,37 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
 
 uint8_t AudioWave::readByte(const uint16_t & addr)
 {
-    uint16_t useAddr = addr - reg_offset;
-    uint8_t ret = 0;
+    uint8_t ret = 0xFF;
 
-    if (useAddr <= 4)
+    switch (addr)
     {
-        switch (useAddr)
+    case 0xFF1A:
+        ret = static_cast<uint8_t>(channel_is_enabled) << 7;
+        ret |= 0x7F;    // Unused bits are 1s
+        break;
+    case 0xFF1B:
+        ret = 0xFF;
+        break;
+    case 0xFF1C:
+        ret = (volume & 0x03) << 5;
+        ret |= 0x9F;    // Unused bits are 1s
+        break;
+    case 0xFF1D:
+        ret = 0xFF; // Write only
+        break;
+    case 0xFF1E:
+        ret = static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6;
+        ret |= 0xBF;    // Unused bits are 1s
+        break;
+    default:
+
+        if (addr >= 0xFF30 && addr <= 0xFF3F)
         {
-        case 0:
-            ret = static_cast<uint8_t>(channel_is_enabled) << 7;
-            ret |= 0x7F;    // Unused bits are 1s
-            break;
-        case 1:
-            ret = sound_length_data;
-            break;
-        case 2:
-            ret = volume << 5;
-            ret |= 0xD0;    // Unused bits are 1s
-            break;
-        case 3:
-            ret = 0xFF; // Write only
-            break;
-        case 4:
-            ret = static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6;
-            ret |= 0xBF;    // Unused bits are 1s
-            break;
+            return wave_pattern_RAM[addr - 0xFF30];
         }
     }
-    else if (addr >= 0xFF30 && addr <= 0xFF3F)
-    {
-        //return wave_pattern_RAM[addr - 0xFF30];
-        return wave_pattern_RAM[nibble_pos / 2];    // Return current selected byte in wave data
-    }
-    else
-    {
-        return 0xFF;
-    }
+
+    return ret;
 }
 
 
@@ -91,7 +86,7 @@ void AudioWave::parseRegister(const uint8_t & reg, const uint8_t & val)
         channel_is_enabled = val & BIT7;
         break;
     case 1:
-        sound_length_data = val;
+        sound_length_load = 0xFF - val;
         break;
     case 2:
         volume = (val & 0x60) >> 5;
@@ -153,9 +148,14 @@ void AudioWave::tick()
         // Increment nibble position
         nibble_pos++;
         nibble_pos &= 0x1F;
+        
+        if (is_enabled &&
+            channel_is_enabled)
+        {
+            updateSample();
+        }
     }
     
-    updateSample();
 
     // Update output
     if (is_enabled &&
@@ -172,9 +172,12 @@ void AudioWave::tick()
 
 void AudioWave::tickLengthCounter()
 {
-    if (stop_output_when_sound_length_ends && sound_length_data > 0)
+    if (stop_output_when_sound_length_ends)
     {
-        sound_length_data--;
+        if (sound_length_data > 0)
+        {
+            sound_length_data--;
+        }
 
         if (sound_length_data == 0)
         {   // Pos hit 0, stop sound output

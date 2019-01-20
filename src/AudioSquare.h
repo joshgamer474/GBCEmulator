@@ -24,6 +24,7 @@ public:
     uint8_t output_volume;
     uint8_t sound_length_data;
     bool is_enabled;
+    bool restart_sound;
 
 private:
     uint16_t calculateSweepFrequency();
@@ -52,7 +53,6 @@ private:
     bool envelope_running;
     bool envelope_enabled;
     bool stop_output_when_sound_length_ends;
-    bool restart_sound;
 };
 
 #endif

@@ -62,7 +62,8 @@ uint8_t AudioSquare::readByte(const uint16_t & addr)
         switch (useAddr)
         {
         case 0:
-            ret = sweep_period_load << 4;
+            ret = 0x80; // Unused bits are 1s
+            ret |= (sweep_period_load << 4) & 0x70;
             ret |= (static_cast<uint8_t>(sweep_decrease) << 3);
             ret |= (sweep_shift & 0x07);
             break;
@@ -106,7 +107,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 
     case 1:
         wave_pattern_duty = (val >> 6) & 0x03;
-        sound_length_data = val & 0x3F;
+        sound_length_data = 0x40 - (val & 0x3F);
         break;
 
     case 2:

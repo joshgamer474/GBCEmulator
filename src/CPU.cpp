@@ -2229,7 +2229,7 @@ void CPU::HALT()
 {
 	logger->trace("HALT");
 
-	//is_halted = true; // Do nothing
+	is_halted = true; // Do nothing
 	ticks += 4;
 }
 

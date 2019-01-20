@@ -18,7 +18,9 @@ public:
 
     uint8_t output_volume;
     uint8_t sound_length_data;
+    uint8_t sound_length_load;
     bool is_enabled;
+    bool restart_sound;
 
 private:
     void parseRegister(const uint8_t & reg, const uint8_t & val);
@@ -35,7 +37,6 @@ private:
     uint64_t period;
     float sound_length_seconds;
     bool channel_is_enabled;
-    bool restart_sound;
     bool stop_output_when_sound_length_ends;
     std::array<uint8_t, 16> wave_pattern_RAM;
 };

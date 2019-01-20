@@ -106,8 +106,15 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
     if (sound_on == false &&
         addr < 0xFF26)
     {
+        logger->info("Tried to write to addr: 0x{0:x}, val 0x{1:x} but APU sound is disabled",
+            addr,
+            val);
         return;
     }
+
+    logger->trace("Writing to addr: 0x{0:x}, val: 0x{1:x}",
+        addr,
+        val);
 
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {   // Channel 1 - Square 1
@@ -132,7 +139,7 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
 
     switch (addr)
     {
-    case 0xFF24:
+    case 0xFF24:    // NR50
         channel_control     = val;
         left_out_enabled    = val & BIT7;
         right_out_enabled   = val & BIT3;
@@ -142,64 +149,82 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         left_volume_use     = (128 * left_volume) / 7;
         right_volume_use    = (128 * right_volume) / 7;
         break;
-    case 0xFF25: selection_of_sound_output  = val; break;
-    case 0xFF26:
-
+    case 0xFF25:    // NR51
+        selection_of_sound_output  = val;
+        break;
+    case 0xFF26:    // NR52
         if (sound_on && (val & BIT7) == 0)
         {   // Disabling sound, reset APU
+            logger->info("Turning off APU, zeroing out 0xFF10-0xFF25");
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
                 setByte(i, 0);
             }
+            sound_channel_1->is_enabled = false;
+            sound_channel_2->is_enabled = false;
+            sound_channel_3->is_enabled = false;
+            sound_channel_4->is_enabled = false;
         }
         else if (!sound_on && (val & BIT7))
         {   // Enabling sound
+            logger->info("Turning APU on, resetting APU");
             reset();
         }
 
-        sound_on &= 0x7F;
-        sound_on |= val & BIT7; // Only BIT7 is writable
+        sound_on = val & BIT7; // Only BIT7 is writable
         break;
     }
 }
 
 uint8_t APU::readByte(const uint16_t & addr)
 {
+    uint8_t ret = 0xFF;
+
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {
-        return sound_channel_1->readByte(addr);
+        ret = sound_channel_1->readByte(addr);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
     {
-        return sound_channel_2->readByte(addr);
+        ret = sound_channel_2->readByte(addr);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
     {
-        return sound_channel_3->readByte(addr);
+        ret = sound_channel_3->readByte(addr);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
     {
-        return sound_channel_4->readByte(addr);
+        ret = sound_channel_4->readByte(addr);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {
-        return sound_channel_3->readByte(addr);
+        ret = sound_channel_3->readByte(addr);
     }
 
     switch (addr)
     {
-    case 0xFF24: return channel_control;
-    case 0xFF25: return selection_of_sound_output;
+    case 0xFF24:
+        ret = channel_control;
+        break;
+    case 0xFF25:
+        ret = selection_of_sound_output;
+        break;
     case 0xFF26:
-        return (sound_on & 0x80)
-            | static_cast<uint8_t>(sound_channel_1->sound_length_data  > 0)
-            | static_cast<uint8_t>((sound_channel_2->sound_length_data > 0) << 1)
-            | static_cast<uint8_t>((sound_channel_3->sound_length_data > 0) << 2)
-            | static_cast<uint8_t>((sound_channel_4->sound_length_data > 0) << 3);
+        ret = static_cast<uint8_t>(sound_on) << 7
+            | 0x70  // Unused bits are 1s
+            | static_cast<uint8_t>(sound_channel_1->restart_sound)
+            | static_cast<uint8_t>((sound_channel_2->restart_sound) << 1)
+            | static_cast<uint8_t>((sound_channel_3->restart_sound) << 2)
+            | static_cast<uint8_t>((sound_channel_4->restart_sound) << 3);
+         break;
     }
 
-    return 0xFF;
+    logger->trace("Reading addr: 0x{0:x}, val: 0x{1:x}",
+        addr,
+        ret);
+
+    return ret;
 }
 
 void APU::reset()
@@ -286,7 +311,7 @@ void APU::run(const uint64_t & cpuTicks)
         {   // Get samples, send sample to audio out buffer
             Sample sample;
 
-            if ((sound_on & BIT7))
+            if (sound_on)
             {   // Audio is enabled
                 // Get samples
 #ifndef USE_FLOAT
@@ -336,7 +361,7 @@ void APU::run(const uint64_t & cpuTicks)
                     //logger->info("queuedAudioSize: {0:d}", queuedAudioSize);
                     //SDL_Delay(1);
                     //std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                    std::this_thread::sleep_for(std::chrono::microseconds(10));
                     queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
                 }
 #endif // USE_AUDIO_TIMING
