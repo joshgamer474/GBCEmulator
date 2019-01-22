@@ -16,6 +16,7 @@ public:
     void tickLengthCounter();
     void tickVolumeEnvelope();
     void reset();
+    bool isRunning();
 
     uint8_t output_volume;
     uint8_t sound_length_data;

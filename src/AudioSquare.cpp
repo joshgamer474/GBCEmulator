@@ -12,6 +12,7 @@ AudioSquare::AudioSquare(const uint16_t & register_offset)
     sweep_shift                 = 0;
     wave_pattern_duty           = 0;
     sound_length_data           = 0;
+    sound_length_load           = 0;
     initial_volume_of_envelope  = 0;
     envelope_period_load        = 0;
     envelope_period             = 0;
@@ -70,6 +71,7 @@ uint8_t AudioSquare::readByte(const uint16_t & addr)
         case 1:
             ret = (wave_pattern_duty << 6) & 0xC0; // Only bits 6-7 are readable
             ret |= 0x3F;    // Unused bits are 1s
+            //ret |= (sound_length_load & 0x3F);
             break;
         case 2:
             ret = initial_volume_of_envelope << 4;
@@ -107,7 +109,8 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 
     case 1:
         wave_pattern_duty = (val >> 6) & 0x03;
-        sound_length_data = 0x40 - (val & 0x3F);
+        sound_length_load = 0x40 - (val & 0x3F);
+        sound_length_data = sound_length_load;
         break;
 
     case 2:
@@ -369,4 +372,9 @@ void AudioSquare::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
     {
         period = 8;
     }
+}
+
+bool AudioSquare::isRunning()
+{
+    return sound_length_data > 0;
 }

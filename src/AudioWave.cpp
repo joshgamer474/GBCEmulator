@@ -26,19 +26,53 @@ AudioWave::~AudioWave()
 
 void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
 {
-    uint16_t useAddr = addr - reg_offset;
+    switch (addr)
+    {
+    case 0xFF1A:    // NR30
+        channel_is_enabled = val & BIT7;
+        break;
+    case 0xFF1B:    // NR31
+        sound_length_load = 0xFF - val;
+        break;
+    case 0xFF1C:    // NR32
+        volume = (val & 0x60) >> 5;
+        break;
+    case 0xFF1D:    // NR33
+        frequency_16 &= 0xFF00;
+        frequency_16 |= val;
+        break;
+    case 0xFF1E:    // NR34
+        stop_output_when_sound_length_ends = val & BIT6;
+        frequency_16 &= 0x00FF;
+        frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
 
-    if (useAddr <= 4)
-    {
-        parseRegister(useAddr, val);
-    }
-    else if (addr >= 0xFF30 && addr <= 0xFF3F)
-    {   // Wave Pattern RAM
-        wave_pattern_RAM[addr - 0xFF30] = val;
-    }
-    else
-    {
-        // Log loudly later
+        // Calculate frequency
+        frequency = 131072 / (2048 - frequency_16);
+
+        //if (restart_sound == false && (val & BIT7))
+        //{
+        //    reset();
+        //}
+        restart_sound = val & BIT7;
+        if (restart_sound)
+        {
+            reset();
+        }
+
+        break;
+    default:
+
+        if (addr >= 0xFF30 && addr <= 0xFF3F)
+        {
+            //if (restart_sound)
+            //{
+            //    int j = 0;
+            //}
+            //else
+            //{
+                wave_pattern_RAM[addr - 0xFF30] = val;
+            //}
+        }
     }
 }
 
@@ -48,21 +82,21 @@ uint8_t AudioWave::readByte(const uint16_t & addr)
 
     switch (addr)
     {
-    case 0xFF1A:
+    case 0xFF1A:    // NR30
         ret = static_cast<uint8_t>(channel_is_enabled) << 7;
         ret |= 0x7F;    // Unused bits are 1s
         break;
-    case 0xFF1B:
+    case 0xFF1B:    // NR31
         ret = 0xFF;
         break;
-    case 0xFF1C:
+    case 0xFF1C:    // NR32
         ret = (volume & 0x03) << 5;
         ret |= 0x9F;    // Unused bits are 1s
         break;
-    case 0xFF1D:
+    case 0xFF1D:    // NR33
         ret = 0xFF; // Write only
         break;
-    case 0xFF1E:
+    case 0xFF1E:    // NR34
         ret = static_cast<uint8_t>(stop_output_when_sound_length_ends) << 6;
         ret |= 0xBF;    // Unused bits are 1s
         break;
@@ -70,47 +104,11 @@ uint8_t AudioWave::readByte(const uint16_t & addr)
 
         if (addr >= 0xFF30 && addr <= 0xFF3F)
         {
-            return wave_pattern_RAM[addr - 0xFF30];
+            ret = wave_pattern_RAM[addr - 0xFF30];
         }
     }
 
     return ret;
-}
-
-
-void AudioWave::parseRegister(const uint8_t & reg, const uint8_t & val)
-{
-    switch (reg)
-    {
-    case 0:
-        channel_is_enabled = val & BIT7;
-        break;
-    case 1:
-        sound_length_load = 0xFF - val;
-        break;
-    case 2:
-        volume = (val & 0x60) >> 5;
-        break;
-    case 3:
-        frequency_16 &= 0xFF00;
-        frequency_16 |= val;
-        break;
-    case 4:
-        stop_output_when_sound_length_ends = val & BIT6;
-        frequency_16 &= 0x00FF;
-        frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
-
-        // Calculate frequency
-        frequency = 131072 / (2048 - frequency_16);
-
-        if (restart_sound == false && (val & BIT7))
-        {
-            reset();
-        }
-        restart_sound = val & BIT7;
-
-        break;
-    }
 }
 
 void AudioWave::reset()
@@ -182,7 +180,6 @@ void AudioWave::tickLengthCounter()
         if (sound_length_data == 0)
         {   // Pos hit 0, stop sound output
             is_enabled = false;
-            curr_sample = 0;
         }
     }
 }
@@ -216,4 +213,9 @@ void AudioWave::updateSample()
 
     // Update curr_sample
     curr_sample = waveByte;
+}
+
+bool AudioWave::isRunning()
+{
+    return sound_length_data > 0;
 }

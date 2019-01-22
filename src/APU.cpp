@@ -213,10 +213,10 @@ uint8_t APU::readByte(const uint16_t & addr)
     case 0xFF26:
         ret = static_cast<uint8_t>(sound_on) << 7
             | 0x70  // Unused bits are 1s
-            | static_cast<uint8_t>(sound_channel_1->restart_sound)
-            | static_cast<uint8_t>((sound_channel_2->restart_sound) << 1)
-            | static_cast<uint8_t>((sound_channel_3->restart_sound) << 2)
-            | static_cast<uint8_t>((sound_channel_4->restart_sound) << 3);
+            | static_cast<uint8_t>(sound_channel_1->isRunning())
+            | static_cast<uint8_t>((sound_channel_2->isRunning()) << 1)
+            | static_cast<uint8_t>((sound_channel_3->isRunning()) << 2)
+            | static_cast<uint8_t>((sound_channel_4->isRunning()) << 3);
          break;
     }
 

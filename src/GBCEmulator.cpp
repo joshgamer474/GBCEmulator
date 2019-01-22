@@ -187,7 +187,7 @@ void GBCEmulator::runNextInstruction()
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
 
-        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        //apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
         apu->samplesPerFrame = 0;
     }
 #else

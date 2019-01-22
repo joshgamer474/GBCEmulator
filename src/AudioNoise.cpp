@@ -252,3 +252,8 @@ void AudioNoise::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
         period = 8;
     }
 }
+
+bool AudioNoise::isRunning()
+{
+    return sound_length_data > 0;
+}

@@ -15,6 +15,7 @@ public:
     void tick();
     void tickLengthCounter();
     void reset();
+    bool isRunning();
 
     uint8_t output_volume;
     uint8_t sound_length_data;
@@ -23,7 +24,6 @@ public:
     bool restart_sound;
 
 private:
-    void parseRegister(const uint8_t & reg, const uint8_t & val);
     void updateSample();
 
     uint16_t reg_offset;

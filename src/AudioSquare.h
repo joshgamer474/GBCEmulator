@@ -19,10 +19,10 @@ public:
     void tickVolumeEnvelope();
     void tickSweep();
     void reset();
+    bool isRunning();
 
     uint8_t duty_pos;
     uint8_t output_volume;
-    uint8_t sound_length_data;
     bool is_enabled;
     bool restart_sound;
 
@@ -47,6 +47,8 @@ private:
     uint16_t sweep_frequency_16;
     uint64_t timer;
     uint64_t period;
+    uint8_t sound_length_data;
+    uint8_t sound_length_load;
     bool sweep_decrease;
     bool sweep_running;
     bool envelope_increase;
