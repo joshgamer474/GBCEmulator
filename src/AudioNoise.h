@@ -3,11 +3,13 @@
 
 #include <cstdint>
 #include <array>
+#include <memory>
+#include <spdlog/spdlog.h>
 
 class AudioNoise
 {
 public:
-    AudioNoise(const uint16_t & register_offset);
+    AudioNoise(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> logger);
     virtual ~AudioNoise();
 
     void setByte(const uint16_t & addr, const uint8_t & val);
@@ -18,6 +20,7 @@ public:
     void reset();
     bool isRunning();
 
+    std::shared_ptr<spdlog::logger> logger;
     uint8_t output_volume;
     uint8_t sound_length_data;
     bool is_enabled;
@@ -29,7 +32,6 @@ private:
 
     uint16_t reg_offset;
     std::array<uint8_t, 8> divisors;
-
     uint8_t timer;
     uint8_t initial_volume_of_envelope;
     uint8_t envelope_period;
@@ -39,7 +41,7 @@ private:
     uint8_t volume;
     uint16_t lfsr;
     bool half_counter_step;
-    bool envelope_enabled;
+    bool dac_enabled;
     bool envelope_increase;
     bool envelope_running;
     bool stop_output_when_sound_length_ends;

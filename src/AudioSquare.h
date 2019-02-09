@@ -5,11 +5,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 class AudioSquare
 {
 public:
-    AudioSquare(const uint16_t & register_offset);
+    AudioSquare(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> logger);
     virtual ~AudioSquare();
 
     void setByte(const uint16_t & addr, const uint8_t & val);
@@ -21,6 +22,7 @@ public:
     void reset();
     bool isRunning();
 
+    std::shared_ptr<spdlog::logger> logger;
     uint8_t duty_pos;
     uint8_t output_volume;
     bool is_enabled;
@@ -31,7 +33,7 @@ private:
     void initWaveDutyTable();
     void parseRegister(const uint8_t & reg, const uint8_t & val);
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
- 
+
     std::array<std::array<bool, 8>, 4> wave_duty_table;
     uint8_t volume;
     uint8_t curr_sample;
@@ -53,7 +55,7 @@ private:
     bool sweep_running;
     bool envelope_increase;
     bool envelope_running;
-    bool envelope_enabled;
+    bool dac_enabled;
     bool stop_output_when_sound_length_ends;
 };
 

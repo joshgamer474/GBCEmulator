@@ -37,13 +37,14 @@ struct Sample {
 class APU
 {
 public:
-    APU(std::shared_ptr<spdlog::logger> logger);
+    APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> logger);
     virtual ~APU();
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
     void run(const uint64_t & cpuTicks);
     void initCGB();
+    void setChannelLogLevel(spdlog::level::level_enum level);
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;

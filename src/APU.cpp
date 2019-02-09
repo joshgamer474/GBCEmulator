@@ -5,7 +5,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 
-APU::APU(std::shared_ptr<spdlog::logger> _logger)
+APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger)
 {
     logger = _logger;
     frame_sequence_step     = 0;
@@ -23,10 +23,10 @@ APU::APU(std::shared_ptr<spdlog::logger> _logger)
     left_out_enabled        = false;
     right_out_enabled       = false;
 
-    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10);
-    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15);
-    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A);
-    sound_channel_4 = std::make_unique<AudioNoise>(0xFF20);
+    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
+    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, std::make_shared<spdlog::logger>("APU.Channel.2", logger_sink));
+    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink));
+    sound_channel_4 = std::make_unique<AudioNoise>(0xFF20,  std::make_shared<spdlog::logger>("APU.Channel.4", logger_sink));
 
     sample_timer_val            = CLOCK_SPEED / SAMPLE_RATE;
     frame_sequence_timer_val    = CLOCK_SPEED / 512;
@@ -504,4 +504,12 @@ void APU::initCGB()
 
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
+}
+
+void APU::setChannelLogLevel(spdlog::level::level_enum level)
+{
+    sound_channel_1->logger->set_level(level);
+    sound_channel_2->logger->set_level(level);
+    sound_channel_3->logger->set_level(level);
+    sound_channel_4->logger->set_level(level);
 }

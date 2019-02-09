@@ -2,8 +2,9 @@
 #include <CPU.h>
 #include <Joypad.h>
 
-AudioWave::AudioWave(const uint16_t & register_offset)
-    : reg_offset(register_offset)
+AudioWave::AudioWave(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> _logger)
+    :   reg_offset(register_offset),
+        logger(_logger)
 {
     volume          = 0;
     output_volume   = 0;
@@ -30,9 +31,21 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
     {
     case 0xFF1A:    // NR30
         channel_is_enabled = val & BIT7;
+
+        if (!channel_is_enabled)
+        {   // Channel flag is disabled, completely disable the channel until reset()
+            is_enabled = channel_is_enabled;
+        }
         break;
     case 0xFF1B:    // NR31
-        sound_length_data = val & 0xFF;
+        sound_length_data = 0x0100 - static_cast<uint16_t>(val & 0xFF);
+
+        if (sound_length_data == 0x0100)
+        {
+            sound_length_data = 0xFF;
+            logger->trace("Setting sound_length_data to 0xFF as it was 0x0100, but the register is supposed to be 1 byte");
+        }
+
         break;
     case 0xFF1C:    // NR32
         volume = (val & 0x60) >> 5;
@@ -126,7 +139,8 @@ void AudioWave::reset()
 
     if (sound_length_data == 0)
     {
-        sound_length_data = 0x100;
+        //sound_length_data = 0x0100;
+        sound_length_data = 0xFF;
     }
 }
 
@@ -217,5 +231,13 @@ void AudioWave::updateSample()
 
 bool AudioWave::isRunning()
 {
-    return (sound_length_data & 0xFF) > 0;
+    logger->trace("sound_length_data: 0x{0:x}, is_enabled: {1:b}, channel_is_enabled: {2:b}",
+        sound_length_data,
+        is_enabled,
+        channel_is_enabled);
+
+    //return (sound_length_data & 0xFF) > 0
+    return sound_length_data > 0
+        && is_enabled
+        && channel_is_enabled;
 }

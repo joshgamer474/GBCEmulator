@@ -1,8 +1,9 @@
 #include <AudioNoise.h>
 #include "Joypad.h"
 
-AudioNoise::AudioNoise(const uint16_t & register_offset)
-    : reg_offset(register_offset)
+AudioNoise::AudioNoise(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> _logger)
+    :   reg_offset(register_offset),
+        logger(_logger)
 {
     timer                               = 0;
     initial_volume_of_envelope          = 0;
@@ -21,7 +22,7 @@ AudioNoise::AudioNoise(const uint16_t & register_offset)
     is_enabled                          = false;
     half_counter_step                   = false;
     envelope_running                    = false;
-    envelope_enabled                    = false;
+    dac_enabled                    = false;
 
     divisors = std::array<uint8_t, 8>({
         8,
@@ -88,7 +89,7 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
     switch (reg)
     {
     case 0:
-        sound_length_data = val & 0x3F;
+        sound_length_data = 0x40 - (val & 0x3F);
         break;
 
     case 1:
@@ -96,13 +97,11 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
         envelope_increase           = val & BIT3;
         envelope_period_load        = val & 0x07;
 
-        if (val & 0xF8)
-        {
-            envelope_enabled = true;
-        }
-        else
-        {
-            envelope_enabled = false;
+        dac_enabled = val & 0xF8;
+
+        if (!dac_enabled)
+        {   // Channel flag is disabled, completely disable the channel until reset()
+            is_enabled = dac_enabled;
         }
 
         break;
@@ -174,7 +173,7 @@ void AudioNoise::tick()
         }
 
         if (is_enabled &&
-            envelope_enabled &&
+            dac_enabled &&
             (lfsr & 0x01) == 0)
         {
             output_volume = volume;
@@ -255,5 +254,13 @@ void AudioNoise::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
 
 bool AudioNoise::isRunning()
 {
-    return (sound_length_data & 0x3F) > 0;
+    logger->trace("sound_length_data: 0x{0:x}, is_enabled: {1:b}, dac_enabled: {2:b}",
+        sound_length_data,
+        is_enabled,
+        dac_enabled);
+
+    //return (sound_length_data & 0x3F) > 0
+    return sound_length_data > 0
+        && is_enabled
+        && dac_enabled;
 }

@@ -13,7 +13,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     init_logging(logName);
     
     cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", logger));
-    apu     = std::make_shared<APU>(std::make_shared<spdlog::logger>("APU", logger));
+    apu     = std::make_shared<APU>(logger, std::make_shared<spdlog::logger>("APU", logger));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", logger));
 
     read_rom(romName);
@@ -266,6 +266,7 @@ void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
     cpu->logger->set_level(l);
     memory->logger->set_level(l);
     apu->logger->set_level(l);
+    apu->setChannelLogLevel(l);
     joypad->logger->set_level(l);
     mbc->logger->set_level(l);
     gpu->logger->set_level(l);

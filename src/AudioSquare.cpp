@@ -3,8 +3,9 @@
 #include "Joypad.h"
 #include <vector>
 
-AudioSquare::AudioSquare(const uint16_t & register_offset)
-    : reg_offset(register_offset)
+AudioSquare::AudioSquare(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> _logger)
+    :   reg_offset(register_offset),
+        logger(_logger)
 {
     duty_pos                    = 0;
     sweep_period                = 0;
@@ -26,7 +27,7 @@ AudioSquare::AudioSquare(const uint16_t & register_offset)
     sweep_running               = false;
     envelope_increase           = false;
     envelope_running            = false;
-    envelope_enabled            = false;
+    dac_enabled            = false;
     stop_output_when_sound_length_ends = false;
     restart_sound               = false;
     is_enabled                  = false;
@@ -108,8 +109,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 
     case 1:
         wave_pattern_duty = (val >> 6) & 0x03;
-        sound_length_data = val & 0x3F;
-        sound_length_data = sound_length_load;
+        sound_length_data = 0x40 - (val & 0x3F);
         break;
 
     case 2:
@@ -117,14 +117,13 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
         envelope_increase           = val & BIT3;
         envelope_period_load        = val & 0x07;
 
-        if (val & 0xF8)
-        {
-            envelope_enabled = true;
+        dac_enabled = val & 0xF8;
+
+        if (!dac_enabled)
+        {   // Channel flag is disabled, completely disable the channel until reset()
+            is_enabled = dac_enabled;
         }
-        else
-        {
-            envelope_enabled = false;
-        }
+
         break;
 
     case 3:
@@ -224,7 +223,7 @@ void AudioSquare::tick()
 
     // Update output
     if (is_enabled &&
-        envelope_enabled &&
+        dac_enabled &&
         curr_sample > 0)
     {
         output_volume = volume;
@@ -375,5 +374,13 @@ void AudioSquare::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
 
 bool AudioSquare::isRunning()
 {
-    return (sound_length_data & 0x3F) > 0;
+    logger->trace("sound_length_data: 0x{0:x}, is_enabled: {1:b}, dac_enabled: {2:b}",
+        sound_length_data,
+        is_enabled,
+        dac_enabled);
+
+    //return (sound_length_data & 0x3F) > 0
+    return sound_length_data > 0
+        && is_enabled
+        && dac_enabled;
 }
