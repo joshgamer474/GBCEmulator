@@ -88,7 +88,7 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
     switch (reg)
     {
     case 0:
-        sound_length_data = 0x3F - (val & 0x3F);
+        sound_length_data = val & 0x3F;
         break;
 
     case 1:
@@ -255,5 +255,5 @@ void AudioNoise::reloadPeriod(uint8_t & period, const uint8_t & periodLoad)
 
 bool AudioNoise::isRunning()
 {
-    return sound_length_data > 0;
+    return (sound_length_data & 0x3F) > 0;
 }

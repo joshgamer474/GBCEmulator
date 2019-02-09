@@ -32,7 +32,7 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
         channel_is_enabled = val & BIT7;
         break;
     case 0xFF1B:    // NR31
-        sound_length_load = 0xFF - val;
+        sound_length_data = val & 0xFF;
         break;
     case 0xFF1C:    // NR32
         volume = (val & 0x60) >> 5;
@@ -126,7 +126,7 @@ void AudioWave::reset()
 
     if (sound_length_data == 0)
     {
-        sound_length_data = 0xFF;
+        sound_length_data = 0x100;
     }
 }
 
@@ -217,5 +217,5 @@ void AudioWave::updateSample()
 
 bool AudioWave::isRunning()
 {
-    return sound_length_data > 0;
+    return (sound_length_data & 0xFF) > 0;
 }
