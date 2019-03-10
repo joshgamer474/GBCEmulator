@@ -18,7 +18,7 @@ Joypad::~Joypad()
 
 void Joypad::set_joypad_button(BUTTON button)
 {
-    uint8_t bitToUnset;
+    uint8_t bitToUnset = 0;
     bool previouslyNotSet = false;
     bool requestInterrupt = false;
 
@@ -32,6 +32,8 @@ void Joypad::set_joypad_button(BUTTON button)
     case B:         bitToUnset = BIT5; break;
     case SELECT:    bitToUnset = BIT6; break;
     case START:     bitToUnset = BIT7; break;
+    default:
+        return;
     }
 
     // Get previous state of button

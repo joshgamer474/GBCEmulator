@@ -18,6 +18,7 @@ set(GBC_HEADERS
     src/CPU.h
     src/GPU.h
     src/Joypad.h
+    src/JoypadXInput.h
     src/MBC.h
     src/Memory.h
     src/Tile.h)
@@ -33,6 +34,7 @@ set(GBC_SOURCE
     src/CPU.cpp
     src/GPU.cpp
     src/Joypad.cpp
+    src/JoypadXInput.cpp
     src/MBC.cpp
     src/Memory.cpp
     src/Tile.cpp)
@@ -61,7 +63,8 @@ target_link_libraries(GBCEmulator
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
 target_link_libraries(GBCEmulator_bin
-    GBCEmulator)
+    GBCEmulator
+    XInput)
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")

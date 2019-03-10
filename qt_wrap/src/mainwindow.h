@@ -9,6 +9,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class JoypadXInput;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -32,6 +34,7 @@ private:
     Ui::MainWindow *ui;
     std::shared_ptr<DebuggerWindow> debuggerWindow;
     std::shared_ptr<EmuView> emuView;
+    std::shared_ptr<JoypadXInput> xinput;
 };
 
 #endif // MAINWINDOW_H

@@ -157,11 +157,21 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    cpu->runNextInstruction();
-    gpu->run(cpu->ticks);
-    apu->run(cpu->ticks);
+    uint64_t tickDiff;
 
-    uint64_t tickDiff = cpu->ticks - prevTicks;
+    cpu->runNextInstruction();
+    tickDiff = cpu->ticks - prevTicks;
+
+    // Check if Gameboy is in double speed mode
+    if (memory->cgb_speed_mode & BIT7)
+    {   // In double speed mode,
+        // Tick the CPU again
+        cpu->runNextInstruction();
+    }
+
+    gpu->run(tickDiff);
+    apu->run(tickDiff);
+
     ticksRan += tickDiff;
 
 #ifdef USE_FRAME_TIMING
@@ -289,10 +299,7 @@ std::shared_ptr<CPU> GBCEmulator::get_CPU()
     {
         return cpu;
     }
-    else
-    {
-        return NULL;
-    }
+    return NULL;
 }
 
 std::shared_ptr<GPU> GBCEmulator::get_GPU()
@@ -301,10 +308,16 @@ std::shared_ptr<GPU> GBCEmulator::get_GPU()
     {
         return gpu;
     }
-    else
+    return NULL;
+}
+
+std::shared_ptr<Joypad> GBCEmulator::get_Joypad()
+{
+    if (joypad)
     {
-        return NULL;
+        return joypad;
     }
+    return NULL;
 }
 
 std::vector<uint8_t> GBCEmulator::get_memory_map()

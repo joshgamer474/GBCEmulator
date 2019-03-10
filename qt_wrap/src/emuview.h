@@ -11,6 +11,7 @@
 #include <thread>
 
 class GBCEmulator;
+class JoypadXInput;
 
 class EmuView : public QGraphicsScene
 {
@@ -22,6 +23,7 @@ public:
     EmuView(QObject * parent, QGraphicsView  * emuView, std::string filename);
     virtual ~EmuView();
 
+    void init();
     QGraphicsScene* getThis();
 
     void setupEmulator(std::string filename, bool debugMode = false);
@@ -45,10 +47,10 @@ Q_SIGNALS:
     void updateFPS(QString fps);
 
 private:
-    QObject * parent;
-
     int hashImage(const QImage & p);
 
+    QObject * parent;
+    std::shared_ptr<JoypadXInput> xinput;
     int prevHash;
 };
 

@@ -23,18 +23,18 @@ public:
 	Joypad(std::shared_ptr<spdlog::logger> logger);
 	~Joypad();
 
-	enum BUTTON
-	{
-		DOWN,
-		UP,
-		LEFT,
-		RIGHT,
-		START,
-		SELECT,
-		B,
-		A,
-		NONE
-	};
+    enum BUTTON : int
+    {
+        DOWN,
+        UP,
+        LEFT,
+        RIGHT,
+        START,
+        SELECT,
+        B,
+        A,
+        NONE
+    };
 
 	void set_joypad_button(BUTTON button);
     void release_joypad_button(BUTTON button);

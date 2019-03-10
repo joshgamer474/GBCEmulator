@@ -1,12 +1,14 @@
 #include <src/emuview.h>
 #include <GBCEmulator.h>
+#include <src/mainwindow.h>
+#include <JoypadXInput.h>
+
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QThread>
 #include <QApplication>
 #include <QMainWindow>
-#include <src/mainwindow.h>
 
 EmuView::EmuView(QObject * parent)
     :   QGraphicsScene(parent),
@@ -22,10 +24,7 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
         emuView(graphicsView),
         prevHash(0)
 {
-    emuView->setScene(this);
-
-    emuView->setAlignment(Qt::AlignCenter);
-    emuView->setAcceptDrops(true);
+    init();
 }
 
 EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
@@ -34,10 +33,7 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string fil
         emuView(graphicsView),
         prevHash(0)
 {
-    emuView->setScene(this);
-
-    emuView->setAlignment(Qt::AlignCenter);
-    emuView->setAcceptDrops(true);
+    init();
     setupEmulator(filename);
 }
 
@@ -55,6 +51,15 @@ EmuView::~EmuView()
     }
 }
 
+void EmuView::init()
+{
+    emuView->setScene(this);
+    emuView->setAlignment(Qt::AlignCenter);
+    emuView->setAcceptDrops(true);
+
+    xinput = std::make_shared<JoypadXInput>();
+}
+
 void EmuView::setupEmulator(std::string filename, bool debugMode)
 {
     if (emu)
@@ -65,6 +70,8 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
     }
 
     emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
+
+    xinput->setJoypad(emu->get_Joypad());
 
 #ifdef QT_DEBUG
     emu->setTimePerFrame(0);
@@ -187,4 +194,7 @@ void EmuView::updateScene()
     this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
     this->addPixmap(frame_pixmap);
     this->setSceneRect(frame_pixmap.rect());
+
+    // Get controller Xinput
+    xinput->refreshButtonStates(0);
 }

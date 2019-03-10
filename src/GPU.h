@@ -40,7 +40,7 @@ public:
 	bool is_color_gb;
 	int num_vram_banks;
 	int curr_vram_bank;
-	std::uint64_t ticks, last_ticks;
+	std::uint64_t ticks;
 
     std::vector<SDL_Color> bg_frame;
 	SDL_Color bg_palette_color[PALETTE_DATA_SIZE];

@@ -15,7 +15,6 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
 	num_vram_banks = 1;
 	curr_vram_bank = 0;
 	ticks = 0;
-    last_ticks = 0;
     lcd_display_enable = false;
     lcd_status_interrupt_signal = false;
     wait_frame_to_render_window = false;
@@ -1280,12 +1279,10 @@ void GPU::display()
 #endif
 }
 
-void GPU::run(const uint64_t & cpuTicks)
+void GPU::run(const uint64_t & cpuTickDiff)
 {
     if (lcd_display_enable == false)
     {
-        last_ticks = cpuTicks;
-
         if ((lcd_status & 0x03) != GPU_MODE_HBLANK)
         {
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
@@ -1293,8 +1290,7 @@ void GPU::run(const uint64_t & cpuTicks)
         return;
     }
 
-	ticks += cpuTicks - last_ticks;
-	last_ticks = cpuTicks;
+	ticks += cpuTickDiff;
 
     // Account for double speed mode
     uint16_t cgb_double_speed_multiplier = 1;

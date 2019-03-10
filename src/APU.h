@@ -79,7 +79,6 @@ private:
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
     uint64_t curr_apu_ticks;
-    uint64_t prev_cpu_ticks;
     uint64_t sample_timer;
     uint64_t sample_timer_val;
     bool sound_on;

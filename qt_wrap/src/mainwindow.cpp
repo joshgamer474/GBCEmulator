@@ -1,12 +1,16 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include <string>
+#include <mainwindow.h>
+#include <ui_mainwindow.h>
+
 #include <GBCEmulator.h>
 #include <Joypad.h>
+#include <JoypadXInput.h>
+
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QGraphicsView>
+
+#include <string>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -16,8 +20,9 @@ MainWindow::MainWindow(QWidget *parent) :
     setAcceptDrops(true);
 
     emuView = std::make_shared<EmuView>(this, ui->graphicsView);
-    ui->graphicsView->hide();
+    xinput = std::make_shared<JoypadXInput>();
 
+    ui->graphicsView->hide();
     connectSignalsSlots();
 }
 
@@ -29,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
     setAcceptDrops(true);
 
     emuView = std::make_shared<EmuView>(this, ui->graphicsView);
+    xinput = std::make_shared<JoypadXInput>();
 
     connectSignalsSlots();
 }
@@ -99,27 +105,43 @@ void MainWindow::keyPressEvent(QKeyEvent * e)
         return;
     }
 
+    Joypad::BUTTON button = Joypad::BUTTON::NONE;
+
     switch (e->key())
     {
     case Qt::Key_W:
     case Qt::UpArrow:
-        emuView->emu->set_joypad_button(Joypad::UP); break;
+        button = Joypad::UP;
+        break;
     case Qt::Key_S:
     case Qt::DownArrow:
-        emuView->emu->set_joypad_button(Joypad::DOWN); break;
+        button = Joypad::DOWN;
+        break;
     case Qt::Key_A:
     case Qt::LeftArrow:
-        emuView->emu->set_joypad_button(Joypad::LEFT); break;
+        button = Joypad::LEFT;
+        break;
     case Qt::Key_D:
     case Qt::RightArrow:
-        emuView->emu->set_joypad_button(Joypad::RIGHT); break;
-    case Qt::Key_Z: emuView->emu->set_joypad_button(Joypad::A); break;
-    case Qt::Key_X: emuView->emu->set_joypad_button(Joypad::B); break;
-    case Qt::Key_N: emuView->emu->set_joypad_button(Joypad::SELECT); break;
-    case Qt::Key_M: emuView->emu->set_joypad_button(Joypad::START); break;
-    default:
+        button = Joypad::RIGHT;
         break;
+    case Qt::Key_Z:
+        button = Joypad::A;
+        break;
+    case Qt::Key_X:
+        button = Joypad::B;
+        break;
+    case Qt::Key_N:
+        button = Joypad::SELECT;
+        break;
+    case Qt::Key_M:
+        button = Joypad::START;
+        break;
+    default:
+        return;
     }
+
+    emuView->emu->set_joypad_button(button);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent * e)
@@ -129,25 +151,41 @@ void MainWindow::keyReleaseEvent(QKeyEvent * e)
         return;
     }
 
+    Joypad::BUTTON button = Joypad::BUTTON::NONE;
+
     switch (e->key())
     {
     case Qt::Key_W:
     case Qt::UpArrow:
-        emuView->emu->release_joypad_button(Joypad::UP); break;
+        button = Joypad::UP;
+        break;
     case Qt::Key_S:
     case Qt::DownArrow:
-        emuView->emu->release_joypad_button(Joypad::DOWN); break;
+        button = Joypad::DOWN;
+        break;
     case Qt::Key_A:
     case Qt::LeftArrow:
-        emuView->emu->release_joypad_button(Joypad::LEFT); break;
+        button = Joypad::LEFT;
+        break;
     case Qt::Key_D:
     case Qt::RightArrow:
-        emuView->emu->release_joypad_button(Joypad::RIGHT); break;
-    case Qt::Key_Z: emuView->emu->release_joypad_button(Joypad::A); break;
-    case Qt::Key_X: emuView->emu->release_joypad_button(Joypad::B); break;
-    case Qt::Key_N: emuView->emu->release_joypad_button(Joypad::SELECT); break;
-    case Qt::Key_M: emuView->emu->release_joypad_button(Joypad::START); break;
-    default:
+        button = Joypad::RIGHT;
         break;
+    case Qt::Key_Z:
+        button = Joypad::A;
+        break;
+    case Qt::Key_X:
+        button = Joypad::B;
+        break;
+    case Qt::Key_N:
+        button = Joypad::SELECT;
+        break;
+    case Qt::Key_M:
+        button = Joypad::START;
+        break;
+    default:
+        return;
     }
+
+    emuView->emu->release_joypad_button(button);
 }

@@ -45,6 +45,7 @@ public:
     SDL_Color * get_frame();
     std::shared_ptr<CPU> get_CPU();
     std::shared_ptr<GPU> get_GPU();
+    std::shared_ptr<Joypad> get_Joypad();
     std::vector<uint8_t> get_memory_map();
     std::vector<uint8_t> get_partial_memory_map(uint16_t start_pos, uint16_t end_pos);
     void set_joypad_button(Joypad::BUTTON button);

@@ -13,7 +13,6 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     selection_of_sound_output = 0;
     sound_on                = 0;
     curr_apu_ticks          = 0;
-    prev_cpu_ticks          = 0;
     left_volume             = 0;
     right_volume            = 0;
     left_volume_use         = 0;
@@ -247,12 +246,13 @@ void APU::reset()
     sound_channel_4->reset();
 }
 
-void APU::run(const uint64_t & cpuTicks)
+void APU::run(const uint64_t & cpuTickDiff)
 {
     //return;
 
-    uint64_t diff = cpuTicks - prev_cpu_ticks;
-    prev_cpu_ticks = cpuTicks;
+    uint64_t diff = cpuTickDiff;
+
+    //diff >>= 1;
 
     while (diff > 0)
     {

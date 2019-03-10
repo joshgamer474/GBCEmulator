@@ -25,10 +25,11 @@ set(GBC_HEADERS
     ../src/CPU.h
     ../src/GPU.h
     ../src/Joypad.h
+    ../src/JoypadXInput.h
     ../src/MBC.h
     ../src/Memory.h
     ../src/Tile.h)
-        
+
 set(GBC_SOURCE
     ../src/GBCEmulator.cpp
     ../src/CartridgeReader.cpp
@@ -40,6 +41,7 @@ set(GBC_SOURCE
     ../src/CPU.cpp
     ../src/GPU.cpp
     ../src/Joypad.cpp
+    ../src/JoypadXInput.cpp
     ../src/MBC.cpp
     ../src/Memory.cpp
     ../src/Tile.cpp)
@@ -87,6 +89,7 @@ target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator_qt
     ${CONAN_TARGETS}
-    ${CONAN_LIB_DIRS}
-    ${CONAN_LIB_DIRS_GBCEMULATOR}
+#    ${CONAN_LIB_DIRS}
+#    ${CONAN_LIB_DIRS_GBCEMULATOR}
+    XInput
     Qt5::Widgets)
