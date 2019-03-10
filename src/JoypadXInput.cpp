@@ -29,25 +29,23 @@ void JoypadXInput::setJoypad(std::shared_ptr<Joypad> _joypad)
 void JoypadXInput::init()
 {
     prev_button_states = initButtonStatesMap();
-    findControllers();
 }
 
-void JoypadXInput::findControllers()
+int JoypadXInput::findControllers()
 {
-    controllers.clear();
-
     XINPUT_STATE state;
     ZeroMemory(&state, sizeof(XINPUT_STATE));
+    int numControllersConnected = 0;
 
     for (int i = 0; i < XUSER_MAX_COUNT; i++)
     {
-
         if (XInputGetState(i, &state) == ERROR_SUCCESS)
         {
-            controllers.push_back(i);
-            break;
+            numControllersConnected++;
         }
     }
+
+    return numControllersConnected;
 }
 
 void JoypadXInput::refreshButtonStates(const int & controller)
@@ -58,12 +56,14 @@ void JoypadXInput::refreshButtonStates(const int & controller)
         return;
     }
 
-    // Get gamepad state
-    XINPUT_STATE controller_state;
-    if (XInputGetState(controller, &controller_state) != ERROR_SUCCESS)
+    if (!isConnected(controller))
     {   // Controller not connected!
         return;
     }
+
+    // Get gamepad state
+    XINPUT_STATE controller_state;
+    XInputGetState(controller, &controller_state);
 
     // Get gamepad button WORD
     const auto & buttons = controller_state.Gamepad.wButtons;
@@ -117,7 +117,7 @@ int JoypadXInput::getJoypadButtonFromMask(const int & mask) const
     {
         case XINPUT_GAMEPAD_A:             return Joypad::BUTTON::A;
         case XINPUT_GAMEPAD_B:             return Joypad::BUTTON::B;
-        //case XINPUT_GAMEPAD_X:             return Joypad::BUTTON::;
+        case XINPUT_GAMEPAD_X:             return Joypad::BUTTON::B;
         //case XINPUT_GAMEPAD_Y:             return Joypad::BUTTON::;
         case XINPUT_GAMEPAD_DPAD_LEFT:     return Joypad::BUTTON::LEFT;
         case XINPUT_GAMEPAD_DPAD_RIGHT:    return Joypad::BUTTON::RIGHT;
@@ -132,4 +132,10 @@ int JoypadXInput::getJoypadButtonFromMask(const int & mask) const
         default:
             return -1;
     }
+}
+
+bool JoypadXInput::isConnected(int controller) const
+{
+    XINPUT_STATE controller_state;
+    return XInputGetState(controller, &controller_state) == ERROR_SUCCESS;
 }

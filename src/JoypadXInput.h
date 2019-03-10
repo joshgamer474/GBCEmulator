@@ -16,14 +16,14 @@ public:
 
     void setJoypad(std::shared_ptr<Joypad> _joypad);
     void refreshButtonStates(const int & controller);
+    int findControllers();
 
 private:
     void init();
-    void findControllers();
     std::unordered_map<int, bool> initButtonStatesMap() const;
     int getJoypadButtonFromMask(const int & mask) const;
+    bool isConnected(int controller) const;
 
-    std::vector<int> controllers;
     std::unordered_map<int, bool> prev_button_states;
     std::shared_ptr<Joypad> joypad;
 };
