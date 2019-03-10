@@ -364,17 +364,7 @@ void GPU::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 			case 0xFF47:	bg_palette = val;       set_color_palette(bg_palette_color, val); break;
 			case 0xFF48:	object_pallete0 = val;  set_color_palette(object_palette0_color, val, true); break;
 			case 0xFF49:	object_pallete1 = val;  set_color_palette(object_palette1_color, val, true); break;
-			case 0xFF4A:	
-                if (gpu_mode == GPU_MODE_VBLANK)
-                {
-                    logger->info("setByte() WY, val: {0:d}", val);
-                    window_y_pos = val;
-                }
-                else
-                {
-                    logger->info("Ignoring setByte() for WY during frame rendering, val {0:d}", val);
-                }
-                break;
+			case 0xFF4A:	window_y_pos = val; break;
 			case 0xFF4B:	window_x_pos = val; break;
 
 			default:
