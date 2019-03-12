@@ -277,7 +277,7 @@
           <x>0</x>
           <y>0</y>
           <width>383</width>
-          <height>368</height>
+          <height>366</height>
          </rect>
         </property>
         <property name="sizePolicy">
@@ -288,7 +288,7 @@
         </property>
        </widget>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <spacer name="verticalSpacer">
@@ -359,6 +359,7 @@
    <addaction name="actionStep_Over"/>
    <addaction name="actionStep_Out"/>
    <addaction name="actionOpenVRAMViewer"/>
+   <addaction name="actionOpenAudioDebugger"/>
   </widget>
   <action name="actionOpen_ROM">
    <property name="text">
@@ -451,6 +452,14 @@
   <action name="actionOpenVRAMViewer">
    <property name="text">
     <string>OpenVRAMViewer</string>
+   </property>
+  </action>
+  <action name="actionOpenAudioDebugger">
+   <property name="text">
+    <string>OpenAudioDebugger</string>
+   </property>
+   <property name="toolTip">
+    <string>Open the Audio Debugger</string>
    </property>
   </action>
  </widget>

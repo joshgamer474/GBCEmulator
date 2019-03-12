@@ -26,7 +26,6 @@ extern "C" {
 #include <SDL.h>
 }
 
-//#define USE_FRAME_TIMING
 #define USE_AUDIO_TIMING
 
 class GBCEmulator
@@ -43,6 +42,7 @@ public:
     void setStopRunning(bool val);
     bool frame_is_ready();
     SDL_Color * get_frame();
+    std::shared_ptr<APU> get_APU();
     std::shared_ptr<CPU> get_CPU();
     std::shared_ptr<GPU> get_GPU();
     std::shared_ptr<Joypad> get_Joypad();

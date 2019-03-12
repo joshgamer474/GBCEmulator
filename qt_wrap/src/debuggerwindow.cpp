@@ -86,6 +86,11 @@ void DebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _emu)
         cpu = emu->get_CPU();
         updateHexWidget(true);
         hexWidget->setCursor(cpu->get_register_16(CPU::PC));
+
+        if (audioDebuggerWindow)
+        {
+            audioDebuggerWindow->initEmulatorConnections(emu);
+        }
     }
 
     // Setup updateGUITimer to update GUI when the emulator is running
@@ -217,6 +222,18 @@ void DebuggerWindow::connectToolbarButtons()
         }
 
         vramWindow = new VRAMWindow(this, emuView);
+    });
+
+    // Connect open VRAM Viewer button
+    connect(ui->actionOpenAudioDebugger, &QAction::triggered, [&]()
+    {
+        if (audioDebuggerWindow)
+        {
+            audioDebuggerWindow.reset();
+        }
+
+        audioDebuggerWindow = std::make_shared<AudioDebuggerWindow>();
+        audioDebuggerWindow->initEmulatorConnections(emu);
     });
 }
 

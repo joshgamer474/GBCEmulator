@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 #include <fstream>
+#include <functional>
 #include <AudioSquare.h>
 #include <AudioWave.h>
 #include <AudioNoise.h>
@@ -45,6 +46,8 @@ public:
     void run(const uint64_t & cpuTicks);
     void initCGB();
     void setChannelLogLevel(spdlog::level::level_enum level);
+    void setSampleUpdateMethod(std::function<void(float, int)> function);
+    void sendSamplesToDebugger(bool b);
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;
@@ -60,7 +63,9 @@ private:
     void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
+    void sleepUntilBufferIsEmpty();
 
+    std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> outRightChannel;
     std::unique_ptr<std::ofstream> outLeftChannel;
     std::unique_ptr<AudioSquare> sound_channel_1;
@@ -81,9 +86,12 @@ private:
     uint64_t curr_apu_ticks;
     uint64_t sample_timer;
     uint64_t sample_timer_val;
+    uint64_t double_speed_mode_modifier;
     bool sound_on;
     bool left_out_enabled;
     bool right_out_enabled;
+    bool double_speed_mode;
+    bool send_samples_to_debugger;
 };
 
 #endif

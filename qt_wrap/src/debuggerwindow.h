@@ -7,6 +7,7 @@
 #include <hexwidget.h>
 #include <CPU.h>
 #include <vramwindow.h>
+#include <audiodebuggerwindow.h>
 
 namespace Ui {
     class DebuggerWindow;
@@ -44,6 +45,7 @@ private:
     std::shared_ptr<EmuView> emuView;
     std::shared_ptr<GBCEmulator> emu;
     std::shared_ptr<CPU> cpu;
+    std::shared_ptr<AudioDebuggerWindow> audioDebuggerWindow;
     QTimer updateGUITimer;
     uint16_t pc, next_pc;
     bool isHidden;

@@ -48,6 +48,7 @@ set(GBC_SOURCE
 
 set(QT_UIS
     src/mainwindow.ui
+    src/audiodebuggerwindow.ui
     src/debuggerwindow.ui
     src/vramwindow.ui)
         
@@ -55,12 +56,14 @@ set(QT_HEADERS
     src/mainwindow.h
     src/emuview.h
     src/debuggerwindow.h
+    src/audiodebuggerwindow.h
     src/hexwidget.h
     src/vramwindow.h)
         
 set(QT_SOURCE
     src/mainwindow.cpp
     src/emuview.cpp
+    src/audiodebuggerwindow.cpp
     src/debuggerwindow.cpp
     src/hexwidget.cpp
     src/vramwindow.cpp)

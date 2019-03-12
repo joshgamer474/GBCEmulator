@@ -6,8 +6,8 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-#define CLOCK_SPEED 4194304				// Hz/CPU cycles
-#define CLOCK_SPEED_GBC_MAX 8400000
+#define CLOCK_SPEED         4 * 1024 * 1024				// Hz/CPU cycles
+#define CLOCK_SPEED_GBC_MAX 8 * 1024 * 1024
 
 //#define ENABLE_DEBUG_PRINT
 

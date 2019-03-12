@@ -27,7 +27,7 @@ AudioSquare::AudioSquare(const uint16_t & register_offset, std::shared_ptr<spdlo
     sweep_running               = false;
     envelope_increase           = false;
     envelope_running            = false;
-    dac_enabled            = false;
+    dac_enabled                 = false;
     stop_output_when_sound_length_ends = false;
     restart_sound               = false;
     is_enabled                  = false;

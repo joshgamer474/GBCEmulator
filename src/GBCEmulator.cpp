@@ -160,36 +160,27 @@ void GBCEmulator::runNextInstruction()
     uint64_t tickDiff;
 
     cpu->runNextInstruction();
-    tickDiff = cpu->ticks - prevTicks;
 
+    tickDiff = cpu->ticks - prevTicks;
+    
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
     {   // In double speed mode,
         // Tick the CPU again
-        cpu->runNextInstruction();
+        //cpu->runNextInstruction();
+        tickDiff >>= 1;
     }
+
+    //if (memory->cgb_speed_mode & BIT7)
+    //{
+    //    tickDiff >>= 1;
+    //}
 
     gpu->run(tickDiff);
     apu->run(tickDiff);
 
-    ticksRan += tickDiff;
-
-#ifdef USE_FRAME_TIMING
-    if (gpu->frame_is_ready)
-    {
-        //apu->logger->info("Number of samples made during frame: {0:d}", cpu->memory->apu->samplesPerFrame);
-        apu->samplesPerFrame = 0;
-
-        frameIsUpdatedFunction();
-        gpu->frame_is_ready = false;
-
-        // Sleep until next frame should start
-        waitToStartNextFrame();
-
-        // Update frameStartTime to current time
-        frameStartTime = getCurrentTime();
-    }
-#endif
+    //ticksRan += tickDiff;
+    ticksRan += cpu->ticks - prevTicks;
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
@@ -197,7 +188,7 @@ void GBCEmulator::runNextInstruction()
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
 
-        //apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
         apu->samplesPerFrame = 0;
     }
 #else
@@ -291,6 +282,15 @@ bool GBCEmulator::frame_is_ready()
 SDL_Color * GBCEmulator::get_frame()
 {
     return gpu->getFrame();
+}
+
+std::shared_ptr<APU> GBCEmulator::get_APU()
+{
+    if (apu)
+    {
+        return apu;
+    }
+    return NULL;
 }
 
 std::shared_ptr<CPU> GBCEmulator::get_CPU()
