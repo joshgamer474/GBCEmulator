@@ -71,10 +71,10 @@ void AudioDebuggerWindow::initEmulatorConnections(std::shared_ptr<GBCEmulator> _
         }
 
         // Get new image
-        updateWaveformImage(Channel::SQUARE1);
-        updateWaveformImage(Channel::SQUARE2);
-        updateWaveformImage(Channel::WAVE);
-        updateWaveformImage(Channel::NOISE);
+        updateWaveformImage2(Channel::SQUARE1);
+        updateWaveformImage2(Channel::SQUARE2);
+        updateWaveformImage2(Channel::WAVE);
+        updateWaveformImage2(Channel::NOISE);
 
         // Push QImage to QLabel
         waveformLabels[Channel::SQUARE1]->setPixmap(QPixmap::fromImage(waveformImages[0]));
@@ -98,6 +98,10 @@ void AudioDebuggerWindow::initWaveforms(const size_t & num_samples)
     waveformLabels[Channel::NOISE]      = ui->image_Noise;
 
     waveformImages = std::vector<QImage>(4, QImage(SAMPLE_PRECISION, IMAGE_HEIGHT, QImage::Format::Format_RGB888));
+    for (auto & image : waveformImages)
+    {
+        image.fill(Qt::black);
+    }
 }
 
 void AudioDebuggerWindow::pushSample(float sample, int channel)
@@ -146,6 +150,55 @@ void AudioDebuggerWindow::updateWaveformImage(const Channel & channel)
             scanline[offset] = 0;       // R
             scanline[offset + 1] = 0;   // G
             scanline[offset + 2] = 255; // B
+        }
+
+        imageMutex.unlock();
+    }
+}
+
+void AudioDebuggerWindow::updateWaveformImage2(const Channel & channel)
+{
+    std::unique_lock<std::timed_mutex> lock(imageMutex, std::defer_lock);
+    if (lock.try_lock_for(std::chrono::milliseconds(1)))
+    {
+        // Get waveform deque
+        const auto & waveform = waveforms[channel];
+
+        // Get waveform's QImage
+        auto & image = waveformImages[channel];
+        const int imageWidth = image.width();
+        const int imagePixelWidth = imageWidth * 3; // RGB888: 1 pixel = 3 bytes
+
+        // Move image 1 pixel to the left
+        for (int y = 0; y < image.height(); y++)
+        {   // Update each scanline to move pixel data 1 pixel to the left
+            uchar * scanline = image.scanLine(y);
+            
+            for (int x = 0; x < imagePixelWidth - 3; x += 3)
+            {   // An attempt to optimize
+                if (scanline[x + 1] != 0)   // G
+                {   // Blacken this pixel
+                    scanline[x + 1] = 0;
+                }
+
+                // Get which scanline (y) the latest waveform is
+                int waveformY;
+                if (waveform[x / 3] == 0)
+                {
+                    waveformY = IMAGE_HEIGHT >> 1;  // divided by 2
+                }
+                else
+                {
+                    waveformY = waveform[x / 3] * IMAGE_HEIGHT;
+                }
+                //const int waveformY = ((waveform[x / 3] + 1.0f) * IMAGE_HEIGHT) / 2.0;
+                //const int waveformY = waveform[x / 3] * IMAGE_HEIGHT;
+
+                if (y == waveformY)
+                {   // Color this pixel green
+                    scanline[x + 1] = 255;     // G
+                }
+            }
         }
 
         imageMutex.unlock();

@@ -43,6 +43,7 @@ private:
     void initWaveforms(const size_t & num_samples);
     void pushSample(float sample, int channel);
     void updateWaveformImage(const Channel & channel);
+    void updateWaveformImage2(const Channel & channel);
 
     Ui::AudioDebuggerWindow *ui;
     std::shared_ptr<GBCEmulator> emu;
