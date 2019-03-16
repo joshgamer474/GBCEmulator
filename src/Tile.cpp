@@ -1,5 +1,8 @@
 
+#ifdef _WIN32
 #include "stdafx.h"
+#endif // _WIN32
+
 #include "Tile.h"
 
 Tile::Tile()

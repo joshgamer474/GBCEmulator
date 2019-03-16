@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef CARTRIDGE_READER_H
 #define CARTRIDGE_READER_H
 
@@ -14,7 +12,6 @@ class CartridgeReader
 public:
 	CartridgeReader(std::shared_ptr<spdlog::logger> logger);
 	~CartridgeReader();
-
 
 	void setRomDestination(std::string filename);
 	bool readRom();
@@ -83,4 +80,5 @@ private:
     unsigned char game_version;
     unsigned char header_checksum;	// Checks if cartridge is valid
 };
+
 #endif

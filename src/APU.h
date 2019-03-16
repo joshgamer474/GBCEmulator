@@ -9,6 +9,7 @@
 #include <AudioWave.h>
 #include <AudioNoise.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
 #define SAMPLE_RATE 44100
 #define SAMPLE_BUFFER_SIZE 1470

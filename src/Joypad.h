@@ -3,8 +3,11 @@
 #ifndef JOYPAD_H
 #define JOYPAD_H
 
-#include <cstdint>
+#ifdef _WIN32
 #include <Windows.h>
+#endif
+
+#include <cstdint>
 #include <SDL.h>
 #include <spdlog/spdlog.h>
 

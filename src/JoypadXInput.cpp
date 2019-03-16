@@ -1,8 +1,8 @@
 #include <JoypadXInput.h>
-//extern "C" {
+#ifdef _WIN32
 #include <Windows.h>
 #include <Xinput.h>
-//}
+
 #include <Joypad.h>
 
 JoypadXInput::JoypadXInput()
@@ -139,3 +139,5 @@ bool JoypadXInput::isConnected(int controller) const
     XINPUT_STATE controller_state;
     return XInputGetState(controller, &controller_state) == ERROR_SUCCESS;
 }
+
+#endif // _WIN32

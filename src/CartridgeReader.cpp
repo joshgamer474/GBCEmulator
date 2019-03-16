@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "CartridgeReader.h"
 #include "Debug.h"
 #include "MBC.h"
@@ -31,8 +30,25 @@ bool CartridgeReader::readRom()
 	if (rom.is_open())
 	{
 		logger->info("Reading in rom");
-		std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
-		romBuffer = romBufferr;
+		
+        // Get size of ROM
+        std::streampos fileSize;
+        rom.seekg(0, std::ios::end);
+        fileSize = rom.tellg();
+
+        // Seek back to the beginning of the ROM
+        rom.seekg(0, std::ios::beg);
+
+        // Resize romBuffer
+        romBuffer.resize(fileSize);
+
+        // Read ROM into vector
+        romBuffer.insert(romBuffer.begin(),
+            std::istream_iterator<unsigned char>(rom),
+            std::istream_iterator<unsigned char>());
+
+        // std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
+		// romBuffer = romBufferr;
 
 		// Read information from cartridge
 		getCartridgeInformation();
