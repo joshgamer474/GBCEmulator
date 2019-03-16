@@ -443,6 +443,8 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
             (std::istreambuf_iterator<char>(file)),
             (std::istreambuf_iterator<char>()));
 
+        logger->info("Finished reading in save file");
+
         uint8_t use_ram_bank = 0;
         uint32_t num_ram_banks_in_file = ram.size() / 0x1FFF;
         

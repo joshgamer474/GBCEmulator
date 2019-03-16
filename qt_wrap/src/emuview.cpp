@@ -3,12 +3,13 @@
 #include <src/mainwindow.h>
 #include <JoypadXInput.h>
 
-#include <QDropEvent>
+#include <QApplication>
 #include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QImage>
+#include <QMainWindow>
 #include <QMimeData>
 #include <QThread>
-#include <QApplication>
-#include <QMainWindow>
 
 EmuView::EmuView(QObject * parent)
     :   QGraphicsScene(parent),
@@ -57,7 +58,9 @@ void EmuView::init()
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
 
+#ifdef _WIN32
     xinput = std::make_shared<JoypadXInput>();
+#endif // _WIN32
 }
 
 void EmuView::setupEmulator(std::string filename, bool debugMode)
@@ -71,7 +74,10 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 
     emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
 
-    xinput->setJoypad(emu->get_Joypad());
+    if (xinput)
+    {
+        xinput->setJoypad(emu->get_Joypad());
+    }
 
 #ifdef QT_DEBUG
     emu->setTimePerFrame(0);
@@ -126,7 +132,7 @@ void EmuView::runTo(uint16_t next_pc)
 void EmuView::initFrame()
 {
     // Create QImage frame
-    frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(),
+    frame = std::make_unique<QImage>(reinterpret_cast<unsigned char*>(emu->get_frame()),
         SCREEN_PIXEL_W,
         SCREEN_PIXEL_H,
         QImage::Format_RGBA8888);
@@ -195,6 +201,8 @@ void EmuView::updateScene()
     this->addPixmap(frame_pixmap);
     this->setSceneRect(frame_pixmap.rect());
 
-    // Get controller Xinput
-    xinput->refreshButtonStates(0);
+    if (xinput)
+    {   // Get controller Xinput
+        xinput->refreshButtonStates(0);
+    }
 }

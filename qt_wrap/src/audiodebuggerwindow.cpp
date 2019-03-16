@@ -1,5 +1,5 @@
-#include "AudioDebuggerWindow.h"
-#include "ui_AudioDebuggerWindow.h"
+#include <audiodebuggerwindow.h>
+#include "ui_audiodebuggerwindow.h"
 #include <string>
 #include <GBCEmulator.h>
 #include <APU.h>

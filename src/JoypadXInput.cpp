@@ -1,9 +1,10 @@
 #include <JoypadXInput.h>
+#include <Joypad.h>
+
 #ifdef _WIN32
 #include <Windows.h>
 #include <Xinput.h>
-
-#include <Joypad.h>
+//#endif // _WIN32
 
 JoypadXInput::JoypadXInput()
 {
@@ -28,7 +29,9 @@ void JoypadXInput::setJoypad(std::shared_ptr<Joypad> _joypad)
 
 void JoypadXInput::init()
 {
+#ifdef _WIN32
     prev_button_states = initButtonStatesMap();
+#endif // _WIN32
 }
 
 int JoypadXInput::findControllers()

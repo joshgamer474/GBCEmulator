@@ -16,27 +16,15 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    setAcceptDrops(true);
-
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
-    xinput = std::make_shared<JoypadXInput>();
-
+    init();
     ui->graphicsView->hide();
-    connectSignalsSlots();
 }
 
 MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
     :   QMainWindow(parent),
         ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    setAcceptDrops(true);
-
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
-    xinput = std::make_shared<JoypadXInput>();
-
-    connectSignalsSlots();
+    init();
 }
 
 MainWindow::~MainWindow()
@@ -47,6 +35,16 @@ MainWindow::~MainWindow()
     }
 
     delete ui;
+}
+
+void MainWindow::init()
+{
+    ui->setupUi(this);
+    setAcceptDrops(true);
+
+    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
+
+    connectSignalsSlots();
 }
 
 void MainWindow::connectSignalsSlots()

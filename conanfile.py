@@ -9,7 +9,8 @@ class GBCEmulator(ConanFile):
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux"], 
                 "arch": ["x86", "x86_64"],
-                "compiler": ["Visual Studio", "gcc"]}
+                "compiler": ["Visual Studio", "gcc"],
+                "build_type": ["Debug", "Release"]}
     options = {"shared": [True, False]}
     generators = "cmake"
     requires = "sdl2/2.0.9@bincrafters/stable", \
@@ -29,13 +30,13 @@ class GBCEmulator(ConanFile):
         self.keep_imports = True
     
     def build(self):
-        cmake = CMake(self)
+        cmake = CMake(self, build_type=self.settings.build_type)
         cmake.configure()
         cmake.build()
         
     def package(self):
         self.copy("*", src="bin",   dst="bin",    keep_path=False)
-        self.copy("*.h", src="src", dst="include", keep_path=False)
+        self.copy("*.h", dst="include", keep_path=True)
         
         if self.options.shared == False:
             self.copy("*", src="lib",   dst="lib",    keep_path=False)

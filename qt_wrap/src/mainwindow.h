@@ -9,8 +9,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class JoypadXInput;
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,6 +23,7 @@ public Q_SLOTS:
     void updateFPS(QString fps);
 
 private:
+    void init();
     void connectSignalsSlots();
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);
@@ -34,7 +33,6 @@ private:
     Ui::MainWindow *ui;
     std::shared_ptr<DebuggerWindow> debuggerWindow;
     std::shared_ptr<EmuView> emuView;
-    std::shared_ptr<JoypadXInput> xinput;
 };
 
 #endif // MAINWINDOW_H

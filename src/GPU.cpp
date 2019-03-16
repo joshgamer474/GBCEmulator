@@ -1431,7 +1431,7 @@ SDL_Color * GPU::getFrame()
     return curr_frame;
 }
 
-std::vector<std::vector<std::vector<Tile>>> GPU::getBGTiles()
+std::vector<std::vector<std::vector<Tile>>> & GPU::getBGTiles()
 {
     bg_tiles_updated = false;
     return bg_tiles;

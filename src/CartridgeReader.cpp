@@ -27,20 +27,24 @@ bool CartridgeReader::readRom()
 	std::ifstream rom;
 	rom.open(cartridgeFilename, std::ios::binary);
 
-	if (rom.is_open())
-	{
-		logger->info("Reading in rom");
-		
+    rom.unsetf(std::ios::skipws);   // Don't skip newlines when reading as binary
+
+    if (rom.is_open())
+    {
+        logger->info("Reading in ROM");
+
         // Get size of ROM
         std::streampos fileSize;
         rom.seekg(0, std::ios::end);
         fileSize = rom.tellg();
 
+        logger->info("ROM size is {0:d} bytes", fileSize);
+
         // Seek back to the beginning of the ROM
         rom.seekg(0, std::ios::beg);
 
-        // Resize romBuffer
-        romBuffer.resize(fileSize);
+        // Reserve space in romBuffer
+        romBuffer.reserve(fileSize);
 
         // Read ROM into vector
         romBuffer.insert(romBuffer.begin(),
@@ -48,14 +52,14 @@ bool CartridgeReader::readRom()
             std::istream_iterator<unsigned char>());
 
         // std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
-		// romBuffer = romBufferr;
+        // romBuffer = romBufferr;
 
-		// Read information from cartridge
-		getCartridgeInformation();
-		logger->info("Finished reading in {}", game_title);
-		
-		rom.close();
-		return true;
+        // Read information from cartridge
+        getCartridgeInformation();
+        logger->info("Finished reading in {}", game_title);
+        
+        rom.close();
+        return true;
 	}
 	else
 	{
@@ -135,7 +139,9 @@ int CartridgeReader::getNumOfRomBanks(unsigned char rom_size)
 	case 0x53: return 80;
 	case 0x54: return 96;
 
-	default: return 0;
+	default:
+        logger->warn("Unknown ROM size byte received: 0x{0:x}", rom_size);
+        return 1;
 	}
 }
 

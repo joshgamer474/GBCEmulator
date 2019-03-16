@@ -1,17 +1,18 @@
 #ifndef EMU_VIEW_H
 #define EMU_VIEW_H
 
-#include <QObject>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QImage>
+#include <QObject>
 #include <QString>
-#include <QTimer>
 #include <QPixmap>
+#include <QTimer>
+#include <JoypadInputInterface.h>
 #include <memory>
 #include <thread>
 
 class GBCEmulator;
-class JoypadXInput;
 
 class EmuView : public QGraphicsScene
 {
@@ -50,7 +51,7 @@ private:
     int hashImage(const QImage & p);
 
     QObject * parent;
-    std::shared_ptr<JoypadXInput> xinput;
+    std::shared_ptr<JoypadInputInterface> xinput;
     int prevHash;
 };
 
