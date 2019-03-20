@@ -165,21 +165,21 @@ void GBCEmulator::runNextInstruction()
     
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
-    {   // In double speed mode,
-        // Tick the CPU again
-        //cpu->runNextInstruction();
+    {   // In double speed mode, divide tickDiff by 2 to simulate
+        // running the CPU at double speed
         tickDiff >>= 1;
     }
 
-    //if (memory->cgb_speed_mode & BIT7)
-    //{
-    //    tickDiff >>= 1;
-    //}
-
     gpu->run(tickDiff);
-    apu->run(tickDiff);
+    if (memory->cgb_speed_mode & BIT7)
+    {   // Fixes GBC double speed games to have 60FPS
+        apu->run(tickDiff >> 1);
+    }
+    else
+    {
+        apu->run(tickDiff);
+    }
 
-    //ticksRan += tickDiff;
     ticksRan += cpu->ticks - prevTicks;
 
 #ifdef USE_AUDIO_TIMING
