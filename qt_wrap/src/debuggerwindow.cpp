@@ -25,7 +25,7 @@ DebuggerWindow::DebuggerWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
 {
     ui->setupUi(this);
     ui->scrollArea->setWidget(hexWidget);
-    ui->graphicsView->setScene(emuView->getThis());
+    //ui->graphicsView->setScene(emuView->getThis());
     connectToolbarButtons();
 
     if (emuView->emu)

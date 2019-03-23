@@ -9,29 +9,21 @@
 #include <QImage>
 #include <QMainWindow>
 #include <QMimeData>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLTexture>
 #include <QThread>
 
-EmuView::EmuView(QObject * parent)
-    :   QGraphicsScene(parent),
+EmuView::EmuView(QWidget * parent)
+    :   QOpenGLWidget(parent),
         parent(parent),
-        prevHash(0)
-{
-
-}
-
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
-    :   QGraphicsScene(parent),
-        parent(parent),
-        emuView(graphicsView),
         prevHash(0)
 {
     init();
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
-    :   QGraphicsScene(parent),
+EmuView::EmuView(QWidget * parent, std::string filename)
+    :   QOpenGLWidget(parent),
         parent(parent),
-        emuView(graphicsView),
         prevHash(0)
 {
     init();
@@ -50,17 +42,63 @@ EmuView::~EmuView()
         }
         emu.reset();
     }
+
+    cleanup();
 }
 
 void EmuView::init()
 {
-    emuView->setScene(this);
-    emuView->setAlignment(Qt::AlignCenter);
-    emuView->setAcceptDrops(true);
+    //emuView->setScene(this);
+    // emuView->setAlignment(Qt::AlignCenter);
+    // emuView->setAcceptDrops(true);
 
 #ifdef _WIN32
     xinput = std::make_shared<JoypadXInput>();
 #endif // _WIN32
+
+    // QTimer::singleShot(1, [this]()
+    // {
+    //     initializeGL();
+    // });
+}
+
+void EmuView::initializeGL()
+{
+    makeCurrent();
+
+    //logger->info("context() returned: {0:b}", context);
+    initializeOpenGLFunctions();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glEnable(GL_TEXTURE_2D);
+    glGenTextures(1, &texture);
+
+    if (frame)
+    {
+        glBindTexture(GL_TEXTURE_2D, texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, frame->width(), frame->height(), 0, GL_RGB8, GL_UNSIGNED_BYTE, frame->bits());
+        //glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
+    
+    
+    
+    // Create glshader
+    QOpenGLShader *vertexShader = new QOpenGLShader(QOpenGLShader::Vertex, this);
+
+    // Create OpenGLShaderProgram
+    program = new QOpenGLShaderProgram();
+    program->addShader(vertexShader);
+
+    program->link();
+    program->bind();
+    
+    glActiveTexture(GL_TEXTURE0);
+    program->setUniformValue("texture", 0);
+
+    glClearColor(1.0f, 0.0f, 0, 0);
+
+    doneCurrent();
 }
 
 void EmuView::setupEmulator(std::string filename, bool debugMode)
@@ -85,6 +123,8 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 
     initFrame();
     setupFPSCounting();
+
+    initializeGL();
 }
 
 void EmuView::setupFPSCounting()
@@ -151,16 +191,17 @@ bool EmuView::checkNewFrame()
 
 uint8_t EmuView::scaleFrameToFit()
 {
-    QRect emuViewRect = emuView->rect();
+    // QRect emuViewRect = emuView->rect();
 
-    uint8_t widthScale  = emuViewRect.width()/ SCREEN_PIXEL_W;
-    uint8_t heightScale = emuViewRect.height()/ SCREEN_PIXEL_H;
+    // uint8_t widthScale  = emuViewRect.width()/ SCREEN_PIXEL_W;
+    // uint8_t heightScale = emuViewRect.height()/ SCREEN_PIXEL_H;
 
-    // Return smallest scale ratio
-    return (widthScale > heightScale) ? heightScale : widthScale;
+    // // Return smallest scale ratio
+    // return (widthScale > heightScale) ? heightScale : widthScale;
+    return 400;
 }
 
-QGraphicsScene* EmuView::getThis()
+QOpenGLWidget* EmuView::getThis()
 {
     return this;
 }
@@ -192,17 +233,100 @@ void EmuView::updateScene()
     fps++;
 
     // Create new QPixmap from QImage
-    frame_pixmap = QPixmap::fromImage(*frame);
-    frame_pixmap = frame_pixmap.scaled(frame_pixmap.size() * scaleFrameToFit());
+    // frame_pixmap = QPixmap::fromImage(*frame);
+    // frame_pixmap = frame_pixmap.scaled(frame_pixmap.size() * scaleFrameToFit());
 
-    // Refresh QGraphicsScene
-    this->clear();
-    this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
-    this->addPixmap(frame_pixmap);
-    this->setSceneRect(frame_pixmap.rect());
+    // // Refresh QGraphicsScene
+    // this->clear();
+    // this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
+    // this->addPixmap(frame_pixmap);
+    // this->setSceneRect(frame_pixmap.rect());
+
+    if (frame)
+    {
+        // makeCurrent();
+        // glBindTexture(GL_TEXTURE_2D, texture);
+        //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, frame->width(), frame->height(), 0, GL_RGB8, GL_UNSIGNED_BYTE, frame->bits());
+        // glBindTexture(GL_TEXTURE_2D, 0);
+        // doneCurrent();
+
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, frame->width(), frame->height(), 0, GL_RGB, GL_UNSIGNED_BYTE, frame->bits());
+        
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glColor3f(1.0, 1.0, 1.0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBegin(GL_TRIANGLE_STRIP);
+        glTexCoord2f(0, 0);
+        glVertex2f(-1, -1);
+        glTexCoord2f(1, 0);
+        glVertex2f(1, -1);
+        glTexCoord2f(0, 1);
+        glVertex2f(-1, 1);
+        glTexCoord2f(1, 1);
+        glVertex2f(1, 1);
+        glEnd();
+        glPopMatrix();
+
+    }
 
     if (xinput)
     {   // Get controller Xinput
         xinput->refreshButtonStates(0);
     }
+}
+
+void EmuView::paintGL()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    makeCurrent();
+
+    program->bind();
+
+    float vertices[] =
+    {
+        -1.0,   -1.0,
+        1.0,    -1.0,
+        1.0,    1.0,
+        -1.0,   1.0
+    };
+
+    float coordTexture[] =
+    {
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0
+    };
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, coordTexture);
+    glEnableVertexAttribArray(2);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glDrawArrays(GL_QUADS, 0, 4);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(0);
+
+    program->release();
+}
+
+void EmuView::resizeGL(int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void EmuView::cleanup()
+{
+    makeCurrent();
+    doneCurrent();
 }

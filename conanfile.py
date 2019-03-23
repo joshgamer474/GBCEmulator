@@ -36,7 +36,7 @@ class GBCEmulator(ConanFile):
         
     def package(self):
         self.copy("*", src="bin",   dst="bin",    keep_path=False)
-        self.copy("*.h", dst="include", keep_path=True)
+        self.copy("*.h", src="src", dst="include", keep_path=True)
         
         if self.options.shared == False:
             self.copy("*", src="lib",   dst="lib",    keep_path=False)

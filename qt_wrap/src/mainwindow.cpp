@@ -8,7 +8,7 @@
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QMimeData>
-#include <QGraphicsView>
+#include <QOpenGLWidget>
 
 #include <string>
 
@@ -17,7 +17,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     init();
-    ui->graphicsView->hide();
 }
 
 MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
@@ -42,9 +41,12 @@ void MainWindow::init()
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
+    emuView = std::make_shared<EmuView>(this);
 
     connectSignalsSlots();
+
+    ui->openglWidget = emuView->getThis();
+    ui->openglWidget->hide();
 }
 
 void MainWindow::connectSignalsSlots()
@@ -79,7 +81,7 @@ void MainWindow::dropEvent(QDropEvent * e)
 {
     for (const QUrl & url : e->mimeData()->urls())
     {
-        ui->graphicsView->show();
+        ui->openglWidget->show();
 
         QString filename = url.toLocalFile();
 
