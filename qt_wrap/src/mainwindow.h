@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <src/emuview.h>
 #include <src/debuggerwindow.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
 namespace Ui {
 class MainWindow;
@@ -30,11 +32,13 @@ private:
     void dropEvent(QDropEvent *);
     void keyPressEvent(QKeyEvent *);
     void keyReleaseEvent(QKeyEvent *);
+    void setLogLevels(spdlog::level::level_enum level);
 
     Ui::MainWindow *ui;
     std::shared_ptr<DebuggerWindow> debuggerWindow;
     std::shared_ptr<EmuView> emuView;
     std::shared_ptr<JoypadXInput> xinput;
+    std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger;
 };
 
 #endif // MAINWINDOW_H

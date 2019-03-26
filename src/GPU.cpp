@@ -1336,7 +1336,7 @@ void GPU::run(const uint64_t & cpuTickDiff)
             update_lcd_status_coincidence_flag();
 
 			if (lcd_y > 153)
-			{
+			{   // Copy frame into curr_frame for use by external programs
                 std::memcpy(curr_frame, frame, sizeof(SDL_Color) * SCREEN_PIXEL_W * SCREEN_PIXEL_H);
                 frame_is_ready = true;
 				display();

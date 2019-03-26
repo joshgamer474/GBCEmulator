@@ -10,6 +10,8 @@
 #include <QApplication>
 #include <QMainWindow>
 
+#include <chrono>
+
 EmuView::EmuView(QObject * parent)
     :   QGraphicsScene(parent),
         parent(parent),
@@ -18,19 +20,21 @@ EmuView::EmuView(QObject * parent)
 
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView)
+EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
+        logger(_logger),
         prevHash(0)
 {
     init();
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename)
+EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename, std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
+        logger(_logger),
         prevHash(0)
 {
     init();
@@ -53,6 +57,8 @@ EmuView::~EmuView()
 
 void EmuView::init()
 {
+    logger->trace("Running init()");
+
     emuView->setScene(this);
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
@@ -64,11 +70,13 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 {
     if (emu)
     {
+        logger->info("Stopping current GBCEmulator");
         emu->stop();
         thread->join();
         emu.reset();
     }
 
+    logger->info("Creating GBCEmulator, giving file: {0}", filename.c_str());
     emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
 
     xinput->setJoypad(emu->get_Joypad());
@@ -96,10 +104,12 @@ void EmuView::runEmulator()
 {
     if (thread)
     {
+        logger->trace("Stopping GBCEmulator thread");
         thread->join();
         thread.reset();
     }
 
+    logger->trace("Creating std::thread for GBCEmulator to run in");
     thread = std::make_shared<std::thread>([&]()
     {
         emu->run();
@@ -113,18 +123,22 @@ void EmuView::runTo(uint16_t next_pc)
 {
     if (thread)
     {
+        logger->trace("Stopping GBCEmulator thread");
         thread->join();
         thread.reset();
     }
 
     thread = std::make_shared<std::thread>([&]()
     {
+        logger->trace("Creating std::thread for GBCEmulator to runTo in");
         emu->runTo(next_pc);
     });
 }
 
 void EmuView::initFrame()
 {
+    logger->trace("Initializing QImage frame, setting up frame getting function to GBCEmulator");
+
     // Create QImage frame
     frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(),
         SCREEN_PIXEL_W,
@@ -184,6 +198,14 @@ void EmuView::updateScene()
     }
 
     fps++;
+
+    auto currTime = std::chrono::system_clock::now().time_since_epoch();
+    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - prevTime);
+    int milliInt = milliseconds.count();
+    logger->trace("Time between frame {}: {} milliseconds",
+        fps,
+        milliInt);
+    prevTime = currTime;
 
     // Create new QPixmap from QImage
     frame_pixmap = QPixmap::fromImage(*frame);
