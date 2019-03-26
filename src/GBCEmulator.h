@@ -26,7 +26,7 @@ extern "C" {
 #include <SDL.h>
 }
 
-//#define USE_AUDIO_TIMING
+#define USE_AUDIO_TIMING
 
 class GBCEmulator
 {

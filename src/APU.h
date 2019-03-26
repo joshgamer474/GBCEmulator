@@ -10,6 +10,7 @@
 #include <AudioNoise.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <SDL_audio.h>
 
 #define SAMPLE_RATE 44100
 #define SAMPLE_BUFFER_SIZE 1470
@@ -54,6 +55,7 @@ public:
     uint64_t samplesPerFrame;
     uint8_t sdl_silence_val;
     uint32_t audio_device_id;
+    bool can_sleep;
 
 private:
     void initSDLAudio();
@@ -88,6 +90,8 @@ private:
     uint64_t sample_timer;
     uint64_t sample_timer_val;
     uint64_t double_speed_mode_modifier;
+    SDL_AudioSpec desired_spec;
+    SDL_AudioSpec obtained_spec;
     bool sound_on;
     bool left_out_enabled;
     bool right_out_enabled;
