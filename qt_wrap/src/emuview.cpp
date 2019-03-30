@@ -1,7 +1,9 @@
 #include <src/emuview.h>
-#include <GBCEmulator.h>
 #include <src/mainwindow.h>
+
+#include <GBCEmulator.h>
 #include <JoypadXInput.h>
+#include <JoypadInputInterface.h>
 
 #include <QApplication>
 #include <QDragEnterEvent>
@@ -21,7 +23,9 @@ EmuView::EmuView(QObject * parent)
 
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::shared_ptr<spdlog::logger> _logger)
+EmuView::EmuView(QObject * parent,
+    QGraphicsView * graphicsView,
+    std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
@@ -31,7 +35,10 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::shared_ptr
     init();
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename, std::shared_ptr<spdlog::logger> _logger)
+EmuView::EmuView(QObject * parent,
+    QGraphicsView * graphicsView,
+    std::string filename,
+    std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
@@ -64,9 +71,9 @@ void EmuView::init()
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
 
-#ifdef _WIN32
+//#ifdef _WIN32
     xinput = std::make_shared<JoypadXInput>();
-#endif // _WIN32
+//#endif // _WIN32
 }
 
 void EmuView::setupEmulator(std::string filename, bool debugMode)

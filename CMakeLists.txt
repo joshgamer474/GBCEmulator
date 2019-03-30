@@ -18,6 +18,7 @@ set(GBC_HEADERS
     src/CPU.h
     src/GPU.h
     src/Joypad.h
+    src/JoypadInputInterface.h
     src/JoypadXInput.h
     src/MBC.h
     src/Memory.h

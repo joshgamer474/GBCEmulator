@@ -8,13 +8,13 @@
 #include <QString>
 #include <QPixmap>
 #include <QTimer>
-#include <JoypadInputInterface.h>
 #include <memory>
 #include <thread>
 
 #include <spdlog/spdlog.h>
 
 class GBCEmulator;
+class JoypadInputInterface;
 
 class EmuView : public QGraphicsScene
 {

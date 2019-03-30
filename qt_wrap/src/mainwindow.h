@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <JoypadInputInterface.h>
 #include <src/emuview.h>
 #include <src/debuggerwindow.h>
 #include <spdlog/spdlog.h>
@@ -34,6 +35,7 @@ private:
     void setLogLevels(spdlog::level::level_enum level);
 
     Ui::MainWindow *ui;
+    std::shared_ptr<JoypadInputInterface> xinput;
     std::shared_ptr<DebuggerWindow> debuggerWindow;
     std::shared_ptr<EmuView> emuView;
     std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger;

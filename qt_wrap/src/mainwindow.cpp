@@ -39,6 +39,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::init()
 {
+    ui->setupUi(this);
     logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator_qt.log", 1024 * 1024 * 500, 1);
 
     emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));

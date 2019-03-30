@@ -13,9 +13,10 @@ class GBCEmulator(ConanFile):
                 "build_type": ["Debug", "Release"]}
     options = {"shared": [True, False]}
     generators = "cmake"
-    requires = "sdl2/2.0.9@bincrafters/stable", \
-    requires = "sdl2/2.0.9@bincrafters/stable", \
-                "spdlog/1.2.1@bincrafters/stable"
+    requires = (
+        "sdl2/2.0.9@bincrafters/stable",
+        "spdlog/1.2.1@bincrafters/stable"
+        )
     exports_sources = "src/*", "CMakeLists.txt"
     default_options = "shared=False"
     
@@ -37,7 +38,7 @@ class GBCEmulator(ConanFile):
         
     def package(self):
         self.copy("*", src="bin",   dst="bin",    keep_path=False)
-        self.copy("*.h", dst="include", keep_path=True)
+        self.copy("*.h", src="src", dst="include")
         
         if self.options.shared == False:
             self.copy("*", src="lib",   dst="lib",    keep_path=False)

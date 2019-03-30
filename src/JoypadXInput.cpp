@@ -4,7 +4,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <Xinput.h>
-//#endif // _WIN32
+#endif // _WIN32
 
 JoypadXInput::JoypadXInput()
 {
@@ -36,9 +36,10 @@ void JoypadXInput::init()
 
 int JoypadXInput::findControllers()
 {
+    int numControllersConnected = 0;
+#ifdef _WIN32
     XINPUT_STATE state;
     ZeroMemory(&state, sizeof(XINPUT_STATE));
-    int numControllersConnected = 0;
 
     for (int i = 0; i < XUSER_MAX_COUNT; i++)
     {
@@ -47,12 +48,13 @@ int JoypadXInput::findControllers()
             numControllersConnected++;
         }
     }
-
+#endif // _WIN32
     return numControllersConnected;
 }
 
 void JoypadXInput::refreshButtonStates(const int & controller)
 {
+#ifdef _WIN32
     if (controller < 0 ||
         controller > XUSER_MAX_COUNT)
     {
@@ -91,12 +93,14 @@ void JoypadXInput::refreshButtonStates(const int & controller)
             pair.second = currState;
         }
     }
+#endif // _WIN32
 }
 
 std::unordered_map<int, bool> JoypadXInput::initButtonStatesMap() const
 {
     return std::unordered_map<int, bool>
     {
+#ifdef _WIN32
         { XINPUT_GAMEPAD_A,             false },
         { XINPUT_GAMEPAD_B,             false },
         { XINPUT_GAMEPAD_X,             false },
@@ -111,6 +115,7 @@ std::unordered_map<int, bool> JoypadXInput::initButtonStatesMap() const
         { XINPUT_GAMEPAD_RIGHT_THUMB,   false },
         { XINPUT_GAMEPAD_BACK,          false },
         { XINPUT_GAMEPAD_START,         false },
+#endif // _WIN32
     };
 }
 
@@ -118,6 +123,7 @@ int JoypadXInput::getJoypadButtonFromMask(const int & mask) const
 {
     switch (mask)
     {
+#ifdef _WIN32
         case XINPUT_GAMEPAD_A:             return Joypad::BUTTON::A;
         case XINPUT_GAMEPAD_B:             return Joypad::BUTTON::B;
         case XINPUT_GAMEPAD_X:             return Joypad::BUTTON::B;
@@ -132,6 +138,7 @@ int JoypadXInput::getJoypadButtonFromMask(const int & mask) const
         //case XINPUT_GAMEPAD_RIGHT_THUMB:   return Joypad::BUTTON::;
         case XINPUT_GAMEPAD_BACK:          return Joypad::BUTTON::SELECT;
         case XINPUT_GAMEPAD_START:         return Joypad::BUTTON::START;
+#endif // _WIN32
         default:
             return -1;
     }
@@ -139,8 +146,10 @@ int JoypadXInput::getJoypadButtonFromMask(const int & mask) const
 
 bool JoypadXInput::isConnected(int controller) const
 {
+#ifdef _WIN32
     XINPUT_STATE controller_state;
     return XInputGetState(controller, &controller_state) == ERROR_SUCCESS;
-}
-
+#else
+    return false;
 #endif // _WIN32
+}
