@@ -24,7 +24,6 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     right_out_enabled       = false;
     double_speed_mode       = false;
     send_samples_to_debugger = false;
-    can_sleep               = false;
     double_speed_mode_modifier = 1;
 
     sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
@@ -49,6 +48,8 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     }
 
     initSDLAudio();
+
+    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 APU::~APU()
@@ -378,16 +379,6 @@ void APU::run(const uint64_t & cpuTickDiff)
                 sample_buffer_counter = 0;
                 sample_buffer.clear();
                 sample_buffer.resize(SAMPLE_BUFFER_SIZE);
-
-#ifdef USE_AUDIO_TIMING
-                //if (can_sleep)
-                if (true)
-                {
-                    logger->info("Number of samples made during frame: {0:d}", samplesPerFrame);
-                    can_sleep = false;
-                    sleepUntilBufferIsEmpty();
-                }
-#endif // USE_AUDIO_TIMING
             }
 
             // Reset sample_timer
@@ -522,10 +513,11 @@ void APU::setChannelLogLevel(spdlog::level::level_enum level)
 
 void APU::sleepUntilBufferIsEmpty()
 {
+    int microInt = 0;
+
     // Drain audio buffer (?)
     uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     const uint32_t queuedAudioSizeOrig = queuedAudioSize;
-    auto prevTime = std::chrono::system_clock::now().time_since_epoch();
 
 #ifndef USE_FLOAT
     while (queuedAudioSize > SAMPLE_BUFFER_MEM_SIZE)
@@ -535,24 +527,20 @@ void APU::sleepUntilBufferIsEmpty()
     while (queuedAudioSize >= obtained_spec.size)
 #endif
     {
-        logger->debug("queuedAudioSize: {}", queuedAudioSize);
-        //logger->info("queuedAudioSize: {0:d}", queuedAudioSize);
-        std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+        logger->trace("queuedAudioSize: {}", queuedAudioSize);
 
-        //auto currTime = std::chrono::system_clock::now().time_since_epoch();
-        //auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prevTime);
-        //const int microInt = microseconds.count();
-        //if (microInt >= 16000)
-        //{
-        //    break;
-        //}
+        // Check if time spent sleeping is greater than 1 frame time (16.667 ms)
+        auto currTime = std::chrono::system_clock::now().time_since_epoch();
+        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prev_time);
+        microInt = microseconds.count();
+        if (microInt >= 16666)
+        {
+            break;
+        }
 
+        SDL_Delay(1);
         queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     }
-
-    auto currTime = std::chrono::system_clock::now().time_since_epoch();
-    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prevTime);
-    int microInt = microseconds.count();
 
     logger->trace("Slept for {} milliseconds, buffer size start: {}, buffer size end: {}",
         microInt / 1000.0,
@@ -560,6 +548,7 @@ void APU::sleepUntilBufferIsEmpty()
         queuedAudioSize);
 
     samplesPerFrame = 0;
+    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 void APU::setSampleUpdateMethod(std::function<void(float, int)> function)

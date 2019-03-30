@@ -7,9 +7,11 @@
 #include <QString>
 #include <QTimer>
 #include <QPixmap>
+
 #include <chrono>
 #include <memory>
 #include <thread>
+
 #include <spdlog/spdlog.h>
 
 class GBCEmulator;

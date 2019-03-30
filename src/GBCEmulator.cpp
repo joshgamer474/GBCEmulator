@@ -187,13 +187,13 @@ void GBCEmulator::runNextInstruction()
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
-    {
+    {   // Push frame out to be displayed
         frameIsUpdatedFunction();
         gpu->frame_is_ready = false;
 
-        apu->can_sleep = true;
-        /*apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
-        apu->samplesPerFrame = 0;*/
+        // Sleep in APU while checking audio buffer
+        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->sleepUntilBufferIsEmpty();
     }
 #else
     if (ticksRan >= ticksPerFrame)

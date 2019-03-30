@@ -9,9 +9,9 @@
 #include "stdafx.h"
 #include <chrono>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <vector>
-#include <functional>
 
 #include "APU.h"
 #include "CPU.h"

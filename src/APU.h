@@ -50,12 +50,12 @@ public:
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
+    void sleepUntilBufferIsEmpty();
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;
     uint8_t sdl_silence_val;
     uint32_t audio_device_id;
-    bool can_sleep;
 
 private:
     void initSDLAudio();
@@ -66,8 +66,8 @@ private:
     void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
-    void sleepUntilBufferIsEmpty();
-
+    
+    std::chrono::system_clock::duration prev_time;
     std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> outRightChannel;
     std::unique_ptr<std::ofstream> outLeftChannel;

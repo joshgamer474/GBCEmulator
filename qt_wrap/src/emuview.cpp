@@ -200,11 +200,11 @@ void EmuView::updateScene()
     fps++;
 
     auto currTime = std::chrono::system_clock::now().time_since_epoch();
-    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - prevTime);
-    int milliInt = milliseconds.count();
+    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prevTime);
+    int microInt = microseconds.count();
     logger->trace("Time between frame {}: {} milliseconds",
         fps,
-        milliInt);
+        microInt / 1000.0);
     prevTime = currTime;
 
     // Create new QPixmap from QImage
