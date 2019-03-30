@@ -317,10 +317,10 @@ void APU::run(const uint64_t & cpuTickDiff)
                 uint8_t channel_3_sample = sound_channel_3->output_volume;
                 uint8_t channel_4_sample = sound_channel_4->output_volume;
 #else
-                float channel_1_sample = ((float)sound_channel_1->output_volume) / 15.0f;
-                float channel_2_sample = ((float)sound_channel_2->output_volume) / 15.0f;
-                float channel_3_sample = ((float)sound_channel_3->output_volume) / 15.0f;
-                float channel_4_sample = ((float)sound_channel_4->output_volume) / 15.0f;
+                float channel_1_sample = ((float)sound_channel_1->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_2_sample = ((float)sound_channel_2->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_3_sample = ((float)sound_channel_3->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_4_sample = ((float)sound_channel_4->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
 #endif
 
                 // Apply samples to left and/or right out channels
@@ -533,12 +533,13 @@ void APU::sleepUntilBufferIsEmpty()
         auto currTime = std::chrono::system_clock::now().time_since_epoch();
         auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prev_time);
         microInt = microseconds.count();
-        if (microInt >= 16666)
+        if (microInt >= MICROSEC_PER_FRAME - 100)
         {
             break;
         }
 
-        SDL_Delay(1);
+        //SDL_Delay(1);
+        std::this_thread::sleep_for(std::chrono::microseconds(4));
         queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     }
 
