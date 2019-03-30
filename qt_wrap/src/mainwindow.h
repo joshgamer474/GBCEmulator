@@ -27,6 +27,7 @@ public Q_SLOTS:
     void updateFPS(QString fps);
 
 private:
+    void init();
     void connectSignalsSlots();
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);

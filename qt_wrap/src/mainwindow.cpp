@@ -18,16 +18,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     setAcceptDrops(true);
-
-    logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator.log", 1024 * 1024 * 500, 1);
-    
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
-    xinput = std::make_shared<JoypadXInput>();
-    setLogLevels(spdlog::level::info);
-
     ui->graphicsView->hide();
-    connectSignalsSlots();
 
+    init();
 }
 
 MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
@@ -37,13 +30,7 @@ MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator_qt.log", 1024 * 1024 * 500, 1);
-
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
-    xinput = std::make_shared<JoypadXInput>();
-    setLogLevels(spdlog::level::info);
-
-    connectSignalsSlots();
+    init();
 }
 
 MainWindow::~MainWindow()
@@ -54,6 +41,17 @@ MainWindow::~MainWindow()
     }
 
     delete ui;
+}
+
+void MainWindow::init()
+{
+    logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator_qt.log", 1024 * 1024 * 500, 1);
+
+    emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
+    xinput = std::make_shared<JoypadXInput>();
+    setLogLevels(spdlog::level::info);
+
+    connectSignalsSlots();
 }
 
 void MainWindow::connectSignalsSlots()
