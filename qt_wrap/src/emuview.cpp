@@ -98,6 +98,12 @@ void EmuView::setupFPSCounting()
         emit updateFPS(QString::number(fps));
         fps = 0;
     });
+
+    connect(&joypadTimer, &QTimer::timeout, this, [this]()
+    {
+        // Get controller Xinput
+        xinput->refreshButtonStates(0);
+    });
 }
 
 void EmuView::runEmulator()
@@ -117,6 +123,7 @@ void EmuView::runEmulator()
 
     // Start FPS timer
     fpsTimer.start(1000);
+    joypadTimer.start(1);
 }
 
 void EmuView::runTo(uint16_t next_pc)
@@ -216,7 +223,4 @@ void EmuView::updateScene()
     this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
     this->addPixmap(frame_pixmap);
     this->setSceneRect(frame_pixmap.rect());
-
-    // Get controller Xinput
-    xinput->refreshButtonStates(0);
 }

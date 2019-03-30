@@ -58,6 +58,7 @@ private:
     std::shared_ptr<JoypadXInput> xinput;
     int prevHash;
     std::chrono::system_clock::duration prevTime;
+    QTimer joypadTimer;
 };
 
 #endif
