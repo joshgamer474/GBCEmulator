@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
     
     emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
     xinput = std::make_shared<JoypadXInput>();
-    setLogLevels(spdlog::level::trace);
+    setLogLevels(spdlog::level::info);
 
     ui->graphicsView->hide();
     connectSignalsSlots();
@@ -41,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
 
     emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
     xinput = std::make_shared<JoypadXInput>();
-    setLogLevels(spdlog::level::trace);
+    setLogLevels(spdlog::level::info);
 
     connectSignalsSlots();
 }
