@@ -12,9 +12,9 @@
 
 #include <chrono>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <vector>
-#include <functional>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>

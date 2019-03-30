@@ -39,10 +39,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::init()
 {
-    ui->setupUi(this);
-    setAcceptDrops(true);
+    logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator_qt.log", 1024 * 1024 * 500, 1);
 
-    emuView = std::make_shared<EmuView>(this, ui->graphicsView);
+    emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
+    xinput = std::make_shared<JoypadXInput>();
+    setLogLevels(spdlog::level::info);
 
     connectSignalsSlots();
 }
@@ -186,4 +187,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent * e)
     }
 
     emuView->emu->release_joypad_button(button);
+}
+
+void MainWindow::setLogLevels(spdlog::level::level_enum level)
+{
+    if (emuView)
+    {
+        emuView->logger->set_level(level);
+    }
 }

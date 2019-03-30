@@ -10,6 +10,7 @@
 #include <AudioNoise.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <SDL_audio.h>
 
 #define SAMPLE_RATE 44100
 #define SAMPLE_BUFFER_SIZE 1470
@@ -17,6 +18,8 @@
 #define SAMPLE_OUTPUT_CHANNEL_SIZE 2
 #define SAMPLE_BUFFER_MEM_SIZE SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
 #define SAMPLE_BUFFER_MEM_SIZE_FLOAT SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
+#define MICROSEC_PER_FRAME (1.0 / 60.0) * 1000.0 * 1000.0
+
 
 #define USE_FLOAT
 #define WRITE_AUDIO_OUT
@@ -49,6 +52,7 @@ public:
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
+    void sleepUntilBufferIsEmpty();
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;
@@ -64,8 +68,8 @@ private:
     void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
-    void sleepUntilBufferIsEmpty();
-
+    
+    std::chrono::system_clock::duration prev_time;
     std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> outRightChannel;
     std::unique_ptr<std::ofstream> outLeftChannel;
@@ -88,6 +92,8 @@ private:
     uint64_t sample_timer;
     uint64_t sample_timer_val;
     uint64_t double_speed_mode_modifier;
+    SDL_AudioSpec desired_spec;
+    SDL_AudioSpec obtained_spec;
     bool sound_on;
     bool left_out_enabled;
     bool right_out_enabled;

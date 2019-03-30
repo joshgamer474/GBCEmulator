@@ -12,6 +12,8 @@
 #include <memory>
 #include <thread>
 
+#include <spdlog/spdlog.h>
+
 class GBCEmulator;
 
 class EmuView : public QGraphicsScene
@@ -20,8 +22,8 @@ class EmuView : public QGraphicsScene
 
 public:
     explicit EmuView(QObject * parent = 0);
-    EmuView(QObject * parent, QGraphicsView  * emuView);
-    EmuView(QObject * parent, QGraphicsView  * emuView, std::string filename);
+    EmuView(QObject * parent, QGraphicsView  * emuView, std::shared_ptr<spdlog::logger> logger);
+    EmuView(QObject * parent, QGraphicsView  * emuView, std::string filename, std::shared_ptr<spdlog::logger> logger);
     virtual ~EmuView();
 
     void init();
@@ -43,6 +45,7 @@ public:
     QTimer fpsTimer;
     float fps;
     std::shared_ptr<std::thread> thread;
+    std::shared_ptr<spdlog::logger> logger;
 
 Q_SIGNALS:
     void updateFPS(QString fps);
@@ -53,6 +56,8 @@ private:
     QObject * parent;
     std::shared_ptr<JoypadInputInterface> xinput;
     int prevHash;
+    std::chrono::system_clock::duration prevTime;
+    QTimer joypadTimer;
 };
 
 #endif

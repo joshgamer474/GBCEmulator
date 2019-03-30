@@ -1285,17 +1285,17 @@ void GPU::run(const uint64_t & cpuTickDiff)
 	ticks += cpuTickDiff;
 
     // Account for double speed mode
-    uint16_t cgb_double_speed_multiplier = 1;
-    if (memory->cgb_speed_mode & BIT7)
-    {
-        cgb_double_speed_multiplier = 2;
-    }
+    //uint16_t cgb_double_speed_multiplier = 1;
+    //if (memory->cgb_speed_mode & BIT7)
+    //{
+    //    cgb_double_speed_multiplier = 2;
+    //}
 
     switch (lcd_status & 0x03)
 	{
 	case GPU_MODE_HBLANK:
 
-		if (ticks >= 204 * cgb_double_speed_multiplier)
+		if (ticks >= 204)
 		{
             if (lcd_y == 0)
             {
@@ -1331,14 +1331,14 @@ void GPU::run(const uint64_t & cpuTickDiff)
 
 	case GPU_MODE_VBLANK:
 
-		if (ticks >= 456 * cgb_double_speed_multiplier)
+		if (ticks >= 456)
 		{
 			lcd_y++;
             logger->trace("Incrementing lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             update_lcd_status_coincidence_flag();
 
 			if (lcd_y > 153)
-			{
+			{   // Copy frame into curr_frame for use by external programs
                 std::memcpy(curr_frame, frame, sizeof(SDL_Color) * SCREEN_PIXEL_W * SCREEN_PIXEL_H);
                 frame_is_ready = true;
 				display();
@@ -1360,7 +1360,7 @@ void GPU::run(const uint64_t & cpuTickDiff)
 
 	case GPU_MODE_OAM:
 
-		if (ticks >= 80 * cgb_double_speed_multiplier)
+		if (ticks >= 80)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
 			ticks = 0;
@@ -1370,7 +1370,7 @@ void GPU::run(const uint64_t & cpuTickDiff)
 
 	case GPU_MODE_VRAM:
 
-		if (ticks >= 172 * cgb_double_speed_multiplier)
+		if (ticks >= 172)
 		{
             logger->trace("Rendering line lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             renderLine();

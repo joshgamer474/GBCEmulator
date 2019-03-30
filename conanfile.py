@@ -14,6 +14,7 @@ class GBCEmulator(ConanFile):
     options = {"shared": [True, False]}
     generators = "cmake"
     requires = "sdl2/2.0.9@bincrafters/stable", \
+    requires = "sdl2/2.0.9@bincrafters/stable", \
                 "spdlog/1.2.1@bincrafters/stable"
     exports_sources = "src/*", "CMakeLists.txt"
     default_options = "shared=False"
