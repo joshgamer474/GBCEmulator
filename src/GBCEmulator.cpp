@@ -40,7 +40,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     set_logging_level(spdlog::level::trace);
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::info);
+    apu->logger->set_level(spdlog::level::trace);
     logCounter = 0;
 }
 

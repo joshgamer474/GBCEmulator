@@ -69,9 +69,10 @@ void APU::initSDLAudio()
 #else
     desired_spec.format  = AUDIO_F32SYS;
 #endif
-    desired_spec.freq = 44100;
+    desired_spec.freq = SAMPLE_RATE;
     desired_spec.channels = 2;
-    desired_spec.samples = SAMPLE_BUFFER_SIZE * 2;
+    //desired_spec.samples = SAMPLE_BUFFER_SIZE * 2;
+    desired_spec.samples = SAMPLE_BUFFER_SIZE;
     desired_spec.userdata = this;
 
     // Open SDL Audio instance
@@ -245,6 +246,8 @@ void APU::reset()
     sound_channel_2->reset();
     sound_channel_3->reset();
     sound_channel_4->reset();
+
+    SDL_ClearQueuedAudio(audio_device_id);
 }
 
 void APU::run(const uint64_t & cpuTickDiff)
@@ -348,6 +351,8 @@ void APU::run(const uint64_t & cpuTickDiff)
             // Add current sample to sample buffer
             sample_buffer[sample_buffer_counter++] = sample;
             samplesPerFrame++;
+
+            //SDL_QueueAudio(audio_device_id, sample.data(), sizeof(float) * 2);
 
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
@@ -538,13 +543,14 @@ void APU::sleepUntilBufferIsEmpty()
             break;
         }
 
-        //SDL_Delay(1);
-        std::this_thread::sleep_for(std::chrono::microseconds(4));
+        // Sleep for 1 millisecond
+        SDL_Delay(1);   // std::this_thread::sleep_for() causes audio delay on Linux
         queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     }
 
-    logger->trace("Slept for {} milliseconds, buffer size start: {}, buffer size end: {}",
+    logger->trace("Slept for {} milliseconds, buffer size diff: {}, buffer size start: {}, buffer size end: {}",
         microInt / 1000.0,
+        queuedAudioSizeOrig - queuedAudioSize,
         queuedAudioSizeOrig,
         queuedAudioSize);
 
