@@ -4,7 +4,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     :   stopRunning(false),
         debugMode(false),
         ranInstruction(false),
-        logFileBaseName(logName)
+        logFileBaseName(logName),
+        frameIsUpdatedFunction(nullptr)
 {
 #ifdef SDL_DRAW
     init_SDL();
@@ -40,7 +41,9 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     set_logging_level(spdlog::level::trace);
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::info);
+    memory->logger->set_level(spdlog::level::warn);
+    apu->logger->set_level(spdlog::level::warn);
+    apu->setChannelLogLevel(spdlog::level::warn);
     logCounter = 0;
 }
 
@@ -189,7 +192,10 @@ void GBCEmulator::runNextInstruction()
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
     {   // Push frame out to be displayed
-        frameIsUpdatedFunction();
+        if (frameIsUpdatedFunction)
+        {
+            frameIsUpdatedFunction();
+        }
         gpu->frame_is_ready = false;
 
         // Sleep in APU while checking audio buffer
