@@ -69,6 +69,12 @@ int main(int argc, char **argv)
             }
             break;
         }
+        case SDL_QUIT:
+        {
+            emu.stop();
+            run = false;
+            break;
+        }
 
         //joypadx->refreshButtonStates(0);
 
