@@ -15,7 +15,7 @@ Tile::~Tile()
 
 }
 
-void Tile::updateRawData(uint8_t pos, uint8_t val)
+void Tile::updateRawData(const uint8_t & pos, const uint8_t & val)
 {
 	if (pos < 16)
 	{
@@ -42,7 +42,7 @@ void Tile::updatePixelRow(uint8_t row_num)
 	}
 }
 
-uint8_t Tile::getPixel(uint8_t row, uint8_t column)
+uint8_t Tile::getPixel(const uint8_t & row, const uint8_t & column) const
 {
     if (row < 8 && column < 8)
     {
@@ -54,7 +54,7 @@ uint8_t Tile::getPixel(uint8_t row, uint8_t column)
     }
 }
 
-std::vector<uint8_t> Tile::getRawPixelData()
+const std::vector<uint8_t>& Tile::getRawPixelData() const
 {
     return pixels;
 }
