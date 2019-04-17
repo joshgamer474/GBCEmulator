@@ -32,7 +32,7 @@ void CPU::runNextInstruction()
 {
     if (get_register_16(CPU::REGISTERS::PC) >= 0)
     {
-        uint16_t pc = get_register_16(CPU::REGISTERS::PC);
+        std::uint16_t pc = get_register_16(CPU::REGISTERS::PC);
         runInstruction(getInstruction());
 
 		// Update timer
@@ -65,7 +65,7 @@ void CPU::runNextInstruction()
 	PC    -    -    Program Counter/Pointer
 */
 
-uint8_t CPU::get_register_8(const REGISTERS & reg) const
+std::uint8_t CPU::get_register_8(REGISTERS reg)
 {
 	if (reg < B)
 	{
@@ -76,17 +76,17 @@ uint8_t CPU::get_register_8(const REGISTERS & reg) const
 	{
 		if (reg % 2 == 0)	// Return upper 8
 		{
-			return static_cast<uint8_t>((get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0xFF00) >> 8);
+			return static_cast<std::uint8_t> ((get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0xFF00) >> 8);
 		}
 		else				// Return lower 8
 		{
-			return static_cast<uint8_t>(get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0x00FF);
+			return static_cast<std::uint8_t> (get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0x00FF);
 		}
 	}
 }
 
 
-uint16_t CPU::get_register_16(const REGISTERS & reg) const
+std::uint16_t CPU::get_register_16(REGISTERS reg) 
 { 
 	if (reg == CPU::REGISTERS::SP || reg == CPU::REGISTERS::PC)	// Return full 16 bits
 	{
@@ -94,10 +94,10 @@ uint16_t CPU::get_register_16(const REGISTERS & reg) const
 	}
 	if (reg < B)			// Return little endian converted back to big endian
 	{
-		const uint16_t & littleEndian = registers[reg];
-		const uint16_t lowerByte = (littleEndian >> 8) & 0xFF;
-		const uint16_t upperByte = littleEndian & 0x00FF;
-		uint16_t bigEndian = littleEndian;
+		std::uint16_t littleEndian = registers[reg];
+		std::uint8_t lowerByte = static_cast<std::uint8_t> ((littleEndian >> 8) & 0xFF);
+		std::uint8_t upperByte = static_cast<std::uint8_t> (littleEndian & 0x00FF);
+		std::uint16_t bigEndian = 0x0000;
 		bigEndian |= (upperByte << 8);
 		bigEndian |= lowerByte;
 		return bigEndian;
@@ -119,7 +119,7 @@ uint16_t CPU::get_register_16(const REGISTERS & reg) const
 /*
 	Register setters
 */
-void CPU::set_register(REGISTERS reg, uint16_t val)
+void CPU::set_register(REGISTERS reg, std::uint16_t val)
 {
 	if (reg == CPU::REGISTERS::SP || reg == CPU::REGISTERS::PC)	// Set full 16 bits
 	{
@@ -127,34 +127,34 @@ void CPU::set_register(REGISTERS reg, uint16_t val)
 	}
 	else if (reg < B)	// Set full 16 bits in little endian
 	{
-		uint8_t upperByte = static_cast<uint8_t> ((val >> 8) & 0xFF);
-		uint8_t lowerByte = static_cast<uint8_t> (val & 0x00FF);
-		uint16_t littleEndian = 0x0000;
+		std::uint8_t upperByte = static_cast<std::uint8_t> ((val >> 8) & 0xFF);
+		std::uint8_t lowerByte = static_cast<std::uint8_t> (val & 0x00FF);
+		std::uint16_t littleEndian = 0x0000;
 		littleEndian |= (lowerByte << 8);
 		littleEndian |= upperByte;
 		registers[reg] = littleEndian;
 	}
 	else			// Set only 8 bits
 	{
-		set_register(reg, (uint8_t) val);
+		set_register(reg, (std::uint8_t) val);
 	}
 }
 
-void CPU::set_register(REGISTERS reg, uint8_t val)
+void CPU::set_register(REGISTERS reg, std::uint8_t val)
 {
 	if (reg >= B)
 	{
-		uint16_t *reg_ptr = &registers[(reg - B) / 2];
+		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
 		if (reg % 2 != 0)	// Is upper 8 bits
 		{
 			*reg_ptr &= 0x00FF;
-			*reg_ptr |= (((uint16_t) val) & 0x00FF) << 8;
+			*reg_ptr |= (((std::uint16_t) val) & 0x00FF) << 8;
 		}
 		else				// Is lower 8 bits
 		{
 			*reg_ptr &= 0xFF00;
-			*reg_ptr |= ((uint16_t) val) & 0x00FF;
+			*reg_ptr |= ((std::uint16_t) val) & 0x00FF;
 		}
 	}
 	else
@@ -167,7 +167,7 @@ void CPU::set_register(REGISTERS reg, std::int8_t val)
 {
 	if (reg >= B)
 	{
-		uint16_t *reg_ptr = &registers[(reg - B) / 2];
+		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
 		if (reg % 2 != 0)	// Is upper 8 bits
 		{
@@ -220,15 +220,15 @@ bool CPU::get_flag_subtract()		{ return (get_register_8(F) >> 6) & 0x0001; }
 bool CPU::get_flag_half_carry()		{ return (get_register_8(F) >> 5) & 0x0001; }
 bool CPU::get_flag_carry()			{ return (get_register_8(F) >> 4) & 0x0001; }
 
-void CPU::set_flag_zero()			{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) | 0x0080)); }
-void CPU::set_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) | 0x0040)); }
-void CPU::set_flag_half_carry()		{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) | 0x0020)); }
-void CPU::set_flag_carry()			{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) | 0x0010)); }
+void CPU::set_flag_zero()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0080)); }
+void CPU::set_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0040)); }
+void CPU::set_flag_half_carry()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0020)); }
+void CPU::set_flag_carry()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0010)); }
 
-void CPU::clear_flag_zero()			{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) & 0xFF7F)); }
-void CPU::clear_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) & 0xFFBF)); }
-void CPU::clear_flag_half_carry()	{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) & 0xFFDF)); }
-void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<uint16_t>(get_register_16((REGISTERS)AF) & 0xFFEF)); }
+void CPU::clear_flag_zero()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFF7F)); }
+void CPU::clear_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFBF)); }
+void CPU::clear_flag_half_carry()	{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFDF)); }
+void CPU::clear_flag_carry()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) & 0xFFEF)); }
 
 
 
@@ -275,7 +275,7 @@ void CPU::handleInterrupt()
     interrupt_master_enable = false;
 
     // Find out which interrupt should be processed
-    uint8_t mask = 0x01;
+    std::uint8_t mask = 0x01;
     for (int i = 0; i < 5; i++)
     {
         if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
@@ -296,7 +296,7 @@ void CPU::handleInterrupt()
 }
 
 // Get instruction from Ram[PC]
-uint8_t CPU::getInstruction()
+std::uint8_t CPU::getInstruction()
 {
 	// Check for interrupts
     checkJoypadForInterrupt();
@@ -343,18 +343,18 @@ uint8_t CPU::getInstruction()
 	return getByteFromMemory(get_register_16(PC));
 }
 
-bool CPU::runInstruction(uint8_t instruc)
+bool CPU::runInstruction(std::uint8_t instruc)
 {
-	uint8_t a8, d8, parenA8, flagType;
+	std::uint8_t a8, d8, parenA8, flagType;
 	std::int8_t r8;
-	uint16_t a16, d16, addr, hlVal;
+	std::uint16_t a16, d16, addr, hlVal;
     int regPattern1, regPattern2;
 
 	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
 	// Check if bios is done running
-	if (memory->cartridgeReader->is_bios && registers[PC] >= 0x100)
+	if (registers[PC] >= 0x100 && memory->cartridgeReader->is_bios)
 	{
 		memory->cartridgeReader->is_bios = false;
 
@@ -424,9 +424,9 @@ bool CPU::runInstruction(uint8_t instruc)
 		LD(A, getByteFromMemory(HL), false);
 
 		if (instruc == 0x2A)
-			set_register(HL, static_cast<uint16_t> (get_register_16(HL) + 1));	// HL+
+			set_register(HL, static_cast<std::uint16_t> (get_register_16(HL) + 1));	// HL+
 		else
-			set_register(HL, static_cast<uint16_t> (get_register_16(HL) - 1));	// HL-
+			set_register(HL, static_cast<std::uint16_t> (get_register_16(HL) - 1));	// HL-
 		break;
 
 		// LD X, (HL)
@@ -454,9 +454,9 @@ bool CPU::runInstruction(uint8_t instruc)
 		LD_reg_into_memory(HL, A);
 
 		if (instruc == 0x22)
-			set_register(HL, static_cast<uint16_t> (get_register_16(HL) + 1));	// HL+
+			set_register(HL, static_cast<std::uint16_t> (get_register_16(HL) + 1));	// HL+
 		else
-			set_register(HL, static_cast<uint16_t> (get_register_16(HL) - 1));	// HL-
+			set_register(HL, static_cast<std::uint16_t> (get_register_16(HL) - 1));	// HL-
 		break;
 
 
@@ -535,7 +535,7 @@ bool CPU::runInstruction(uint8_t instruc)
 
 		a8 = getByteFromMemory(PC);
 		registers[PC]++;
-		parenA8 = getByteFromMemory(static_cast<uint16_t> (0xFF00 + a8));
+		parenA8 = getByteFromMemory(static_cast<std::uint16_t> (0xFF00 + a8));
 		LDH(A, parenA8);
 		break;
 
@@ -544,7 +544,7 @@ bool CPU::runInstruction(uint8_t instruc)
 
 		a8 = getByteFromMemory(PC);
 		registers[PC]++;
-		LDH_INDIRECT(static_cast<uint16_t> (0xFF00 + a8), get_register_8(A));
+		LDH_INDIRECT(static_cast<std::uint16_t> (0xFF00 + a8), get_register_8(A));
 		break;
 
 		// LD HL, SP+r8
@@ -1109,7 +1109,7 @@ uint8_t CPU::getByteFromMemory(CPU::REGISTERS reg)
 }
 
 // Perform (addr)
-uint8_t CPU::getByteFromMemory(uint16_t addr)
+uint8_t CPU::getByteFromMemory(std::uint16_t addr)
 {
 	return memory->readByte(addr);
 }
@@ -1134,19 +1134,19 @@ int8_t CPU::peekNextByteSigned()
 // Assumes that PC has not already been incremented
 uint16_t CPU::peekNextTwoBytes()
 {
-    uint16_t d16 = 0x0000;
+    std::uint16_t d16 = 0x0000;
     d16 |= getByteFromMemory(get_register_16(PC) + 1);
-    d16 |= ((static_cast<uint16_t>(getByteFromMemory(get_register_16(PC) + 2)) << 8) & 0xFF00);
+    d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(get_register_16(PC) + 2)) << 8) & 0xFF00);
     return d16;
 }
 
 // Assumes that PC has already been incremented
 uint16_t CPU::getNextTwoBytes()
 {
-    uint16_t d16 = 0x0000;
+    std::uint16_t d16 = 0x0000;
     d16 |= getByteFromMemory(PC);
     registers[PC]++;
-    d16 |= ((static_cast<uint16_t>(getByteFromMemory(PC)) << 8) & 0xFF00);
+    d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(PC)) << 8) & 0xFF00);
     registers[PC]++;
     return d16;
 }
@@ -1224,7 +1224,7 @@ void CPU::LD(CPU::REGISTERS reg, uint8_t val, bool indirect=false)
 
 
 // LD XY, d16
-void CPU::LD(CPU::REGISTERS reg, uint16_t val)
+void CPU::LD(CPU::REGISTERS reg, std::uint16_t val)
 {
 	logger->trace("LD {0}, 0x{1:x}", REGISTERS_STR[reg], val);
 
@@ -1235,7 +1235,7 @@ void CPU::LD(CPU::REGISTERS reg, uint16_t val)
 }
 
 // LD (a16), val
-void CPU::LD(uint16_t addr, uint8_t val)
+void CPU::LD(std::uint16_t addr, std::uint8_t val)
 {
 	logger->trace("LD (0x{0:x}), 0x{1:x}", addr, val);
 
@@ -1246,12 +1246,12 @@ void CPU::LD(uint16_t addr, uint8_t val)
 }
 
 // LD (a16), SP
-void CPU::LD(uint16_t addr, uint16_t val)
+void CPU::LD(std::uint16_t addr, std::uint16_t val)
 {
 	logger->trace("LD (0x{0:x}), SP", addr);
 
-	uint8_t upperByte = (val >> 8) & 0xFF;
-	uint8_t lowerByte = val & 0xFF;
+	std::uint8_t upperByte = (val >> 8) & 0xFF;
+	std::uint8_t lowerByte = val & 0xFF;
 
 	setByteToMemory(addr, lowerByte);
 	setByteToMemory(addr + 1, upperByte);
@@ -1262,10 +1262,10 @@ void CPU::LD(uint16_t addr, uint16_t val)
 
 
 // LD A, (a16)
-void CPU::LD_INDIRECT_A16(CPU::REGISTERS reg, uint16_t addr)
+void CPU::LD_INDIRECT_A16(CPU::REGISTERS reg, std::uint16_t addr)
 {
 	// Read in addr->val
-	uint8_t val = getByteFromMemory(addr);
+	std::uint8_t val = getByteFromMemory(addr);
 
 	logger->trace("LD {0}, (0x{1:x})\t(0x{1:x}) = 0x{2:x}", REGISTERS_STR[reg], addr, val);
 
@@ -1276,7 +1276,7 @@ void CPU::LD_INDIRECT_A16(CPU::REGISTERS reg, uint16_t addr)
 }
 
 // LDH A, (a8)
-void CPU::LDH(CPU::REGISTERS reg, uint8_t val)
+void CPU::LDH(CPU::REGISTERS reg, std::uint8_t val)
 {
 	logger->trace("LDH {0}, 0x{1:x}", REGISTERS_STR[reg], val);
 
@@ -1287,7 +1287,7 @@ void CPU::LDH(CPU::REGISTERS reg, uint8_t val)
 }
 
 // LDH (a8), A
-void CPU::LDH_INDIRECT(uint16_t addr, uint8_t val)
+void CPU::LDH_INDIRECT(std::uint16_t addr, std::uint8_t val)
 {
 	logger->trace("LDH 0x{0:x}, A", addr);
 
@@ -1301,7 +1301,7 @@ void CPU::LDH_INDIRECT(uint16_t addr, uint8_t val)
 void CPU::LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8)
 {
 	std::int16_t spVal = get_register_16(SP);
-	uint16_t result = spVal + r8;
+	std::uint16_t result = spVal + r8;
 	set_register(reg, result);
 
 	logger->trace("LD HL, SP + {0}", r8);
@@ -1334,12 +1334,12 @@ void CPU::LD_HL_SPPLUSR8(CPU::REGISTERS reg, std::int8_t r8)
 */
 
 // ADD A, d8
-void CPU::ADD(CPU::REGISTERS reg, uint8_t d8, bool indirect=false)
+void CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("ADD A, 0x{0:x}", d8);
 
 	// Get reg->value
-	uint8_t r, result;
+	std::uint8_t r, result;
 	r = get_register_8(reg);
 
 	result = r + d8;
@@ -1362,7 +1362,7 @@ void CPU::ADD(CPU::REGISTERS reg, uint8_t d8, bool indirect=false)
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (((uint16_t)(r) + (uint16_t)(d8)) > 0xFF)
+	if (((std::uint16_t)(r) + (std::uint16_t)(d8)) > 0xFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1378,12 +1378,12 @@ void CPU::ADD(CPU::REGISTERS reg, uint8_t d8, bool indirect=false)
 
 // ADC A, X
 // ADC A, d8
-void CPU::ADC(CPU::REGISTERS reg, uint8_t val, bool indirect=false)
+void CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 {
 	logger->trace("ADC A, 0x{0:x}", val);
 
 	// Get reg->value
-	uint8_t r, result, carryFlag;
+	std::uint8_t r, result, carryFlag;
 	r = get_register_8(reg);
 	carryFlag = get_flag_carry();
 
@@ -1407,7 +1407,7 @@ void CPU::ADC(CPU::REGISTERS reg, uint8_t val, bool indirect=false)
 		clear_flag_half_carry();
 
 	// Check flag carry
-	if (((uint16_t)(r) + (uint16_t)(val) + (uint16_t)(carryFlag)) > 0xFF)
+	if (((std::uint16_t)(r) + (std::uint16_t)(val) + (std::uint16_t)(carryFlag)) > 0xFF)
 		set_flag_carry();
 	else
 		clear_flag_carry();
@@ -1426,14 +1426,14 @@ void CPU::ADD_HL(CPU::REGISTERS reg)
 {
 	logger->trace("ADD HL, {0}", REGISTERS_STR[reg]);
 
-	uint16_t hlVal, regVal;
+	std::uint16_t hlVal, regVal;
 	std::uint32_t result;
 	hlVal = get_register_16(HL);
 	regVal = get_register_16(reg);
 
 	result = hlVal + regVal;
 
-	set_register(HL, (uint16_t)(result % 0x010000));
+	set_register(HL, (std::uint16_t)(result % 0x010000));
 
 	// Clear flag negative
 	clear_flag_subtract();
@@ -1462,7 +1462,7 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 	logger->trace("ADD SP, {0}", r8);
 
 	std::int16_t spVal = get_register_16(reg);
-	uint16_t result = static_cast<uint16_t>(spVal + r8);
+	std::uint16_t result = static_cast<std::uint16_t>(spVal + r8);
 
 	registers[SP] = result;
 
@@ -1494,12 +1494,12 @@ void CPU::ADD_SP_R8(CPU::REGISTERS reg, std::int8_t r8)
 */
 
 // SUB X
-void CPU::SUB(uint8_t d8, bool indirect=false)
+void CPU::SUB(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("SUB 0x{0:x}", d8);
 
 	// Get reg->value and regA->value
-	uint8_t regAValue, result;
+	std::uint8_t regAValue, result;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
 	result = regAValue - d8;
@@ -1537,14 +1537,14 @@ void CPU::SUB(uint8_t d8, bool indirect=false)
 
 
 // SBC A, X
-void CPU::SBC(uint8_t d8, bool indirect=false)
+void CPU::SBC(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("SBC 0x{0:x}", d8);
 
 	// Get reg->value and regA->value
-	uint8_t regAValue, result, carryFlag;
+	std::uint8_t regAValue, result, carryFlag;
 	regAValue = get_register_8(CPU::REGISTERS::A);
-	carryFlag = (uint8_t)get_flag_carry();
+	carryFlag = (std::uint8_t)get_flag_carry();
 
 	result = regAValue - d8 - carryFlag;
 
@@ -1586,11 +1586,11 @@ void CPU::SBC(uint8_t d8, bool indirect=false)
 
 // AND X
 // AND (HL) when indirect == true
-void CPU::AND(uint8_t d8, bool indirect=false)
+void CPU::AND(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("AND 0x{0:x}", d8);
 
-	uint8_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
@@ -1619,11 +1619,11 @@ void CPU::AND(uint8_t d8, bool indirect=false)
 
 // XOR X
 // XOR (HL) when indirect == true
-void CPU::XOR(uint8_t d8, bool indirect=false)
+void CPU::XOR(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("XOR 0x{0:x}", d8);
 
-	uint8_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
@@ -1651,11 +1651,11 @@ void CPU::XOR(uint8_t d8, bool indirect=false)
 }
 
 // OR X
-void CPU::OR(uint8_t d8, bool indirect=false)
+void CPU::OR(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("OR 0x{0:x}", d8);
 
-	uint8_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
@@ -1684,12 +1684,12 @@ void CPU::OR(uint8_t d8, bool indirect=false)
 
 // CP X
 // Like SUB() except don't save result to regA, do set flags though
-void CPU::CP(uint8_t d8, bool indirect=false)
+void CPU::CP(std::uint8_t d8, bool indirect=false)
 {
 	logger->trace("CP 0x{0:x}", d8);
 
 	// Get reg->value and regA->value
-	uint8_t regValue, regAValue, result;
+	std::uint8_t regValue, regAValue, result;
 	regValue = d8;
 	regAValue = get_register_8(CPU::REGISTERS::A);
 
@@ -1732,7 +1732,7 @@ void CPU::INC(CPU::REGISTERS reg, bool indirect=false)
 	logger->trace("INC {0}", REGISTERS_STR[reg]);
 
 	// Get reg->value
-	uint16_t regValue, result;
+	std::uint16_t regValue, result;
 
 	if (!indirect)
 		regValue = get_register_16(reg);					// Get reg->value
@@ -1783,7 +1783,7 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 {
 	logger->trace("DEC {0}", REGISTERS_STR[reg]);
 
-	uint16_t regValue, result;
+	std::uint16_t regValue, result;
 
 	if (!indirect)
 		regValue = get_register_16(reg);					// Get reg->value
@@ -1834,7 +1834,7 @@ void CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 */
 
 // JP <CPU::FlagType>, a16
-void CPU::JP(CPU::FLAGTYPES flagType, uint16_t addr)
+void CPU::JP(CPU::FLAGTYPES flagType, std::uint16_t addr)
 {
 	logger->trace("JP {0}, 0x{1:x}", FLAGTYPES_STR[(int)flagType], addr);
 
@@ -1880,7 +1880,7 @@ void CPU::JP(CPU::FLAGTYPES flagType, uint16_t addr)
 }
 
 // JP (HL)
-void CPU::JP_INDIRECT(uint16_t addr)
+void CPU::JP_INDIRECT(std::uint16_t addr)
 {
 	logger->trace("JP 0x{0:x}", addr);
 
@@ -1927,7 +1927,7 @@ void CPU::JR(CPU::FLAGTYPES flagType, std::int8_t val)
 	// Add to ticks
 	if (flagWasTrue)
 	{
-		set_register(PC, (uint16_t)(get_register_16(PC) + (std::int16_t)(val)));	// Jump!
+		set_register(PC, (std::uint16_t)(get_register_16(PC) + (std::int16_t)(val)));	// Jump!
 		ticks += 12;
 	}
 	else
@@ -1978,11 +1978,11 @@ void CPU::RET(CPU::FLAGTYPES flagType)
 	// Add to ticks
 	if (flagWasTrue)
 	{
-		uint16_t spVal = 0;
+		std::uint16_t spVal = 0;
 		spVal |= getByteFromMemory(get_register_16(SP));
-		set_register(SP, (uint16_t)(get_register_16(SP) + 1));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) + 1));
 		spVal |= (getByteFromMemory(get_register_16(SP)) << 8);
-		set_register(SP, (uint16_t)(get_register_16(SP) + 1));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) + 1));
 
 		set_register(PC, spVal);	// Return!
 
@@ -2032,7 +2032,7 @@ void CPU::disable_interrupts()
 */
 
 // RST [00H, 10H, 20H, 30H, 08H, 18H, 28H, 38H]
-void CPU::RST(uint8_t instruc)
+void CPU::RST(std::uint8_t instruc)
 {
 	uint8_t pcLow = 0;
 
@@ -2043,16 +2043,16 @@ void CPU::RST(uint8_t instruc)
 	logger->trace("RST 0x{0:x}", pcLow);
 
 	// (SP - 1) <- PChigh
-	setByteToMemory(get_register_16(SP) - 1, (uint8_t)(get_register_16(PC) >> 8));
+	setByteToMemory(get_register_16(SP) - 1, (std::uint8_t)(get_register_16(PC) >> 8));
 
 	// (SP - 2) <- PClow
 	setByteToMemory(get_register_16(SP) - 2, (uint8_t)(get_register_16(PC) & 0xFF));
 
 	// PChigh <- 0, PClow <- pcLow
-	set_register(PC, (uint16_t)(0x0000 | pcLow));
+	set_register(PC, (std::uint16_t)(0x0000 | pcLow));
 
 	// Set SP
-	set_register(SP, (uint16_t)(get_register_16(SP) - 2));
+	set_register(SP, (std::uint16_t)(get_register_16(SP) - 2));
 
 	ticks += 16;
 }
@@ -2064,7 +2064,7 @@ void CPU::RST(uint8_t instruc)
 */
 
 // CALL a16		CALL [NZ, NC, Z, C], a16
-void CPU::CALL(CPU::FLAGTYPES flagType, uint16_t a16)
+void CPU::CALL(CPU::FLAGTYPES flagType, std::uint16_t a16)
 {
 	logger->trace("CALL {0}, 0x{1:x}", FLAGTYPES_STR[(int)flagType], a16);
 
@@ -2101,16 +2101,16 @@ void CPU::CALL(CPU::FLAGTYPES flagType, uint16_t a16)
 	if (flagWasTrue)
 	{
 		// (SP - 1) <- PChigh
-		setByteToMemory(get_register_16(SP) - 1, (uint8_t)(get_register_16(PC) >> 8));
+		setByteToMemory(get_register_16(SP) - 1, (std::uint8_t)(get_register_16(PC) >> 8));
 
 		// (SP - 2) <- PClow
-		setByteToMemory(get_register_16(SP) - 2, (uint8_t)(get_register_16(PC) & 0xFF));
+		setByteToMemory(get_register_16(SP) - 2, (std::uint8_t)(get_register_16(PC) & 0xFF));
 
 		// PC <- a16
 		set_register(PC, a16);
 
 		// Set SP
-		set_register(SP, (uint16_t)(get_register_16(SP) - 2));
+		set_register(SP, (std::uint16_t)(get_register_16(SP) - 2));
 
 		ticks += 24;
 	}
@@ -2130,8 +2130,8 @@ void CPU::DAA()
 {
 	logger->trace("DAA");
 
-	uint8_t aVal;
-	uint16_t result;
+	std::uint8_t aVal;
+	std::uint16_t result;
 	aVal = result = get_register_8(A);
 
 	if (!get_flag_subtract())
@@ -2165,7 +2165,7 @@ void CPU::DAA()
 	// Clear flag half carry
 	clear_flag_half_carry();
 
-	set_register(A, (uint8_t) (result % 0x0100));
+	set_register(A, (std::uint8_t) (result % 0x0100));
 
 	ticks += 4;
 }
@@ -2210,7 +2210,7 @@ void CPU::CPL()
 	logger->trace("CPL");
 
 	// Complement register A
-	uint8_t aVal = get_register_8(A);
+	std::uint8_t aVal = get_register_8(A);
 	aVal = ~aVal;
 	set_register(A, aVal);
 
@@ -2257,7 +2257,7 @@ void CPU::RLCA()
 {
 	logger->trace("RLCA");
 
-	uint8_t aVal, bit7;
+	std::uint8_t aVal, bit7;
 	aVal = get_register_8(A);
 	bit7 = (aVal >> 7);
 
@@ -2281,11 +2281,11 @@ void CPU::RLA()
 {
 	logger->trace("RLCA");
 
-	uint8_t aVal, bit7;
+	std::uint8_t aVal, bit7;
 	aVal = get_register_8(A);
 	bit7 = (aVal >> 7);
 
-	aVal = (aVal << 1) | (uint8_t) (get_flag_carry());
+	aVal = (aVal << 1) | (std::uint8_t) (get_flag_carry());
 
 	set_register(A, aVal);
 
@@ -2305,7 +2305,7 @@ void CPU::RRCA()
 {
 	logger->trace("RRCA");
 
-	uint8_t aVal, bit0;
+	std::uint8_t aVal, bit0;
 	aVal = get_register_8(A);
 	bit0 = (aVal & 0x01);
 
@@ -2329,11 +2329,11 @@ void CPU::RRA()
 {
 	logger->trace("RRA");
 
-	uint8_t aVal, bit0;
+	std::uint8_t aVal, bit0;
 	aVal = get_register_8(A);
 	bit0 = (aVal & 0x01);
 
-	aVal = (aVal >> 1) | ((uint8_t) (get_flag_carry()) << 7);
+	aVal = (aVal >> 1) | ((std::uint8_t) (get_flag_carry()) << 7);
 
 	set_register(A, aVal);
 
@@ -2357,8 +2357,8 @@ void CPU::PUSH(CPU::REGISTERS reg)
 {
 	logger->trace("PUSH {}", REGISTERS_STR[reg]);
 
-	uint16_t regVal = get_register_16(reg);
-	uint8_t high, low;
+	std::uint16_t regVal = get_register_16(reg);
+	std::uint8_t high, low;
 	high = (regVal >> 8) & 0xFF;
 	low = (regVal & 0xFF);
 	setByteToMemory(get_register_16(SP) - 1, high);
@@ -2375,8 +2375,8 @@ void CPU::POP(CPU::REGISTERS reg)
 {
 	logger->trace("POP {}", REGISTERS_STR[reg]);
 
-	uint16_t regVal = 0;
-	uint8_t high, low;
+	std::uint16_t regVal = 0;
+	std::uint8_t high, low;
 
 	low = getByteFromMemory(get_register_16(SP));
 	high = getByteFromMemory(get_register_16(SP) + 1);
@@ -2386,7 +2386,7 @@ void CPU::POP(CPU::REGISTERS reg)
 		low &= 0xF0;
 	}
 
-	regVal |= static_cast<uint16_t> (high << 8);
+	regVal |= static_cast<std::uint16_t> (high << 8);
 	regVal |= low;
 
 	set_register(reg, regVal);
@@ -2407,7 +2407,7 @@ void CPU::POP(CPU::REGISTERS reg)
 	Prefix CB opcode handling
 */
 
-void CPU::handle_CB(uint8_t instruc)
+void CPU::handle_CB(std::uint8_t instruc)
 {
 
 	int regPattern1, regPattern2;
@@ -2502,7 +2502,7 @@ void CPU::handle_CB(uint8_t instruc)
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
 	case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
 
-		BIT(static_cast<uint8_t> (regPattern1), reg_list[regPattern2]);
+		BIT(static_cast<std::uint8_t> (regPattern1), reg_list[regPattern2]);
 		break;
 
 
@@ -2512,7 +2512,7 @@ void CPU::handle_CB(uint8_t instruc)
 	case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7: case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
 	case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
 
-		SET(static_cast<uint8_t> (regPattern1 - 16), reg_list[regPattern2]);
+		SET(static_cast<std::uint8_t> (regPattern1 - 16), reg_list[regPattern2]);
 		break;
 
 		// RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
@@ -2521,7 +2521,7 @@ void CPU::handle_CB(uint8_t instruc)
 	case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
 	case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
 
-		RES(static_cast<uint8_t> (regPattern1 - 8), reg_list[regPattern2]);
+		RES(static_cast<std::uint8_t> (regPattern1 - 8), reg_list[regPattern2]);
 		break;
 
 
@@ -2541,7 +2541,7 @@ void CPU::RLC(CPU::REGISTERS reg)
 {
 	logger->trace("CB: RLC {0}", REGISTERS_STR[reg]);
 
-	uint8_t regVal, bit7;
+	std::uint8_t regVal, bit7;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2593,7 +2593,7 @@ void CPU::RL(CPU::REGISTERS reg)
 {
 	logger->trace("CB: RL {0}", REGISTERS_STR[reg]);
 
-	uint8_t regVal, bit7;
+	std::uint8_t regVal, bit7;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2611,7 +2611,7 @@ void CPU::RL(CPU::REGISTERS reg)
 
 
 	bit7 = (regVal >> 7);
-	regVal = (regVal << 1) | static_cast<uint8_t> (get_flag_carry());
+	regVal = (regVal << 1) | static_cast<std::uint8_t> (get_flag_carry());
 
 	// Set register
 	if (indirect)
@@ -2645,7 +2645,7 @@ void CPU::RRC(CPU::REGISTERS reg)
 {
 	logger->trace("CB: RRC {0}", REGISTERS_STR[reg]);
 
-	uint8_t regVal, bit0;
+	std::uint8_t regVal, bit0;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2696,7 +2696,7 @@ void CPU::RR(CPU::REGISTERS reg)
 {
 	logger->trace("CB: RR {0}", REGISTERS_STR[reg]);
 
-	uint8_t regVal, bit0;
+	std::uint8_t regVal, bit0;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2714,7 +2714,7 @@ void CPU::RR(CPU::REGISTERS reg)
 
 
 	bit0 = (regVal & 0x01);
-	regVal = (regVal >> 1) | (static_cast<uint8_t> (get_flag_carry()) << 7);
+	regVal = (regVal >> 1) | (static_cast<std::uint8_t> (get_flag_carry()) << 7);
 
 	// Set register
 	if (indirect)
@@ -2748,11 +2748,11 @@ void CPU::RR(CPU::REGISTERS reg)
 */
 
 // BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-void CPU::BIT(uint8_t getBit, CPU::REGISTERS reg)
+void CPU::BIT(std::uint8_t getBit, CPU::REGISTERS reg)
 {
 	logger->trace("CB: BIT {0}, {1}", getBit, REGISTERS_STR[reg]);
 
-	uint8_t bit, regVal;
+	std::uint8_t bit, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2785,11 +2785,11 @@ void CPU::BIT(uint8_t getBit, CPU::REGISTERS reg)
 }
 
 // SET [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-void CPU::SET(uint8_t setBit, CPU::REGISTERS reg)
+void CPU::SET(std::uint8_t setBit, CPU::REGISTERS reg)
 {
 	logger->trace("CB: SET {0}, {1}", setBit, REGISTERS_STR[reg]);
 
-	uint8_t bit, regVal;
+	std::uint8_t bit, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2819,11 +2819,11 @@ void CPU::SET(uint8_t setBit, CPU::REGISTERS reg)
 }
 
 // RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
-void CPU::RES(uint8_t setBit, CPU::REGISTERS reg)
+void CPU::RES(std::uint8_t setBit, CPU::REGISTERS reg)
 {
 	logger->trace("CB: RES {0}, {1}", setBit, REGISTERS_STR[reg]);
 
-	uint8_t bit, regVal;
+	std::uint8_t bit, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2867,7 +2867,7 @@ void CPU::SLA(CPU::REGISTERS reg)
 {
 	logger->trace("CB: SLA {0}", REGISTERS_STR[reg]);
 
-	uint8_t bit7, regVal;
+	std::uint8_t bit7, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2915,7 +2915,7 @@ void CPU::SRA(CPU::REGISTERS reg)
 {
 	logger->trace("CB: SRA {0}", REGISTERS_STR[reg]);
 
-	uint8_t bit0, bit7, regVal;
+	std::uint8_t bit0, bit7, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -2965,7 +2965,7 @@ void CPU::SRL(CPU::REGISTERS reg)
 {
 	logger->trace("CB: SRL {0}", REGISTERS_STR[reg]);
 
-	uint8_t bit0, regVal;
+	std::uint8_t bit0, regVal;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)
@@ -3020,7 +3020,7 @@ void CPU::SWAP(CPU::REGISTERS reg)
 {
 	logger->trace("CB: SWAP {0}", REGISTERS_STR[reg]);
 
-	uint8_t regVal, high, low, result;
+	std::uint8_t regVal, high, low, result;
 	bool indirect = false;
 
 	if (reg == CPU::REGISTERS::HL)

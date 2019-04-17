@@ -18,7 +18,6 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
     lcd_display_enable = false;
     lcd_status_interrupt_signal = false;
     wait_frame_to_render_window = false;
-    render_full_frame = false;
 
 	lcd_control = NULL;
 
@@ -958,6 +957,7 @@ void GPU::drawOAMLine()
     uint8_t cgb_sprite_palette_num = 0;
     bool object_behind_bg, sprite_y_flip, sprite_x_flip, sprite_palette_num;
     uint8_t sprite_y_start, sprite_y_end;
+    uint8_t num_x_pixels_to_draw = 8;
 
     pixel_x = pixel_y = 0;
 
@@ -969,11 +969,8 @@ void GPU::drawOAMLine()
     }
 
     //for (int i = 0; i < object_attribute_memory.size(); i += 4)
-    //for (const int & i : objects_pos_to_use)
-    for (int pos = 0; pos < objects_pos_to_use.size(); pos++)
+    for (const int & i : objects_pos_to_use)
     {
-        int i = objects_pos_to_use[pos];
-
         // Parse current sprite's 4 bytes of data
         curr_sprite     = i / 4;
         sprite_y        = object_attribute_memory[i] - 16;
@@ -1317,12 +1314,9 @@ void GPU::run(const uint64_t & cpuTickDiff)
 			// Check if frame rendering has completed, start VBLANK interrupt
             if (lcd_y == 144)
             {
+                renderFullBackgroundMap();
                 memory->interrupt_flag |= INTERRUPT_VBLANK;
                 set_lcd_status_mode_flag(GPU_MODE_VBLANK);
-                if (render_full_frame)
-                {
-                    renderFullBackgroundMap();
-                }
             }
             else
             {

@@ -352,6 +352,7 @@ void APU::run(const uint64_t & cpuTickDiff)
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
             {
+
                 logger->debug("Pushing sample of size: {}", sample_buffer.size());
 
                 // Push sample_buffer to SDL
