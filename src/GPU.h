@@ -34,6 +34,7 @@ public:
 	~GPU();
 
 	void init_gbc();
+    void resize_SDL_Rect(const size_t & width, const size_t & height);
 
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
@@ -163,7 +164,8 @@ public:
 		Graphics
 	*/
 	SDL_Renderer *renderer;
-	SDL_Texture *game_screen;
+	SDL_Texture *screen_texture;
+    SDL_Rect screen_texture_rect;
 
     bool frame_is_ready;
     bool bg_tiles_updated;

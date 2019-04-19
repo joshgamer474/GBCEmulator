@@ -35,14 +35,15 @@ int main(int argc, char **argv)
 
         switch (event.type)
         {
+        case SDL_QUIT:
+        {
+            run = false;
+            break;
+        }
         case SDL_KEYDOWN:
         {
             switch (event.key.keysym.sym)
             {
-            case SDLK_ESCAPE:
-                emu.stop();
-                run = false;
-                break;
             case SDLK_w: joypad->set_joypad_button(Joypad::BUTTON::UP);     break;
             case SDLK_a: joypad->set_joypad_button(Joypad::BUTTON::LEFT);   break;
             case SDLK_s: joypad->set_joypad_button(Joypad::BUTTON::DOWN);   break;
@@ -53,7 +54,8 @@ int main(int argc, char **argv)
             case SDLK_n: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
             }
             break;
-        }
+        } // end case SDL_KEYDOWN
+
         case SDL_KEYUP:
         {
             switch (event.key.keysym.sym)
@@ -68,21 +70,26 @@ int main(int argc, char **argv)
             case SDLK_n: joypad->release_joypad_button(Joypad::BUTTON::SELECT); break;
             }
             break;
-        }
-        case SDL_QUIT:
+        } // end case SDL_KEYUP
+
+        case SDL_WINDOWEVENT:
         {
-            emu.stop();
-            run = false;
-            break;
+            switch (event.window.event)
+            {
+            case SDL_WINDOWEVENT_SIZE_CHANGED:
+                emu.resizeSDLRenderWindow(event.window.data1, event.window.data2);
+                break;
+            }
         }
 
-        //joypadx->refreshButtonStates(0);
-
-        } // switch()
+        } // switch(event.type)
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
 
     } // end while(run)
+
+    // Stop the emulator
+    emu.stop();
 
     // Close emulator thread
     thread.join();

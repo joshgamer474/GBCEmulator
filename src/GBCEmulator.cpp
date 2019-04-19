@@ -51,6 +51,7 @@ GBCEmulator::~GBCEmulator()
 {
 #ifdef SDL_DRAW
     SDL_GL_DeleteContext(glContext);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 #endif
@@ -85,7 +86,7 @@ void GBCEmulator::init_SDL()
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
 #else
     window = SDL_CreateWindow("GBCEmulator",
         SDL_WINDOWPOS_UNDEFINED,
@@ -97,10 +98,8 @@ void GBCEmulator::init_SDL()
     glContext = SDL_GL_CreateContext(window);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    screenSurface = SDL_GetWindowSurface(window);
-    SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-    SDL_UpdateWindowSurface(window);
+    renderer = SDL_CreateRenderer(window, -1,
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
 }
 #endif
 
@@ -400,4 +399,12 @@ void GBCEmulator::setTimePerFrame(double d)
 void GBCEmulator::setFrameUpdateMethod(std::function<void(void)> function)
 {
     frameIsUpdatedFunction = function;
+}
+
+void GBCEmulator::resizeSDLRenderWindow(const size_t & width, const size_t & height)
+{
+    if (gpu)
+    {
+        gpu->resize_SDL_Rect(width, height);
+    }
 }

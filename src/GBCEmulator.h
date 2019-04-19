@@ -53,6 +53,7 @@ public:
     void setTimePerFrame(double d);
 
     void setFrameUpdateMethod(std::function<void(void)> function);
+    void resizeSDLRenderWindow(const size_t & width, const size_t & height);
 
     bool ranInstruction;
     bool debugMode;

@@ -35,7 +35,13 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
 #ifdef SDL_DRAW
 	renderer = render;
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	game_screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
+	screen_texture = SDL_CreateTexture(renderer,
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        SCREEN_PIXEL_W,
+        SCREEN_PIXEL_H);
+
+    screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
 #endif
 
 	cgb_background_palette_index = 0;
@@ -1251,22 +1257,11 @@ Tile * GPU::getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, in
 void GPU::display()
 {
 #ifdef SDL_DRAW
-#ifdef DEBUG
-	// Render partial screen with debug info
-	//SDL_Rect game_screen_rect = { 0, 0, SCREEN_PIXEL_W * 2, SCREEN_PIXEL_H * 2 };
-	SDL_Rect game_screen_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
-	SDL_UpdateTexture(game_screen, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
+	SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
 	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, game_screen, NULL, &game_screen_rect);
+	SDL_RenderCopy(renderer, screen_texture, NULL, &screen_texture_rect);
 	SDL_RenderPresent(renderer);
-#else
-	// Render full screen
-	SDL_UpdateTexture(game_screen, NULL, frame, SCREEN_PIXEL_W * sizeof(unsigned char) * 4);
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, game_screen, NULL, NULL);
-	SDL_RenderPresent(renderer);
-#endif
-#endif
+#endif // SDL_DRAW
 }
 
 void GPU::run(const uint64_t & cpuTickDiff)
@@ -1504,4 +1499,17 @@ void GPU::sortNonCGBOAMSpriteOrder()
     {
         objects_pos_to_use[i] = indices[i] * 4;
     }
+}
+
+void GPU::resize_SDL_Rect(const size_t & width, const size_t & height)
+{
+    
+    SDL_RenderClear(renderer);
+    //screen_texture_rect.w = width;
+    //screen_texture_rect.h = height;
+    //SDL_RenderSetViewport(renderer, &screen_texture_rect);
+
+    ////SDL_RenderClear(renderer);
+    //SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+    //SDL_RenderPresent(renderer);
 }
