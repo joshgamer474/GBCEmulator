@@ -37,8 +37,7 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
 
-    outRightChannel = std::make_unique<std::ofstream>("outRightChannel.pcm", std::ios::binary);
-    outLeftChannel = std::make_unique<std::ofstream>("outLeftChannel.pcm", std::ios::binary);
+    audioFileOut = std::make_unique<std::ofstream>("audioOut.pcm", std::ios::binary);
 
     sample_buffer.resize(SAMPLE_BUFFER_SIZE / double_speed_mode_modifier);
 
@@ -54,8 +53,7 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
 
 APU::~APU()
 {
-    outRightChannel->close();
-    outLeftChannel->close();
+    audioFileOut->close();
 
     SDL_CloseAudioDevice(audio_device_id);
 }
@@ -351,34 +349,8 @@ void APU::run(const uint64_t & cpuTickDiff)
 
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
-            {
-
-                logger->debug("Pushing sample of size: {}", sample_buffer.size());
-
-                // Push sample_buffer to SDL
-#ifndef USE_FLOAT
-                int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<uint8_t *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE);
-#else
-                int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<float *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE_FLOAT);
-#endif
-
-                if (ret != 0)
-                {
-                    logger->error("ret: {0:d}", ret);
-                }
-
-#ifdef WRITE_AUDIO_OUT
-#ifndef USE_FLOAT
-                outLeftChannel->write(reinterpret_cast<char *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE);
-#else
-                outLeftChannel->write(reinterpret_cast<char *>(sample_buffer.data()), SAMPLE_BUFFER_MEM_SIZE_FLOAT);
-#endif // USE_FLOAT
-#endif // WRITE_AUDIO_OUT
-
-                // Clear sample_buffer
-                sample_buffer_counter = 0;
-                sample_buffer.clear();
-                sample_buffer.resize(SAMPLE_BUFFER_SIZE);
+            {   // Force write out audio samples
+                writeSamplesOut(audio_device_id);
             }
 
             // Reset sample_timer
@@ -388,6 +360,40 @@ void APU::run(const uint64_t & cpuTickDiff)
 
         diff--;
     }
+}
+
+void APU::writeSamplesOut(const uint32_t & audio_device)
+{
+    sample_buffer.resize(sample_buffer_counter);
+
+    logger->debug("Pushing sample of size: {}", sample_buffer.size());
+
+    // Push sample_buffer to SDL
+#ifndef USE_FLOAT
+    const uint32_t sampleSizeBytes = sample_buffer.size() * 2 * sizeof(uint8_t);
+    int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<uint8_t*>(sample_buffer.data()), sampleSizeBytes);
+#else
+    const uint32_t sampleSizeBytes = sample_buffer.size() * 2 * sizeof(float);
+    int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<float*>(sample_buffer.data()), sampleSizeBytes);
+#endif
+
+    if (ret != 0)
+    {
+        logger->error("SDL_QueueAudio returned {}", ret);
+    }
+
+#ifdef WRITE_AUDIO_OUT
+#ifndef USE_FLOAT
+    audioFileOut->write(reinterpret_cast<char*>(sample_buffer.data()), sampleSizeBytes);
+#else
+    audioFileOut->write(reinterpret_cast<char*>(sample_buffer.data()), sampleSizeBytes);
+#endif // USE_FLOAT
+#endif // WRITE_AUDIO_OUT
+
+    // Clear sample_buffer
+    sample_buffer_counter = 0;
+    sample_buffer.clear();
+    sample_buffer.resize(SAMPLE_BUFFER_SIZE);
 }
 
 bool APU::isSoundOutLeft(uint8_t sound_number)

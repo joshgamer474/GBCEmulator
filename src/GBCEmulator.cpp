@@ -44,6 +44,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     memory->logger->set_level(spdlog::level::warn);
     apu->logger->set_level(spdlog::level::warn);
     apu->setChannelLogLevel(spdlog::level::warn);
+    joypad->logger->set_level(spdlog::level::debug);
     logCounter = 0;
 }
 
@@ -197,8 +198,12 @@ void GBCEmulator::runNextInstruction()
         }
         gpu->frame_is_ready = false;
 
-        // Sleep in APU while checking audio buffer
         apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+
+        // Write out accumulated audio samples to audio device
+        apu->writeSamplesOut(apu->audio_device_id);
+
+        // Let the APU sleep the emulator
         apu->sleepUntilBufferIsEmpty();
     }
 #else
