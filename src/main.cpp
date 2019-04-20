@@ -1,11 +1,16 @@
 #define SDL_MAIN_HANDLED
+
 #include <GBCEmulator.h>
+#include <SDLWindow.h>
 #include <JoypadXInput.h>
+#include <memory>
 #include <thread>
 #include <SDL.h>
 
 int main(int argc, char **argv)
 {
+    SDLWindow window;
+
     std::string romName;
     if (argc <= 1)
     {
@@ -14,16 +19,17 @@ int main(int argc, char **argv)
 
     romName = argv[1];
 
-    GBCEmulator emu(romName, romName + ".log");
+    std::shared_ptr<GBCEmulator> emu = std::make_shared<GBCEmulator>(romName, romName + ".log");
+    window.setEmulator(emu);
 
     // Setup XInput Controller
-    std::shared_ptr<Joypad> joypad = emu.get_Joypad();
+    std::shared_ptr<Joypad> joypad = emu->get_Joypad();
     std::shared_ptr<JoypadXInput> joypadx = std::make_shared<JoypadXInput>(joypad);
 
     // Have emulator tick in its own thread
     std::thread thread([&]()
     {
-        emu.run();
+        emu->run();
     });
 
     // Process input here
@@ -77,7 +83,7 @@ int main(int argc, char **argv)
             switch (event.window.event)
             {
             case SDL_WINDOWEVENT_SIZE_CHANGED:
-                emu.resizeSDLRenderWindow(event.window.data1, event.window.data2);
+                //emu->resizeSDLRenderWindow(event.window.data1, event.window.data2);
                 break;
             }
         }
@@ -89,7 +95,7 @@ int main(int argc, char **argv)
     } // end while(run)
 
     // Stop the emulator
-    emu.stop();
+    emu->stop();
 
     // Close emulator thread
     thread.join();

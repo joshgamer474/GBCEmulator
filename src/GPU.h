@@ -29,12 +29,10 @@ class GPU
 {
 public:
 
-	GPU(std::shared_ptr<spdlog::logger> logger,
-        SDL_Renderer *render);
+	GPU(std::shared_ptr<spdlog::logger> logger);
 	~GPU();
 
 	void init_gbc();
-    void resize_SDL_Rect(const size_t & width, const size_t & height);
 
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
@@ -85,7 +83,7 @@ public:
     SDL_Color * getFrame();
 
     std::vector<std::vector<std::vector<Tile>>> getBGTiles();
-    const std::vector<int> & getUpdatedBGTileIndexes();
+    const std::vector<int>& getUpdatedBGTileIndexes();
     uint8_t getTileBlockNum(int use_tile_num);
     uint8_t getSpriteTileBlockNum(int use_tile_num);
     Tile * getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num);
@@ -154,25 +152,15 @@ public:
 	// LCD Status Register objects
 	bool enable_lcd_y_compare_interrupt;
 
-
-	/*
-		Input handling
-	*/
-	SDL_Event e;
-
-	/*
-		Graphics
-	*/
-	SDL_Renderer *renderer;
-	SDL_Texture *screen_texture;
-    SDL_Rect screen_texture_rect;
-
+    // Graphics
     bool frame_is_ready;
     bool bg_tiles_updated;
     bool lcd_status_interrupt_signal;
     bool wait_frame_to_render_window;
 
-    private:
+    SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
+
+private:
         bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
         void sortNonCGBOAMSpriteOrder();
 
@@ -180,7 +168,6 @@ public:
         std::vector<unsigned char> object_attribute_memory;
         std::vector<std::vector<std::vector<Tile>>> bg_tiles;
         SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
-        SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
         std::vector<uint8_t> objects_pos_to_use;
 };
 #endif

@@ -31,7 +31,7 @@ extern "C" {
 class GBCEmulator
 {
 public:
-    GBCEmulator(const std::string romName, const std::string logName="log.txt", bool debugMode=false);
+    GBCEmulator(const std::string romName, const std::string logName = "log.txt", bool debugMode = false);
     virtual ~GBCEmulator();
 
     void set_logging_level(spdlog::level::level_enum l);
@@ -52,17 +52,14 @@ public:
     void release_joypad_button(Joypad::BUTTON button);
     void setTimePerFrame(double d);
 
-    void setFrameUpdateMethod(std::function<void(void)> function);
-    void resizeSDLRenderWindow(const size_t & width, const size_t & height);
+    void setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function);
 
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
-    SDL_Window *window;
 
 private:
     void read_rom(std::string filename);
-    void init_SDL();
     void init_memory();
     void init_gpu();
     void init_logging(std::string logName);
@@ -77,10 +74,6 @@ private:
     std::shared_ptr<Memory> memory;
     std::shared_ptr<Joypad> joypad;
 
-    SDL_GLContext glContext;
-    SDL_Surface *screenSurface;
-    SDL_Renderer *renderer;
-
     std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger;
     std::uint16_t logCounter;
 
@@ -93,7 +86,7 @@ private:
     std::chrono::duration<double> frameStartTime;
     std::chrono::duration<double> timePerFrame;
 
-    std::function<void(void)> frameIsUpdatedFunction;
+    std::function<void(SDL_Color * /* frame */)> frameIsUpdatedFunction;
 };
 
 #endif

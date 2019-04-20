@@ -6,8 +6,7 @@
 #include "Debug.h"
 #include "Tile.h"
 
-GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
-    SDL_Renderer *render)
+GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
     :
     logger(_logger)
 {
@@ -31,18 +30,6 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger,
     bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
 
 	gpu_mode = GPU_MODE_OAM;
-
-#ifdef SDL_DRAW
-	renderer = render;
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	screen_texture = SDL_CreateTexture(renderer,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        SCREEN_PIXEL_W,
-        SCREEN_PIXEL_H);
-
-    screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
-#endif
 
 	cgb_background_palette_index = 0;
 	cgb_sprite_palette_index = 0;
@@ -1254,16 +1241,6 @@ Tile * GPU::getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, in
     return tile;
 }
 
-void GPU::display()
-{
-#ifdef SDL_DRAW
-	SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, screen_texture, NULL, &screen_texture_rect);
-	SDL_RenderPresent(renderer);
-#endif // SDL_DRAW
-}
-
 void GPU::run(const uint64_t & cpuTickDiff)
 {
     if (lcd_display_enable == false)
@@ -1334,7 +1311,6 @@ void GPU::run(const uint64_t & cpuTickDiff)
 			{   // Copy frame into curr_frame for use by external programs
                 std::memcpy(curr_frame, frame, sizeof(SDL_Color) * SCREEN_PIXEL_W * SCREEN_PIXEL_H);
                 frame_is_ready = true;
-				display();
 				lcd_y = 0;
                 update_lcd_status_coincidence_flag();
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
@@ -1499,17 +1475,4 @@ void GPU::sortNonCGBOAMSpriteOrder()
     {
         objects_pos_to_use[i] = indices[i] * 4;
     }
-}
-
-void GPU::resize_SDL_Rect(const size_t & width, const size_t & height)
-{
-    
-    SDL_RenderClear(renderer);
-    //screen_texture_rect.w = width;
-    //screen_texture_rect.h = height;
-    //SDL_RenderSetViewport(renderer, &screen_texture_rect);
-
-    ////SDL_RenderClear(renderer);
-    //SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-    //SDL_RenderPresent(renderer);
 }

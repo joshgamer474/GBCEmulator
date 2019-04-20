@@ -7,12 +7,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
         logFileBaseName(logName),
         frameIsUpdatedFunction(nullptr)
 {
-#ifdef SDL_DRAW
-    init_SDL();
-#endif
-
     init_logging(logName);
-    
+
     cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", logger));
     apu     = std::make_shared<APU>(logger, std::make_shared<spdlog::logger>("APU", logger));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", logger));
@@ -50,13 +46,6 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
 GBCEmulator::~GBCEmulator()
 {
-#ifdef SDL_DRAW
-    SDL_GL_DeleteContext(glContext);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-#endif
-
     // Write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
@@ -68,41 +57,6 @@ GBCEmulator::~GBCEmulator()
     apu.reset();
     logger.reset();
 }
-
-#ifdef SDL_DRAW
-void GBCEmulator::init_SDL()
-{
-    SDL_Init(SDL_INIT_VIDEO);
-
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-    SDL_DisplayMode current;
-    SDL_GetCurrentDisplayMode(0, &current);
-
-#ifdef DEBUG
-    window = SDL_CreateWindow("GBCEmulator",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
-#else
-    window = SDL_CreateWindow("GBCEmulator",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        SCREEN_PIXEL_W, SCREEN_PIXEL_H,
-        SDL_WINDOW_SHOWN);
-#endif
-
-    glContext = SDL_GL_CreateContext(window);
-    SDL_GL_SetSwapInterval(1); // Enable vsync
-
-    renderer = SDL_CreateRenderer(window, -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
-}
-#endif
 
 void GBCEmulator::read_rom(std::string filename)
 {
@@ -136,8 +90,7 @@ void GBCEmulator::init_memory()
 
 void GBCEmulator::init_gpu()
 {
-    gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", logger),
-        renderer);
+    gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", logger));
 
     if (cartridgeReader->isColorGB())
     {
@@ -194,7 +147,7 @@ void GBCEmulator::runNextInstruction()
     {   // Push frame out to be displayed
         if (frameIsUpdatedFunction)
         {
-            frameIsUpdatedFunction();
+            frameIsUpdatedFunction(gpu->curr_frame);
         }
         gpu->frame_is_ready = false;
 
@@ -401,15 +354,7 @@ void GBCEmulator::setTimePerFrame(double d)
     timePerFrame = std::chrono::duration<double>(d);
 }
 
-void GBCEmulator::setFrameUpdateMethod(std::function<void(void)> function)
+void GBCEmulator::setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function)
 {
     frameIsUpdatedFunction = function;
-}
-
-void GBCEmulator::resizeSDLRenderWindow(const size_t & width, const size_t & height)
-{
-    if (gpu)
-    {
-        gpu->resize_SDL_Rect(width, height);
-    }
 }

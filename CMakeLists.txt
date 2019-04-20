@@ -8,35 +8,38 @@ find_package(SDL2)
 add_definitions(-DSDL_DRAW)
 
 set(GBC_HEADERS
-    src/GBCEmulator.h
-    src/CartridgeReader.h
-    src/ColorPalette.h
     src/APU.h
     src/AudioSquare.h
     src/AudioWave.h
     src/AudioNoise.h
+    src/CartridgeReader.h
+    src/ColorPalette.h
     src/CPU.h
+    src/GBCEmulator.h
     src/GPU.h
     src/Joypad.h
     src/JoypadXInput.h
     src/MBC.h
     src/Memory.h
+    src/ScreenInterface.h
+    src/SDLWindow.h
     src/Tile.h)
 
 set(GBC_SOURCE
-    src/GBCEmulator.cpp
-    src/CartridgeReader.cpp
-    src/ColorPalette.cpp
     src/APU.cpp
+    src/AudioNoise.cpp
     src/AudioSquare.cpp
     src/AudioWave.cpp
-    src/AudioNoise.cpp
+    src/CartridgeReader.cpp
+    src/ColorPalette.cpp
     src/CPU.cpp
     src/GPU.cpp
+    src/GBCEmulator.cpp
     src/Joypad.cpp
     src/JoypadXInput.cpp
     src/MBC.cpp
     src/Memory.cpp
+    src/SDLWindow.cpp
     src/Tile.cpp)
 
 set(GBC_RUN_SOURCE
