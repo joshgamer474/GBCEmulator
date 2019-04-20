@@ -1,0 +1,22 @@
+sudo: false
+language: cpp
+compiler: gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-8
+install:
+  - "[ $CXX = g++ ] && export CXX=g++-8 || true"
+# Install conan
+  - pip install conan
+# Automatic detection of your arch, compiler, etc.
+  - conan user
+# Add bincrafters conan remote
+  - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+script:
+# Download dependencies, build if pre-built package not available
+  - conan install . -if=build_release --build=outdated
+# Build the project
+  - conan build . -bf=build_release
