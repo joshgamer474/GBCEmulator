@@ -11,13 +11,14 @@ addons:
 install:
   - "[ $CXX = g++ ] && export CXX=g++-8 || true"
 # Install conan
-  - pip install conan --upgrade --user
+  - pip3 install conan --upgrade --user
 # Automatic detection of your arch, compiler, etc.
   - conan user
 # Add bincrafters conan remote
   - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
-script:
+before_script:
 # Download dependencies, build if pre-built package not available
-  - conan install . -if=build_release --build=outdated
+  - conan install . -if=build_release -s compiler='gcc8' --build=outdated
+script:
 # Build the project
   - conan build . -bf=build_release
