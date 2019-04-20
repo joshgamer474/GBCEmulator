@@ -8,6 +8,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-8
+      - cmake
 install:
   - "[ $CXX = g++ ] && export CXX=g++-8 || true"
 # Start python3 environment
@@ -20,7 +21,7 @@ install:
   - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
 before_script:
 # Download dependencies, build if pre-built package not available
-  - conan install . -if=build_release -s compiler='gcc8' --build=outdated
+  - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 --build=outdated
 script:
 # Build the project
   - conan build . -bf=build_release
