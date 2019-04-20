@@ -1,4 +1,6 @@
+#ifdef _WIN32
 #include "stdafx.h"
+#endif // _WIN32
 
 #include "GPU.h"
 #include "Joypad.h"
@@ -18,7 +20,7 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
     lcd_status_interrupt_signal = false;
     wait_frame_to_render_window = false;
 
-	lcd_control = NULL;
+	lcd_control = 0;
 
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 	object_attribute_memory.resize(OAM_SIZE);
@@ -1400,7 +1402,7 @@ SDL_Color * GPU::getFrame()
     return curr_frame;
 }
 
-std::vector<std::vector<std::vector<Tile>>> GPU::getBGTiles()
+std::vector<std::vector<std::vector<Tile>>>& GPU::getBGTiles()
 {
     bg_tiles_updated = false;
     return bg_tiles;

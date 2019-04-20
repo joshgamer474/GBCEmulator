@@ -1,21 +1,20 @@
 #ifndef EMU_VIEW_H
 #define EMU_VIEW_H
 
-#include <QObject>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QImage>
+#include <QObject>
 #include <QString>
-#include <QTimer>
 #include <QPixmap>
-
-#include <chrono>
+#include <QTimer>
 #include <memory>
 #include <thread>
 
 #include <spdlog/spdlog.h>
 
 class GBCEmulator;
-class JoypadXInput;
+class JoypadInputInterface;
 
 class EmuView : public QGraphicsScene
 {
@@ -55,7 +54,7 @@ private:
     int hashImage(const QImage & p);
 
     QObject * parent;
-    std::shared_ptr<JoypadXInput> xinput;
+    std::shared_ptr<JoypadInputInterface> xinput;
     int prevHash;
     std::chrono::system_clock::duration prevTime;
     QTimer joypadTimer;

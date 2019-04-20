@@ -41,6 +41,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     apu->logger->set_level(spdlog::level::warn);
     apu->setChannelLogLevel(spdlog::level::warn);
     joypad->logger->set_level(spdlog::level::debug);
+
     logCounter = 0;
 }
 

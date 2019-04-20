@@ -1,4 +1,7 @@
+#ifdef _WIN32
 #include "stdafx.h"
+#endif // _WIN32
+
 #include "Joypad.h"
 #include "Debug.h"
 

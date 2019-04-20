@@ -18,6 +18,7 @@ set(GBC_HEADERS
     src/GBCEmulator.h
     src/GPU.h
     src/Joypad.h
+    src/JoypadInputInterface.h
     src/JoypadXInput.h
     src/MBC.h
     src/Memory.h
@@ -60,14 +61,20 @@ target_include_directories(GBCEmulator PUBLIC
 
 target_link_libraries(GBCEmulator
     ${CONAN_TARGETS}
-    ${CONAN_LIB_DIRS})
+    ${CONAN_LIB})
 
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
 target_link_libraries(GBCEmulator_bin
-    GBCEmulator
+    GBCEmulator)
+
+if(WIN32)
+message("************************************")
+message("LINKING XINPUT")
+target_link_libraries(GBCEmulator_bin
     XInput)
+endif(WIN32)
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")

@@ -25,6 +25,7 @@ set(GBC_HEADERS
     ../src/GBCEmulator.h
     ../src/GPU.h
     ../src/Joypad.h
+    ../src/JoypadInputInterface.h
     ../src/JoypadXInput.h
     ../src/MBC.h
     ../src/Memory.h
@@ -95,7 +96,9 @@ target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator_qt
     ${CONAN_TARGETS}
-#    ${CONAN_LIB_DIRS}
-#    ${CONAN_LIB_DIRS_GBCEMULATOR}
-    XInput
     Qt5::Widgets)
+
+if(WIN32)
+    target_link_libraries(GBCEmulator_qt
+    XInput)
+endif(WIN32)

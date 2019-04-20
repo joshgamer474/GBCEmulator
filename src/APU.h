@@ -37,6 +37,11 @@ struct Sample {
     {
         return std::string("{" + std::to_string(left) + ", " + std::to_string(right) + "}, ");
     }
+
+    uint8_t* data()
+    {
+        return reinterpret_cast<uint8_t *>(this);
+    }
 };
 
 class APU

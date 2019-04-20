@@ -1,13 +1,14 @@
 #ifndef JOYPAD_XINPUT_H
 #define JOYPAD_XINPUT_H
 
+#include <JoypadInputInterface.h>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-class Joypad;
+//class Joypad;
 
-class JoypadXInput
+class JoypadXInput : public JoypadInputInterface
 {
 public:
     JoypadXInput();

@@ -5,13 +5,19 @@
 #ifndef GBCEMULATOR_H
 #define GBCEMULATOR_H
 
+#ifdef _WIN32
 #include <windows.h>
 #include "stdafx.h"
+#endif // _WIN32
+
 #include <chrono>
 #include <fstream>
 #include <functional>
 #include <iterator>
 #include <vector>
+
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
 #include "APU.h"
 #include "CPU.h"
@@ -21,12 +27,20 @@
 #include "GPU.h"
 #include "CartridgeReader.h"
 #include "Debug.h"
-#include <spdlog/spdlog.h>
+
 extern "C" {
 #include <SDL.h>
 }
 
 #define USE_AUDIO_TIMING
+
+class APU;
+class CPU;
+class Memory;
+class Joypad;
+class MBC;
+class GPU;
+class CartridgeReader;
 
 class GBCEmulator
 {

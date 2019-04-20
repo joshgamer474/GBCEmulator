@@ -1,14 +1,17 @@
 #include <src/emuview.h>
-#include <GBCEmulator.h>
 #include <src/mainwindow.h>
-#include <JoypadXInput.h>
 
-#include <QDropEvent>
+#include <GBCEmulator.h>
+#include <JoypadXInput.h>
+#include <JoypadInputInterface.h>
+
+#include <QApplication>
 #include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QImage>
+#include <QMainWindow>
 #include <QMimeData>
 #include <QThread>
-#include <QApplication>
-#include <QMainWindow>
 
 #include <chrono>
 
@@ -20,7 +23,9 @@ EmuView::EmuView(QObject * parent)
 
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::shared_ptr<spdlog::logger> _logger)
+EmuView::EmuView(QObject * parent,
+    QGraphicsView * graphicsView,
+    std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
@@ -30,7 +35,10 @@ EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::shared_ptr
     init();
 }
 
-EmuView::EmuView(QObject * parent, QGraphicsView * graphicsView, std::string filename, std::shared_ptr<spdlog::logger> _logger)
+EmuView::EmuView(QObject * parent,
+    QGraphicsView * graphicsView,
+    std::string filename,
+    std::shared_ptr<spdlog::logger> _logger)
     :   QGraphicsScene(parent),
         parent(parent),
         emuView(graphicsView),
@@ -63,7 +71,9 @@ void EmuView::init()
     emuView->setAlignment(Qt::AlignCenter);
     emuView->setAcceptDrops(true);
 
+//#ifdef _WIN32
     xinput = std::make_shared<JoypadXInput>();
+//#endif // _WIN32
 }
 
 void EmuView::setupEmulator(std::string filename, bool debugMode)
@@ -79,7 +89,10 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
     logger->info("Creating GBCEmulator, giving file: {0}", filename.c_str());
     emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
 
-    xinput->setJoypad(emu->get_Joypad());
+    if (xinput)
+    {
+        xinput->setJoypad(emu->get_Joypad());
+    }
 
 #ifdef QT_DEBUG
     emu->setTimePerFrame(0);
@@ -147,7 +160,7 @@ void EmuView::initFrame()
     logger->trace("Initializing QImage frame, setting up frame getting function to GBCEmulator");
 
     // Create QImage frame
-    frame = std::make_unique<QImage>((unsigned char *)emu->get_frame(),
+    frame = std::make_unique<QImage>(reinterpret_cast<unsigned char*>(emu->get_frame()),
         SCREEN_PIXEL_W,
         SCREEN_PIXEL_H,
         QImage::Format_RGBA8888);

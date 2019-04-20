@@ -1,9 +1,13 @@
+#ifdef _WIN32
 #include "stdafx.h"
+#endif // _WIN32
+
 #include "MBC.h"
 #include "Debug.h"
 #include <fstream>
 #include <chrono>
 #include <ctime>
+#include <exception>
 
 MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::logger> _logger)
 {
@@ -81,32 +85,32 @@ void MBC::MBC5_init()
 
 void MBC::MBC6_init()
 {
-    throw std::exception("MBC6 not yet supported!");
+    throw std::runtime_error("MBC6 not yet supported!");
 }
 
 void MBC::MBC7_init()
 {
-    throw std::exception("MBC7 not yet supported!");
+    throw std::runtime_error("MBC7 not yet supported!");
 }
 
 void MBC::HuC1_init()
 {
-    throw std::exception("HuC1 not yet supported!");
+    throw std::runtime_error("HuC1 not yet supported!");
 }
 
 void MBC::HuC3_init()
 {
-    throw std::exception("HuC3 not yet supported!");
+    throw std::runtime_error("HuC3 not yet supported!");
 }
 
 void MBC::MMM01_init()
 {
-    throw std::exception("MMM01 not yet supported!");
+    throw std::runtime_error("MMM01 not yet supported!");
 }
 
 void MBC::TAMA5_init()
 {
-    throw std::exception("TAMA5 not yet supported!");
+    throw std::runtime_error("TAMA5 not yet supported!");
 }
 
 
@@ -438,6 +442,8 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
         std::vector<unsigned char> ram(
             (std::istreambuf_iterator<char>(file)),
             (std::istreambuf_iterator<char>()));
+
+        logger->info("Finished reading in save file");
 
         uint8_t use_ram_bank = 0;
         uint32_t num_ram_banks_in_file = ram.size() / 0x1FFF;

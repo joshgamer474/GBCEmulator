@@ -82,8 +82,9 @@ public:
     void printFrame();
     SDL_Color * getFrame();
 
-    std::vector<std::vector<std::vector<Tile>>> getBGTiles();
+    std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
     const std::vector<int>& getUpdatedBGTileIndexes();
+
     uint8_t getTileBlockNum(int use_tile_num);
     uint8_t getSpriteTileBlockNum(int use_tile_num);
     Tile * getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num);

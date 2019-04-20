@@ -3,6 +3,7 @@
 #include <QScrollBar>
 #include <QPaintEvent>
 #include <QPalette>
+#include <cmath>
 
 HexWidget::HexWidget(QWidget * parent)
     : QAbstractScrollArea(parent),

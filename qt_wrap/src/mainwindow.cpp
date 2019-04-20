@@ -16,20 +16,14 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    setAcceptDrops(true);
-    ui->graphicsView->hide();
-
     init();
+    ui->graphicsView->hide();
 }
 
 MainWindow::MainWindow(QWidget *parent, int argc, char *argv[])
     :   QMainWindow(parent),
         ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-    setAcceptDrops(true);
-
     init();
 }
 
@@ -45,6 +39,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::init()
 {
+    ui->setupUi(this);
     logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>("GBCEmulator_qt.log", 1024 * 1024 * 500, 1);
 
     emuView = std::make_shared<EmuView>(this, ui->graphicsView, std::make_shared<spdlog::logger>("EmuView", logger));
