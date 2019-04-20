@@ -11,7 +11,7 @@ addons:
 install:
   - "[ $CXX = g++ ] && export CXX=g++-8 || true"
 # Install conan
-  - pip3 install conan --upgrade --user
+  - pip install conan --upgrade --user
 # Automatic detection of your arch, compiler, etc.
   - conan user
 # Add bincrafters conan remote
