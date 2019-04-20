@@ -22,7 +22,7 @@
 
 
 #define USE_FLOAT
-#define WRITE_AUDIO_OUT
+//#define WRITE_AUDIO_OUT
 
 struct Sample {
 #ifndef USE_FLOAT
@@ -57,6 +57,7 @@ public:
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
+    void writeSamplesOut(const uint32_t & audio_device);
     void sleepUntilBufferIsEmpty();
 
     std::shared_ptr<spdlog::logger> logger;
@@ -76,8 +77,7 @@ private:
     
     std::chrono::system_clock::duration prev_time;
     std::function<void(float, int)> sendSampleUpdate;
-    std::unique_ptr<std::ofstream> outRightChannel;
-    std::unique_ptr<std::ofstream> outLeftChannel;
+    std::unique_ptr<std::ofstream> audioFileOut;
     std::unique_ptr<AudioSquare> sound_channel_1;
     std::unique_ptr<AudioSquare> sound_channel_2;
     std::unique_ptr<AudioWave>   sound_channel_3;

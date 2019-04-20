@@ -14,9 +14,17 @@ class GBCEmulator_qt(ConanFile):
                 "cppstd": ["14"]}
     options = {"shared": [True, False]}
     generators = "cmake"
+<<<<<<< HEAD
     requires = "GBCEmulator/0.0.2@josh/testing", \
 				"sdl2/2.0.8@bincrafters/stable", \
                 "qt/5.12.2@bincrafters/stable"
+=======
+    requires = (
+        "GBCEmulator/0.0.2@josh/testing",
+        "sdl2/2.0.8@bincrafters/stable",
+        "qt/5.12.3@bincrafters/stable",
+        "spdlog/1.2.1@bincrafters/stable")
+>>>>>>> qt_gui
     exports_sources = "src/*", "CMakeLists.txt"
     default_options = "shared=True"
     

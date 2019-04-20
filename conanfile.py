@@ -22,7 +22,8 @@ class GBCEmulator(ConanFile):
     
     def configure(self):
         self.options["sdl2"].shared = True
-        self.options["sdl2"].nas = False
+        if self.settings.os == "Linux":
+            self.options["sdl2"].nas = False
     
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")

@@ -14,8 +14,6 @@ CartridgeReader::~CartridgeReader()
     logger.reset();
 }
 
-
-
 void CartridgeReader::setRomDestination(std::string filename)
 {
 	cartridgeFilename = filename;
@@ -63,6 +61,7 @@ bool CartridgeReader::readRom()
 	}
 	else
 	{
+        logger->critical("Could not read rom {}", cartridgeFilename);
 		return false;
 	}
 }
@@ -76,6 +75,7 @@ void CartridgeReader::getCartridgeInformation()
     {
         game_title[i] = romBuffer[i + 0x0134];
     }
+    game_title[15] = '\0';
 
 	// Read in Manufacturer code
     for (int i = 0; i < 4; i++)
