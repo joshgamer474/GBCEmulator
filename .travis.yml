@@ -1,0 +1,27 @@
+sudo: required
+language: cpp
+compiler: gcc
+python: "3.7"
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-8
+      - cmake
+install:
+  - "[ $CXX = g++ ] && export CXX=g++-8 || true"
+# Start python3 environment
+  - pyenv shell 3.7
+# Install conan
+  - pip3 install conan --upgrade --user
+# Automatic detection of your arch, compiler, etc.
+  - conan user
+# Add bincrafters conan remote
+  - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+before_script:
+# Download dependencies, build if pre-built package not available
+  - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 --build=outdated
+script:
+# Build the project
+  - conan build . -bf=build_release
