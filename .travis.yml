@@ -1,7 +1,7 @@
 sudo: required
 language: cpp
 compiler: gcc
-python: "3.7"
+python: "3.6.3"
 addons:
   apt:
     sources:
@@ -12,7 +12,7 @@ addons:
 install:
   - "[ $CXX = g++ ] && export CXX=g++-8 || true"
 # Start python3 environment
-  - pyenv shell 3.7
+  - pyenv shell 3.6.3
 # Install conan
   - pip3 install conan --upgrade --user
 # Automatic detection of your arch, compiler, etc.
