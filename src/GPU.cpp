@@ -19,6 +19,7 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
     lcd_display_enable = false;
     lcd_status_interrupt_signal = false;
     wait_frame_to_render_window = false;
+    render_full_frame = false;
 
 	lcd_control = 0;
 
@@ -1288,7 +1289,10 @@ void GPU::run(const uint64_t & cpuTickDiff)
 			// Check if frame rendering has completed, start VBLANK interrupt
             if (lcd_y == 144)
             {
-                renderFullBackgroundMap();
+                if (render_full_frame)
+                {
+                    renderFullBackgroundMap();
+                }
                 memory->interrupt_flag |= INTERRUPT_VBLANK;
                 set_lcd_status_mode_flag(GPU_MODE_VBLANK);
             }

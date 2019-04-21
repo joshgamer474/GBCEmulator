@@ -158,6 +158,7 @@ public:
     bool bg_tiles_updated;
     bool lcd_status_interrupt_signal;
     bool wait_frame_to_render_window;
+    bool render_full_frame;
 
     SDL_Color curr_frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
 
