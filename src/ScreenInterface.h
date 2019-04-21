@@ -12,7 +12,7 @@ class ScreenInterface
 public:
     virtual ~ScreenInterface() {}
 
-    virtual void setEmulator(std::shared_ptr<GBCEmulator> emulator) = 0;
+    virtual void hookToEmulator(std::shared_ptr<GBCEmulator> emulator) = 0;
     virtual void display(SDL_Color* frame) = 0;
 };
 
