@@ -6,7 +6,7 @@ A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
 ## Progress
 
-The emulator currently passes all of blargg's cpu instruction tests and run a decent amount of GB/GBC games.
+The emulator currently passes all of blargg's cpu instruction tests and runs a decent amount of GB/GBC games.
 
 ![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
 
