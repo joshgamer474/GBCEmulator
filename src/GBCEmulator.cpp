@@ -9,9 +9,9 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 {
     init_logging(logName);
 
-    cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", logger));
-    apu     = std::make_shared<APU>(logger, std::make_shared<spdlog::logger>("APU", logger));
-    joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", logger));
+    cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink));
+    apu     = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink));
+    joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", loggerSink));
 
     read_rom(romName);
 
@@ -20,7 +20,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     init_memory();
 
     // Initialize CPU
-    cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", logger),
+    cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", loggerSink),
         memory);
     
     // Read in game save
@@ -41,7 +41,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     apu->logger->set_level(spdlog::level::warn);
     apu->setChannelLogLevel(spdlog::level::warn);
     joypad->logger->set_level(spdlog::level::debug);
-
+    logger->set_level(spdlog::level::debug);
     logCounter = 0;
 }
 
@@ -56,7 +56,7 @@ GBCEmulator::~GBCEmulator()
     mbc.reset();
     gpu.reset();
     apu.reset();
-    logger.reset();
+    loggerSink.reset();
 }
 
 void GBCEmulator::read_rom(std::string filename)
@@ -76,10 +76,10 @@ void GBCEmulator::init_memory()
     mbc = std::make_shared<MBC>(cartridgeReader->getMBCNum(),
         cartridgeReader->num_ROM_banks,
         cartridgeReader->num_RAM_banks,
-        std::make_shared<spdlog::logger>("MBC", logger));
+        std::make_shared<spdlog::logger>("MBC", loggerSink));
 
     // Setup Memory
-    memory = std::make_shared<Memory>(std::make_shared<spdlog::logger>("Memory", logger),
+    memory = std::make_shared<Memory>(std::make_shared<spdlog::logger>("Memory", loggerSink),
         cartridgeReader,
         mbc,
         gpu,
@@ -91,7 +91,7 @@ void GBCEmulator::init_memory()
 
 void GBCEmulator::init_gpu()
 {
-    gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", logger));
+    gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", loggerSink));
 
     if (cartridgeReader->isColorGB())
     {
@@ -103,8 +103,8 @@ void GBCEmulator::run()
 {
     stopRunning = false;
 
-    // Update frameStartTime to current time
-    frameStartTime = getCurrentTime();
+    // Update frameTimeStart to current time
+    frameTimeStart = getCurrentTime();
 
     // Run emulator loop
     while (!stopRunning && !debugMode)
@@ -145,7 +145,13 @@ void GBCEmulator::runNextInstruction()
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
-    {   // Push frame out to be displayed
+    {   // Calculate frameTimeMicro for debug purposes
+        auto currTime = getCurrentTime();
+        frameTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
+        logger->debug("Frametime (milliseconds): {}",
+            std::to_string(frameTimeMicro.count() / 1000.0));
+
+        // Push frame out to be displayed
         if (frameIsUpdatedFunction)
         {
             frameIsUpdatedFunction(gpu->curr_frame);
@@ -163,6 +169,7 @@ void GBCEmulator::runNextInstruction()
 #else
     if (ticksRan >= ticksPerFrame)
     {
+    {
         ticksRan -= ticksPerFrame;
 
         if (gpu->frame_is_ready)
@@ -176,11 +183,11 @@ void GBCEmulator::runNextInstruction()
 
         // Sleep until next burst of ticks is ready to be ran
         waitToStartNextFrame();
-
-        // Update frameStartTime to current time
-        frameStartTime = getCurrentTime();
     }
 #endif // USE_AUDIO_TIMING
+
+    // Update frameTimeStart to current time
+    frameTimeStart = getCurrentTime();
 
     if (memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
@@ -199,7 +206,7 @@ void GBCEmulator::runNextInstruction()
     if (logCounter % 100 == 0)
     {
         logCounter = 0;
-        logger->flush();
+        loggerSink->flush();
     }
     logCounter++;
 
@@ -227,8 +234,11 @@ void GBCEmulator::setStopRunning(bool val)
 
 void GBCEmulator::init_logging(std::string logName)
 {
-    // Create logger
-    logger = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 20);
+    // Create loggerSink
+    loggerSink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 20);
+
+    // Create logger for this class
+    logger = std::make_shared<spdlog::logger>("GBCEmulator", loggerSink);
 }
 
 void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
@@ -334,7 +344,7 @@ void GBCEmulator::waitToStartNextFrame()
 {
     // Calculate time elapsed since start of frame
     auto currTimeDouble = getCurrentTime();
-    auto timeElapsedMilli = currTimeDouble - frameStartTime;
+    auto timeElapsedMilli = currTimeDouble - frameTimeStart;
 
     // Calculate amount of time to sleep until next frame
     auto timeToWaitMilli = timePerFrame - timeElapsedMilli;

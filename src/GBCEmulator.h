@@ -71,6 +71,8 @@ public:
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
+    std::chrono::microseconds frameTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
+                                                // so it is easily accessible to all wrappers
 
 private:
     void read_rom(std::string filename);
@@ -88,7 +90,8 @@ private:
     std::shared_ptr<Memory> memory;
     std::shared_ptr<Joypad> joypad;
 
-    std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger;
+    std::shared_ptr<spdlog::sinks::rotating_file_sink_st> loggerSink;
+    std::shared_ptr<spdlog::logger> logger;
     std::uint16_t logCounter;
 
     bool stopRunning;
@@ -97,7 +100,7 @@ private:
 
     uint64_t ticksPerFrame;
     uint64_t ticksRan, prevTicks;
-    std::chrono::duration<double> frameStartTime;
+    std::chrono::duration<double> frameTimeStart;
     std::chrono::duration<double> timePerFrame;
 
     std::function<void(SDL_Color * /* frame */)> frameIsUpdatedFunction;

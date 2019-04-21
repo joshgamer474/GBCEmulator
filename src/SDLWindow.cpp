@@ -46,6 +46,8 @@ void SDLWindow::init()
         SCREEN_PIXEL_H);
 
     screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
 }
 
 void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
@@ -70,17 +72,19 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(SDL_Color * frame)
 {
+    //updateWindowTitle(std::to_string(emu->frameTimeMicro.count()));    // Turn microseconds into milliseconds
+
     SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, screen_texture, NULL, &screen_texture_rect);
+    //SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
 }
 
-void SDLWindow::updateWindowTitle(const uint64_t & framerate)
+void SDLWindow::updateWindowTitle(const std::string & framerate)
 {
     if (window)
     {
-        const std::string title = "GBCEmulator | " + std::to_string(framerate);
+        const std::string title = "GBCEmulator | " + framerate;
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
@@ -195,9 +199,12 @@ void SDLWindow::startEmulator()
         emu_thread.join();
     }
 
+    int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
+
     // Have emulator tick in its own thread
     emu_thread = std::thread([&]()
     {
+        int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
         emu->run();
     });
 }
@@ -205,9 +212,8 @@ void SDLWindow::startEmulator()
 std::string SDLWindow::getFileExtension(const std::string& filepath)
 {
     std::string ret = "";
-    size_t index;
-    if (index = filepath.find_last_of(".") &&
-        index != std::string::npos)
+    size_t index = filepath.find_last_of(".");
+    if (index != std::string::npos)
     {   // Found at least one "."
         ret = filepath.substr(index + 1);
     }

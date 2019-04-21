@@ -12,6 +12,12 @@ extern "C" {
 #include <SDL.h>
 }
 
+enum SDLRenderType : char {
+    NEAREST_PIXEL = 0,
+    LINEAR_FILTERING,
+    ANISOTROPIC_FILTERING
+};
+
 class SDLWindow : public ScreenInterface
 {
 public:
@@ -27,7 +33,7 @@ public:
 private:
     void init();
     void startEmulator();
-    void updateWindowTitle(const uint64_t & framerate);
+    void updateWindowTitle(const std::string & framerate);
 
     std::shared_ptr<GBCEmulator> emu;
     std::shared_ptr<Joypad> joypad;
