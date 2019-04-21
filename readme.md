@@ -1,6 +1,7 @@
 # GBCEmulator
 
 [![Build Status](https://travis-ci.org/joshgamer474/GBCEmulator.svg?branch=qt_gui)](https://travis-ci.org/joshgamer474/GBCEmulator)
+
 A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
 ## Progress
