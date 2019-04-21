@@ -369,16 +369,14 @@ void APU::run(const uint64_t & cpuTickDiff)
 
 void APU::writeSamplesOut(const uint32_t & audio_device)
 {
-    sample_buffer.resize(sample_buffer_counter);
-
     logger->debug("Pushing sample of size: {}", sample_buffer.size());
 
     // Push sample_buffer to SDL
 #ifndef USE_FLOAT
-    const uint32_t sampleSizeBytes = sample_buffer.size() * 2 * sizeof(uint8_t);
+    const uint32_t sampleSizeBytes = sample_buffer_counter * 2 * sizeof(uint8_t);
     int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<uint8_t*>(sample_buffer.data()), sampleSizeBytes);
 #else
-    const uint32_t sampleSizeBytes = sample_buffer.size() * 2 * sizeof(float);
+    const uint32_t sampleSizeBytes = sample_buffer_counter * 2 * sizeof(float);
     int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<float*>(sample_buffer.data()), sampleSizeBytes);
 #endif
 
