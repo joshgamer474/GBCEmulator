@@ -15,7 +15,7 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
 	is_color_gb = false;
 	num_vram_banks = 1;
 	curr_vram_bank = 0;
-	ticks = 0;
+	ticks_accumulated = 0;
     lcd_display_enable = false;
     lcd_status_interrupt_signal = false;
     wait_frame_to_render_window = false;
@@ -431,7 +431,7 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 		lcd_y = 0;
 		update_lcd_status_coincidence_flag();
         set_lcd_status_mode_flag(GPU_MODE_VBLANK);
-        ticks = 0;
+        ticks_accumulated = 0;
 	}
 	else if ((old_lcd_display_enable == false && lcd_display_enable == true))
 	{
@@ -440,7 +440,7 @@ void GPU::set_lcd_control(unsigned char lcdControl)
             lcd_display_enable);
 		lcd_y = 0;
 		update_lcd_status_coincidence_flag();
-        ticks = 0;
+        ticks_accumulated = 0;
 	}
 
     if (old_window_display_enable &&
@@ -1244,7 +1244,7 @@ Tile * GPU::getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, in
     return tile;
 }
 
-void GPU::run(const uint64_t & cpuTickDiff)
+void GPU::run(const uint8_t & cpuTickDiff)
 {
     if (lcd_display_enable == false)
     {
@@ -1255,7 +1255,7 @@ void GPU::run(const uint64_t & cpuTickDiff)
         return;
     }
 
-	ticks += cpuTickDiff;
+	ticks_accumulated += cpuTickDiff;
 
     // Account for double speed mode
     //uint16_t cgb_double_speed_multiplier = 1;
@@ -1268,7 +1268,7 @@ void GPU::run(const uint64_t & cpuTickDiff)
 	{
 	case GPU_MODE_HBLANK:
 
-		if (ticks >= 204)
+		if (ticks_accumulated >= 204)
 		{
             if (lcd_y == 0)
             {
@@ -1301,13 +1301,13 @@ void GPU::run(const uint64_t & cpuTickDiff)
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
             }
 
-			ticks = 0;
+			ticks_accumulated = 0;
 		}
 		break;
 
 	case GPU_MODE_VBLANK:
 
-		if (ticks >= 456)
+		if (ticks_accumulated >= 456)
 		{
 			lcd_y++;
             logger->trace("Incrementing lcd_y: 0x{0:x} -> {0:d}", lcd_y);
@@ -1328,29 +1328,29 @@ void GPU::run(const uint64_t & cpuTickDiff)
                 }
 			}
 
-			ticks = 0;
+			ticks_accumulated = 0;
 		}
 		break;
 
 
 	case GPU_MODE_OAM:
 
-		if (ticks >= 80)
+		if (ticks_accumulated >= 80)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
-			ticks = 0;
+			ticks_accumulated = 0;
 		}
 		break;
 
 
 	case GPU_MODE_VRAM:
 
-		if (ticks >= 172)
+		if (ticks_accumulated >= 172)
 		{
             logger->trace("Rendering line lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             renderLine();
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
-			ticks = 0;
+			ticks_accumulated = 0;
 		}
 		break;
 	}

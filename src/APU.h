@@ -52,7 +52,7 @@ public:
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
-    void run(const uint64_t & cpuTicks);
+    void run(const uint8_t & cpuTicks);
     void initCGB();
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
@@ -93,7 +93,6 @@ private:
     uint16_t sample_buffer_counter;
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
-    uint64_t curr_apu_ticks;
     uint64_t sample_timer;
     uint64_t sample_timer_val;
     uint64_t double_speed_mode_modifier;

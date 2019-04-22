@@ -13,7 +13,6 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     channel_control         = 0;
     selection_of_sound_output = 0;
     sound_on                = 0;
-    curr_apu_ticks          = 0;
     left_volume             = 0;
     right_volume            = 0;
     left_volume_use         = 0;
@@ -248,9 +247,9 @@ void APU::reset()
     SDL_ClearQueuedAudio(audio_device_id);
 }
 
-void APU::run(const uint64_t & cpuTickDiff)
+void APU::run(const uint8_t & cpuTickDiff)
 {
-    uint64_t diff = cpuTickDiff;
+    uint8_t diff = cpuTickDiff;
 
     while (diff > 0)
     {
@@ -349,8 +348,6 @@ void APU::run(const uint64_t & cpuTickDiff)
             // Add current sample to sample buffer
             sample_buffer[sample_buffer_counter++] = sample;
             samplesPerFrame++;
-
-            //SDL_QueueAudio(audio_device_id, sample.data(), sizeof(float) * 2);
 
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)

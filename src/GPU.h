@@ -39,7 +39,7 @@ public:
 	bool is_color_gb;
 	int num_vram_banks;
 	int curr_vram_bank;
-	std::uint64_t ticks;
+	uint16_t ticks_accumulated;
 
     std::vector<SDL_Color> bg_frame;
 	SDL_Color bg_palette_color[PALETTE_DATA_SIZE];
@@ -65,7 +65,7 @@ public:
 	int gpu_mode;
 
 	void init_color_gb();
-	void run(const uint64_t & cpuTicks);
+	void run(const uint8_t & cpuTicks);
     void renderLine();
     void drawBackgroundLine();
     void drawWindowLine();

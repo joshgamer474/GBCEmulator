@@ -2,12 +2,13 @@
 #include "stdafx.h"
 #endif // _WIN32
 
-#include "Memory.h"
-#include "CartridgeReader.h"
-#include "MBC.h"
-#include "GPU.h"
-#include "Joypad.h"
-#include "APU.h"
+#include <GBCEmulator.h>
+#include <Memory.h>
+#include <CartridgeReader.h>
+#include <MBC.h>
+#include <GPU.h>
+#include <Joypad.h>
+#include <APU.h>
 #include "Debug.h"
 #include <string>
 
@@ -28,6 +29,7 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
 	timer_enabled   = false;
 	prev_clock_div  = prev_clock_tima = curr_clock = 0;
 	clock_frequency = 4096;
+    clock_speed = 0;
 
     interrupt_flag      = false;
     interrupt_enable    = false;
@@ -644,19 +646,40 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 		{
 			prev_clock_tima = curr_clock;
 		}
+
+        updateTimerRates();
 	}
 }
 
-
-void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
+void Memory::updateTimerRates()
 {
-	std::uint8_t & divider_reg      = timer[DIV];
-	std::uint8_t & timer_counter    = timer[TIMA];
+    // Update clock rate variables
+    if (cgb_speed_mode & BIT7)
+    {
+        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / TIMER_DIV_RATE);
+        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / clock_frequency);
+    }
+    else
+    {
+        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / TIMER_DIV_RATE);
+        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / clock_frequency);
+    }
+}
+
+
+void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
+{
+	uint8_t & divider_reg       = timer[DIV];
+	uint8_t & timer_counter     = timer[TIMA];
 	curr_clock = ticks;
-    std::uint64_t clock_div_rate    = clock_speed / TIMER_DIV_RATE;
-    std::uint64_t clock_tima_rate   = clock_speed / clock_frequency;
-    std::uint64_t clock_div_diff = curr_clock - prev_clock_div;
-    std::uint64_t clock_tima_diff = curr_clock - prev_clock_tima;
+    uint8_t clock_div_diff = curr_clock - prev_clock_div;
+    uint8_t clock_tima_diff = curr_clock - prev_clock_tima;
+
+    if (clock_speed != clockSpeed)
+    {
+        clock_speed = clockSpeed;
+        updateTimerRates();
+    }
 
     // Update 0xFF04 - DIV
     while (clock_div_diff >= clock_div_rate)

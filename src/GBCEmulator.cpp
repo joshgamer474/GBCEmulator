@@ -29,8 +29,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
     // Calculate number of CPU cycles that can tick in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
-    ticksRan = 0;
-    prevTicks = 0;
+    ticksAccumulated = 0;
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
 
     // Set log levels
@@ -115,33 +114,27 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    uint64_t tickDiff;
+    uint8_t ticksRan = cpu->runNextInstruction();
 
-    cpu->runNextInstruction();
-
-    tickDiff = cpu->ticks - prevTicks;
-    
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
     {   // In double speed mode, divide tickDiff by 2 to simulate
         // running the CPU at double speed
-        tickDiff >>= 1;
+        ticksRan >>= 1;
     }
 
 #ifdef USE_AUDIO_TIMING
     if (memory->cgb_speed_mode & BIT7)
     {   // Fixes GBC double speed games to have 60FPS
-        apu->run(tickDiff >> 1);
-        gpu->run(tickDiff >> 1);
+        apu->run(ticksRan >> 1);
+        gpu->run(ticksRan >> 1);
     }
     else
 #endif
     {
-        apu->run(tickDiff);
-        gpu->run(tickDiff);
+        apu->run(ticksRan);
+        gpu->run(ticksRan);
     }
-
-    ticksRan += cpu->ticks - prevTicks;
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
@@ -165,12 +158,15 @@ void GBCEmulator::runNextInstruction()
 
         // Let the APU sleep the emulator
         apu->sleepUntilBufferIsEmpty();
+
+        // Update frameTimeStart to current time
+        frameTimeStart = getCurrentTime();
     }
 #else
-    if (ticksRan >= ticksPerFrame)
+    ticksAccumulated += ticksRan;
+    if (ticksAccumulated >= ticksPerFrame)
     {
-    {
-        ticksRan -= ticksPerFrame;
+        ticksAccumulated -= ticksPerFrame;
 
         if (gpu->frame_is_ready)
         {
@@ -181,13 +177,13 @@ void GBCEmulator::runNextInstruction()
         apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
         apu->samplesPerFrame = 0;
 
-        // Sleep until next burst of ticks is ready to be ran
+        // Sleep until next burst of ticks_accumulated is ready to be ran
         waitToStartNextFrame();
+
+        // Update frameTimeStart to current time
+        frameTimeStart = getCurrentTime();
     }
 #endif // USE_AUDIO_TIMING
-
-    // Update frameTimeStart to current time
-    frameTimeStart = getCurrentTime();
 
     if (memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
@@ -210,7 +206,6 @@ void GBCEmulator::runNextInstruction()
     }
     logCounter++;
 
-    prevTicks = cpu->ticks;
     ranInstruction = true;
 }
 
