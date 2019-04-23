@@ -27,9 +27,11 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     apu(_apu)
 {
 	timer_enabled   = false;
-	prev_clock_div  = prev_clock_tima = curr_clock = 0;
+    curr_clock = 0;
 	clock_frequency = 4096;
     clock_speed = 0;
+    clock_div_accumulator = 0;
+    clock_tima_accumulator = 0;
 
     interrupt_flag      = false;
     interrupt_enable    = false;
@@ -608,7 +610,7 @@ void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma
 
 void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 {
-	uint32_t old_clock_frequency = clock_frequency;
+	const uint32_t old_clock_frequency = clock_frequency;
     bool old_timer_enabled = timer_enabled;
 
 	switch (addr)
@@ -644,10 +646,11 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 		if (old_clock_frequency != clock_frequency ||
             (old_timer_enabled == false && timer_enabled == true))
 		{
-			prev_clock_tima = curr_clock;
+            clock_div_accumulator = 0;
+            clock_tima_accumulator = 0;
+            updateTimerRates();
 		}
 
-        updateTimerRates();
 	}
 }
 
@@ -671,9 +674,10 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 {
 	uint8_t & divider_reg       = timer[DIV];
 	uint8_t & timer_counter     = timer[TIMA];
-	curr_clock = ticks;
-    uint8_t clock_div_diff = curr_clock - prev_clock_div;
-    uint8_t clock_tima_diff = curr_clock - prev_clock_tima;
+
+    curr_clock = ticks;
+    clock_div_accumulator += ticks;
+    clock_tima_accumulator += ticks;
 
     if (clock_speed != clockSpeed)
     {
@@ -682,25 +686,23 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
     }
 
     // Update 0xFF04 - DIV
-    while (clock_div_diff >= clock_div_rate)
-	{
-		divider_reg++;
-        prev_clock_div = curr_clock - (clock_div_diff - clock_div_rate);
-        clock_div_diff = curr_clock - prev_clock_div;
-	}
+    while (clock_div_accumulator >= clock_div_rate)
+    {
+        divider_reg++;
+        clock_div_accumulator -= clock_div_rate;
+    }
 
-	// Update 0xFF05 - TIMA
+    // Update 0xFF05 - TIMA
     //while (timer_enabled && clock_tima_diff >= clock_tima_rate)
-    if (timer_enabled && clock_tima_diff >= clock_tima_rate)
-	{
-		timer_counter++;
-		if (timer_counter == 0x00)
-		{
-			timer_counter = timer[TMA];
-			interrupt_flag |= INTERRUPT_TIMER;
-		}
-		//prev_clock_tima = curr_clock;
-        prev_clock_tima += clock_tima_rate;
-        clock_tima_diff = curr_clock - prev_clock_tima;
-	}
+    if (timer_enabled &&
+        clock_tima_accumulator >= clock_tima_rate)
+    {
+        timer_counter++;
+        if (timer_counter == 0x00)
+        {
+            timer_counter = timer[TMA];
+            interrupt_flag |= INTERRUPT_TIMER;
+        }
+        clock_tima_accumulator -= clock_tima_rate;
+    }
 }

@@ -774,15 +774,15 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 
             if ((instruc & 0x0F) == 0x04)
             {
-                return INC((CPU::REGISTERS) evenReg, false);			// INC B, D, H
+                return INC((CPU::REGISTERS) evenReg, false);		// INC B, D, H
             }
             else if (instruc == 0x3C)
             {
-                return INC((CPU::REGISTERS) A, false);					// INC A
+                return INC((CPU::REGISTERS) A, false);				// INC A
             }
             else
             {
-                return INC((CPU::REGISTERS) (evenReg + 1), false);		// INC C, E, L
+                return INC((CPU::REGISTERS) (evenReg + 1), false);	// INC C, E, L
             }
         }
 

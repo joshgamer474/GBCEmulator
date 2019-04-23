@@ -80,12 +80,14 @@ public:
 
 	// Timer variables
 	bool timer_enabled;
-	uint32_t prev_clock_div, curr_clock, prev_clock_tima;
+    uint32_t curr_clock;
 	uint32_t clock_frequency;
 
     uint32_t clock_div_rate;
     uint32_t clock_tima_rate;
     uint32_t clock_speed;
+    uint32_t clock_div_accumulator;
+    uint32_t clock_tima_accumulator;
 
 private:
     void updateTimerRates();
