@@ -112,6 +112,11 @@ int SDLWindow::run()
             // Check file extension for valid game type
             if (romIsValid(romNameStr))
             {
+                if (emu)
+                {
+                    emu->stop();
+                }
+
                 emu = std::make_shared<GBCEmulator>(romNameStr, romNameStr + ".log");
                 hookToEmulator(emu);
                 startEmulator();
