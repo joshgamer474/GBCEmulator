@@ -467,7 +467,7 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
 
 void MBC::saveRAMToFile(const std::string & filename)
 {
-    if (!wroteToRAMBanks)
+    if (!wroteToRAMBanks || ramBanksAreEmpty())
     {
         logger->info("Game did not write to RAM, not writing out .sav file");
         return;
@@ -485,6 +485,21 @@ void MBC::saveRAMToFile(const std::string & filename)
 
     // Close file
     file.close();
+}
+
+bool MBC::ramBanksAreEmpty() const
+{
+    for (size_t i = 0; i < ramBanks.size(); i++)
+    {
+        for (size_t j = 0; j < ramBanks[i].size(); j++)
+        {
+            if (ramBanks[i][j])
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void MBC::latchCurrTimeToRTC()

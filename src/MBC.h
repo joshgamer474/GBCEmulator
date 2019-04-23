@@ -43,6 +43,7 @@ public:
 
     void loadSaveIntoRAM(const std::string & filename);
     void saveRAMToFile(const std::string & filename);
+    bool ramBanksAreEmpty() const;
 
     const uint16_t ROM_BANK_SIZE = 0x4000;
 	const uint16_t RAM_BANK_SIZE = 0x2000;
