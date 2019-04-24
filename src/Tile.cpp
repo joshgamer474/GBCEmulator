@@ -45,7 +45,7 @@ void Tile::updatePixelRow(const uint8_t & row_num)
 	}
 }
 
-const uint8_t&  Tile::getPixel(const uint8_t & row, const uint8_t & column) const
+uint8_t Tile::getPixel(const uint8_t & row, const uint8_t & column) const
 {
     if (row < 8 && column < 8)
     {
