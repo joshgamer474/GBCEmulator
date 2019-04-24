@@ -30,8 +30,6 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
 
     cgb_bg_to_oam_priority_array.fill(0);
 
-    bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
-
 	gpu_mode = GPU_MODE_OAM;
 
 	cgb_background_palette_index = 0;
@@ -686,7 +684,6 @@ void GPU::drawBackgroundLine()
     uint16_t use_tile_num;
     uint8_t tile_block_num;
     uint8_t curr_tile_col;
-    uint8_t pixel;
     uint8_t pixel_use_row;
     uint8_t pixel_use_col;
 
@@ -773,7 +770,7 @@ void GPU::drawBackgroundLine()
         }
 
         // Get pixel
-        pixel = tile->getPixel(pixel_use_row, pixel_use_col);
+        const uint8_t & pixel = tile->getPixel(pixel_use_row, pixel_use_col);
 
         // Draw pixel
         if (is_color_gb)
@@ -797,7 +794,6 @@ void GPU::drawWindowLine()
     uint16_t use_tile_num;
     uint8_t tile_block_num;
     uint8_t curr_tile_col;
-    uint8_t pixel;
     uint8_t pixel_use_row;
     uint8_t pixel_use_col;
     uint8_t use_pixel_x;;
@@ -926,7 +922,7 @@ void GPU::drawWindowLine()
         }
 
         // Get pixel
-        pixel = tile->getPixel(pixel_use_row, pixel_use_col);
+        const uint8_t & pixel = tile->getPixel(pixel_use_row, pixel_use_col);
 
         // Draw pixel
         if (is_color_gb)
@@ -947,7 +943,6 @@ void GPU::drawOAMLine()
     std::uint8_t sprite_y, sprite_x, sprite_tile_num, byte3;
     uint8_t pixel_x, pixel_y;
     uint8_t tile_block_num;
-    uint8_t pixel_color;
     uint8_t use_x;
     bool cgb_tile_vram_bank_num = 0;
     uint8_t cgb_sprite_palette_num = 0;
@@ -1125,7 +1120,7 @@ void GPU::drawOAMLine()
                 }
 
                 // Get color for current pixel in object
-                pixel_color = tile->getPixel(pixel_y, pixel_x);
+                const uint8_t & pixel_color = tile->getPixel(pixel_y, pixel_x);
 
                 if (pixel_color == 0)
                 {
@@ -1291,6 +1286,11 @@ void GPU::run(const uint8_t & cpuTickDiff)
             {
                 if (render_full_frame)
                 {
+                    if (bg_frame.empty())
+                    {
+                        bg_frame.resize(TOTAL_SCREEN_PIXEL_W * TOTAL_SCREEN_PIXEL_H);
+                    }
+
                     renderFullBackgroundMap();
                 }
                 memory->interrupt_flag |= INTERRUPT_VBLANK;

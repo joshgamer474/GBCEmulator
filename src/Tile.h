@@ -15,17 +15,17 @@ public:
 	Tile();
 	~Tile();
 
-	void updateRawData(uint8_t pos, uint8_t val);
-    uint8_t getPixel(uint8_t row, uint8_t column);
-    std::vector<uint8_t> getRawPixelData();
-    void setCGBAttribute(uint8_t attribute_byte);
+	void updateRawData(const uint8_t & pos, const uint8_t & val);
+    const uint8_t& getPixel(const uint8_t & row, const uint8_t & column) const;
+    const std::vector<uint8_t>& getRawPixelData() const;
+    void setCGBAttribute(const uint8_t & attribute_byte);
     void setCGBColorPalette(ColorPalette * color_palette);
-    ColorPalette * getCGBColorPalette();
+    ColorPalette* getCGBColorPalette() const;
 
     std::vector<uint8_t> pixels;
 
 private:
-    void updatePixelRow(uint8_t row_num);
+    void updatePixelRow(const uint8_t & row_num);
     void parseCGBAttribute();
 
     std::vector<uint8_t> raw_data;
