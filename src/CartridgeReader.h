@@ -15,12 +15,11 @@ public:
 
 	void setRomDestination(std::string filename);
 	bool readRom();
+    void freeRom();
 	void getCartridgeInformation();
 	bool getColorGBFlag();
     int getMBCNum();
     bool isColorGB();
-	void setByte(std::uint16_t pos, uint8_t val);
-	std::uint8_t readByte(std::uint16_t pos);
 
 	unsigned char bios[256] = {
         0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,

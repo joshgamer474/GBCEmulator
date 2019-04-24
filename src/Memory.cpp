@@ -481,6 +481,10 @@ void Memory::initROMBanks()
 		mbc->romBanks[i] = std::vector<unsigned char>(cartridgeReader->romBuffer.begin() + (i * mbc->ROM_BANK_SIZE), cartridgeReader->romBuffer.begin() + ((i + 1)* mbc->ROM_BANK_SIZE));
 		counter += mbc->ROM_BANK_SIZE;
 	}
+
+    // Free cartridgeReader from holding ROM in memory
+    // since it's now in the emulator's ROM banks
+    cartridgeReader->freeRom();
 }
 
 // Performs copying of ROM/RAM to GPU->OAM memory

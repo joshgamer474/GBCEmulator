@@ -49,13 +49,10 @@ bool CartridgeReader::readRom()
             std::istream_iterator<unsigned char>(rom),
             std::istream_iterator<unsigned char>());
 
-        // std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
-        // romBuffer = romBufferr;
-
         // Read information from cartridge
         getCartridgeInformation();
         logger->info("Finished reading in {}", game_title);
-        
+
         rom.close();
         return true;
 	}
@@ -112,18 +109,6 @@ bool CartridgeReader::getColorGBFlag()
 bool CartridgeReader::isColorGB()
 {
     return cgb_flag & 0x80;
-}
-
-std::uint8_t CartridgeReader::readByte(std::uint16_t pos)
-{
-	logger->info("Reading byte from pos 0x{0:x}", pos);
-	return romBuffer[pos];
-}
-
-void CartridgeReader::setByte(std::uint16_t pos, uint8_t val)
-{
-	logger->info("Writing byte 0x{0:x} to pos 0x{1:x}", val, pos);
-	romBuffer[pos] = val;
 }
 
 
@@ -320,4 +305,10 @@ void CartridgeReader::setRumble(unsigned char cartridge_type)
 int CartridgeReader::getMBCNum()
 {
     return cartridgeType.mbc;
+}
+
+void CartridgeReader::freeRom()
+{
+    romBuffer.resize(0);
+    romBuffer.shrink_to_fit();
 }
