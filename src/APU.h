@@ -58,7 +58,7 @@ public:
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
     void writeSamplesOut(const uint32_t & audio_device);
-    void sleepUntilBufferIsEmpty();
+    void sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time);
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;
@@ -74,8 +74,7 @@ private:
     void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
-    
-    std::chrono::system_clock::duration prev_time;
+
     std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> audioFileOut;
     std::unique_ptr<AudioSquare> sound_channel_1;

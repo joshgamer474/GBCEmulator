@@ -46,8 +46,6 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     }
 
     initSDLAudio();
-
-    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 APU::~APU()
@@ -115,19 +113,19 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         val);
 
     if (addr >= 0xFF10 && addr <= 0xFF14)
-    {   // Channel 1 - Square 1
+    {   // Channel 1 - Square 1 - NR10-NR14
         sound_channel_1->setByte(addr, val);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
-    {   // Channel 2 - Square 2
+    {   // Channel 2 - Square 2 - NR21-NR24
         sound_channel_2->setByte(addr, val);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
-    {   // Channel 3 - Wave
+    {   // Channel 3 - Wave - NR30-NR34
         sound_channel_3->setByte(addr, val);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
-    {   // Channel 4 - Noise
+    {   // Channel 4 - Noise - NR41-NR44
         sound_channel_4->setByte(addr, val);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
@@ -517,9 +515,9 @@ void APU::setChannelLogLevel(spdlog::level::level_enum level)
     sound_channel_4->logger->set_level(level);
 }
 
-void APU::sleepUntilBufferIsEmpty()
+void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time)
 {
-    int microInt = 0;
+    int microElapsedInt = 0;
 
     // Drain audio buffer (?)
     uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
@@ -537,26 +535,26 @@ void APU::sleepUntilBufferIsEmpty()
 
         // Check if time spent sleeping is greater than 1 frame time (16.667 ms)
         auto currTime = std::chrono::system_clock::now().time_since_epoch();
-        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prev_time);
-        microInt = microseconds.count();
-        if (microInt >= MICROSEC_PER_FRAME - 100)
+        auto microsecondsElapsed = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frame_start_time);
+        microElapsedInt = microsecondsElapsed.count();
+        if (microElapsedInt >= MICROSEC_PER_FRAME - 100)
         {
             break;
         }
 
         // Sleep for 1 millisecond
         SDL_Delay(1);   // std::this_thread::sleep_for() causes audio delay on Linux
+        //std::this_thread::sleep_for(std::chrono::microseconds(200));
         queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     }
 
     logger->trace("Slept for {} milliseconds, buffer size diff: {}, buffer size start: {}, buffer size end: {}",
-        microInt / 1000.0,
+        microElapsedInt / 1000.0,
         queuedAudioSizeOrig - queuedAudioSize,
         queuedAudioSizeOrig,
         queuedAudioSize);
 
     samplesPerFrame = 0;
-    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 void APU::setSampleUpdateMethod(std::function<void(float, int)> function)

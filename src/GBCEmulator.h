@@ -71,8 +71,9 @@ public:
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
-    std::chrono::microseconds frameTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
+    std::chrono::microseconds frameProcessingTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
                                                 // so it is easily accessible to all wrappers
+    std::chrono::microseconds frameShowTimeMicro;
 
 private:
     void read_rom(std::string filename);

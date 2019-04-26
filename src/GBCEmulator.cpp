@@ -33,14 +33,15 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
 
     // Set log levels
-    set_logging_level(spdlog::level::trace);
+    set_logging_level(spdlog::level::info);
+
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::info);
     memory->logger->set_level(spdlog::level::warn);
     apu->logger->set_level(spdlog::level::warn);
     apu->setChannelLogLevel(spdlog::level::warn);
     joypad->logger->set_level(spdlog::level::debug);
-    logger->set_level(spdlog::level::debug);
+    logger->set_level(spdlog::level::info);
     logCounter = 0;
 }
 
@@ -138,12 +139,7 @@ void GBCEmulator::runNextInstruction()
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
-    {   // Calculate frameTimeMicro for debug purposes
-        auto currTime = getCurrentTime();
-        frameTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
-        logger->debug("Frametime (milliseconds): {}",
-            std::to_string(frameTimeMicro.count() / 1000.0));
-
+    {
         // Push frame out to be displayed
         if (frameIsUpdatedFunction)
         {
@@ -156,8 +152,19 @@ void GBCEmulator::runNextInstruction()
         // Write out accumulated audio samples to audio device
         apu->writeSamplesOut(apu->audio_device_id);
 
+        // Calculate frame processing time for debug purposes
+        auto currTime = getCurrentTime();
+        frameProcessingTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
+
         // Let the APU sleep the emulator
-        apu->sleepUntilBufferIsEmpty();
+        apu->sleepUntilBufferIsEmpty(frameTimeStart);
+
+        // Calculate frame show time for debug purposes
+        currTime = getCurrentTime();
+        frameShowTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
+        logger->debug("Frame Show time (milli): {}, Frame Processing time (milli): {}",
+            std::to_string(frameShowTimeMicro.count() / 1000.0),
+            std::to_string(frameProcessingTimeMicro.count() / 1000.0));
 
         // Update frameTimeStart to current time
         frameTimeStart = getCurrentTime();
