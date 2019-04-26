@@ -20,6 +20,11 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
     num_rom_banks = numROMBanks;
     num_ram_banks = numRAMBanks;
 
+    if (num_ram_banks == 0)
+    {
+        num_ram_banks++;
+    }
+
     romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
     ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
 
@@ -130,6 +135,7 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x1000:
 	case 0x2000:
 	case 0x3000:
+        logger->trace("Reading from ROM bank: 0");
 		return romBanks[0][pos];
 
 		// ROM 01 - N
@@ -137,15 +143,14 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
-        if (mbc_num == 1)
-        {
-            if (ram_banking_mode)
-            {   // Only ROM banks 0x00-0x1F can be used during RAM banking mode
-                return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
-            }
+        if (mbc_num == 1 && ram_banking_mode)
+        {   // Only ROM banks 0x00-0x1F can be used during RAM banking mode
+            logger->trace("Reading from ROM bank: {}", curr_rom_bank % 0x1F);
+            return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
         }
         
         // All ROM banks can be accessed
+        logger->trace("Reading from ROM bank: {}", curr_rom_bank % num_rom_banks);
         return romBanks[curr_rom_bank % num_rom_banks][pos - 0x4000];
 
 		// External RAM
@@ -161,10 +166,12 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
         {
             if (rom_banking_mode)
             {   // Only RAM bank 0x00 is accessible in ROM banking mode
+                logger->trace("Reading from RAM bank: 0");
                 return ramBanks[0][pos - 0xA000];
             }
             else if (ram_banking_mode)
             {   // ram_banking_mode == true
+                logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
                 return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
             }
             else
@@ -177,15 +184,18 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
         {
             if (curr_ram_bank <= 0x03)
             {
+                logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
                 return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
             }
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
             {
+                logger->trace("Reading from RTC register: {}", curr_ram_bank - 0x08);
                 return rtcRegisters[curr_ram_bank - 0x08];
             }
         }
         else
         {
+            logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
             return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
         }
 
