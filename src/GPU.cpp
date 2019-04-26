@@ -1252,13 +1252,6 @@ void GPU::run(const uint8_t & cpuTickDiff)
 
 	ticks_accumulated += cpuTickDiff;
 
-    // Account for double speed mode
-    //uint16_t cgb_double_speed_multiplier = 1;
-    //if (memory->cgb_speed_mode & BIT7)
-    //{
-    //    cgb_double_speed_multiplier = 2;
-    //}
-
     switch (lcd_status & 0x03)
 	{
 	case GPU_MODE_HBLANK:
