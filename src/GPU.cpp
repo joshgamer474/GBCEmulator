@@ -1080,10 +1080,7 @@ void GPU::drawOAMLine()
                     }
                     else
                     {   // BG has priority over sprite
-                        if (bg_is_color_0 == false)
-                        {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
-                            continue;
-                        }
+                        continue;
                     }
                 }
                 else if (object_behind_bg)
