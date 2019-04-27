@@ -21,12 +21,27 @@ CPU::CPU(std::shared_ptr<spdlog::logger> _logger,
 	is_halted = false;
 	is_stopped = false;
     halt_do_not_increment_pc = false;
+    start_logging = false;
 }
 
 CPU::~CPU()
 {
     memory.reset();
     logger.reset();
+}
+
+CPU& CPU::operator=(const CPU & rhs)
+{
+    // Copy essential memory
+    registers               = rhs.registers;
+    interrupt_master_enable = rhs.interrupt_master_enable;
+    interrupts_enabled      = rhs.interrupts_enabled;
+    is_halted               = rhs.is_halted;
+    is_stopped              = rhs.is_stopped;
+    halt_do_not_increment_pc = rhs.halt_do_not_increment_pc;
+    start_logging           = rhs.start_logging;
+    instruction             = rhs.instruction;
+    return *this;
 }
 
 uint8_t CPU::runNextInstruction()
@@ -335,7 +350,7 @@ std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
         }
         else if (is_halted && canUseInterrupt)
         {   // HALT bug
-            startLogging = true;
+            start_logging = true;
             logger->info("HALT bug triggered, PC: 0x{0:x}", registers[PC]);
             logger->info("No mask - IE: 0x{0:x}, IF: 0x{1:x}", memory->interrupt_flag, memory->interrupt_enable);
             is_halted = false;
@@ -369,13 +384,13 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 
 		//printRegisters();
 		logger->info("Done running bootstrap, moving on to cartridge");
-		startLogging = true;
+		start_logging = true;
 	}
 
 
-	if (startLogging)
+	if (start_logging)
 	{
-		startLogging = false;
+		//start_logging = false;
 		//logger->set_level(spdlog::level::trace);
         logger->trace("PC: 0x{0:x},\tInstruction: 0x{1:x},\tBC: 0x{2:x}\tDE: 0x{3:x}\tHL: 0x{4:x}\tAF: 0x{5:x}\tSP: 0x{6:x}",
             registers[PC],
@@ -3114,7 +3129,8 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "ADC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
             }
-            
+            break;
+
         case 0x09:
             if (lower8 <= 0x07)
             {
@@ -3124,6 +3140,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "SBC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
             }
+            break;
 
         case 0x0A:
             if (lower8 <= 0x07)
@@ -3134,6 +3151,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "XOR " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
             }
+            break;
 
         case 0x0B:
             if (lower8 <= 0x07)
@@ -3144,6 +3162,8 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "CP " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
             }
+            break;
+
         } // end switch(upper8)
 
 
@@ -3167,6 +3187,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "LD A, (0xFF00 + " + numToHex(peekNextByte()) + ")"; break;
             }
+            break;
 
         case 0x01:
             if (upper8 <= 0x2)
@@ -3181,6 +3202,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "POP " + REGISTERS_STR[upper8 - 0xC]; break;
             }
+            break;
 
         case 0x02:
             if (upper8 <= 0x1)
@@ -3212,6 +3234,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "LD A, (C)"; break;
             }
+            break;
 
         case 0x03:
             if (upper8 <= 0x2)
@@ -3222,6 +3245,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "INC SP"; break;
             }
+            break;
 
         case 0x04:
             if (upper8 <= 0x2)
@@ -3236,6 +3260,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "CALL " + FLAGTYPES_STR[upper8 - 0xC] + ", " + numToHex(peekNextTwoBytes()); break;
             }
+            break;
 
         case 0x05:
             if (upper8 <= 0x2)
@@ -3250,6 +3275,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "PUSH " + REGISTERS_STR[upper8 - 0xC]; break;
             }
+            break;
 
         case 0x06:
             if (upper8 <= 0x2)
@@ -3271,12 +3297,14 @@ std::string CPU::getOpcodeString(uint8_t opcode)
                 }
 				break;
             }
+            break;
 
         case 0x07:
             if (upper8 >= 0x0C)
             {
                 ret = "RST " + std::to_string(upper8 - 0xC) + "0H"; break;
             }
+            break;
 
         case 0x08:
             if (upper8 == 0x1)
@@ -3291,6 +3319,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "RET " + FLAGTYPES_STR[upper8 - 0xA]; break;
             }
+            break;
 
         case 0x09:
             if (upper8 >= 0 && upper8 <= 0x2)
@@ -3301,6 +3330,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "ADD HL, SP"; break;
             }
+            break;
 
         case 0x0A:
             if (upper8 >= 0 && upper8 <= 0x1)
@@ -3323,6 +3353,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "JP " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes()); break;
             }
+            break;
 
         case 0x0B:
             if (upper8 >= 0 && upper8 <= 0x2)
@@ -3333,6 +3364,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "DEC SP"; break;
             }
+            break;
 
         case 0x0C:
             if (upper8 >= 0 && upper8 <= 0x2)
@@ -3347,6 +3379,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes());; break;
             }
+            break;
 
         case 0x0D:
             if (upper8 >= 0 && upper8 <= 0x2)
@@ -3361,6 +3394,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
             {
                 ret = "CALL " + numToHex(peekNextTwoBytes());; break;
             }
+            break;
 
         case 0x0E:
             if (upper8 >= 0 && upper8 <= 0x2)
@@ -3371,12 +3405,15 @@ std::string CPU::getOpcodeString(uint8_t opcode)
 			{
 				ret = "LD A, " + numToHex(peekNextByte()); break;
 			}
+            break;
 
         case 0x0F:
             if (upper8 >= 0xC)
             {
                 ret = "RST " + std::to_string(upper8 - 0xC) + "8H"; break;
             }
+            break;
+
         } // end switch(lower8)
     }
 
@@ -3485,53 +3522,27 @@ uint8_t CPU::getInstructionSize(uint8_t opcode)
 
     switch (opcode)
     {
-        // d16, a16
-    case 0x01:
+        // d16, a16, CB
+    case 0x01: case 0x08:
     case 0x11:
     case 0x21:
     case 0x31:
-    case 0x08:
-    case 0xC2:
-    case 0xC3:
-    case 0xC4:
-    case 0xCA:
-    case 0xCC:
-    case 0xCD:
-    case 0xD2:
-    case 0xD4:
-    case 0xDA:
-    case 0xDC:
+    case 0xC2: case 0xC3: case 0xC4: case 0xCA: case 0xCC: case 0xCD:
+    case 0xD2: case 0xD4: case 0xDA: case 0xDC:
     case 0xEA:
     case 0xFA:
+    case 0xCB:
         instructionLength = 3; break;
 
-        // a8, d8, r8, CB
-    case 0x06:
-    case 0x16:
-    case 0x26:
-    case 0x36:
-    case 0x0E:
-    case 0x1E:
-    case 0x2E:
-    case 0x3E:
-    case 0xC6:
-    case 0xD6:
-    case 0xE6:
-    case 0xF6:
-    case 0xCE:
-    case 0xDE:
-    case 0xEE:
-    case 0xFE:
-    case 0xE0:
-    case 0xF0:
-    case 0x20:
-    case 0x30:
-    case 0x18:
-    case 0x28:
-    case 0x38:
-    case 0xE8:
-    case 0xF8:
-    case 0xCB:
+        // a8, d8, r8
+    case 0x06: case 0x0E:
+    case 0x10: case 0x16: case 0x18: case 0x1E:
+    case 0x20: case 0x26: case 0x28: case 0x2E:
+    case 0x30: case 0x36: case 0x38: case 0x3E:
+    case 0xC6: case 0xCE:
+    case 0xD6: case 0xDE:
+    case 0xE0: case 0xE2: case 0xE6: case 0xE8: case 0xEE:
+    case 0xF0: case 0xF2: case 0xF6: case 0xF8: case 0xFE:
         instructionLength = 2; break;
 
     default:
