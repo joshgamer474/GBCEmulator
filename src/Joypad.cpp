@@ -18,6 +18,14 @@ Joypad::~Joypad()
     logger.reset();
 }
 
+Joypad& Joypad::operator=(const Joypad& rhs)
+{   // Copy from rhs
+    joypad_byte     = rhs.joypad_byte;
+    joypad_state    = rhs.joypad_state;
+    hasInterrupt    = rhs.joypad_state;
+
+    return *this;
+}
 
 void Joypad::set_joypad_button(BUTTON button)
 {
