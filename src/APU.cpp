@@ -36,7 +36,9 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
 
+#ifdef WRITE_AUDIO_OUT
     audioFileOut = std::make_unique<std::ofstream>("audioOut.pcm", std::ios::binary);
+#endif // WRITE_AUDIO_OUT
 
     sample_buffer.resize(SAMPLE_BUFFER_SIZE / double_speed_mode_modifier);
 
@@ -50,9 +52,43 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
 
 APU::~APU()
 {
+#ifdef WRITE_AUDIO_OUT
     audioFileOut->close();
+#endif // WRITE_AUDIO_OUT
 
     SDL_CloseAudioDevice(audio_device_id);
+}
+
+APU& APU::operator=(const APU& rhs)
+{   // Copy APU from rhs
+    frame_sequence_step         = rhs.frame_sequence_step;
+    channel_control             = rhs.channel_control;
+    selection_of_sound_output   = rhs.selection_of_sound_output;
+    sound_on                    = rhs.sound_on;
+    left_volume                 = rhs.left_volume;
+    right_volume                = rhs.right_volume;
+    left_volume_use             = rhs.left_volume_use;
+    right_volume_use            = rhs.right_volume_use;
+    sample_buffer_counter       = rhs.sample_buffer_counter;
+    samplesPerFrame             = rhs.samplesPerFrame;
+    left_out_enabled            = rhs.left_out_enabled;
+    right_out_enabled           = rhs.right_out_enabled;
+    double_speed_mode           = rhs.double_speed_mode;
+    send_samples_to_debugger    = rhs.send_samples_to_debugger;
+    double_speed_mode_modifier  = rhs.double_speed_mode_modifier;
+
+    *sound_channel_1.get() = *rhs.sound_channel_1.get();
+    *sound_channel_2.get() = *rhs.sound_channel_2.get();
+    *sound_channel_3.get() = *rhs.sound_channel_3.get();
+    *sound_channel_4.get() = *rhs.sound_channel_4.get();
+
+    sample_timer_val        = rhs.sample_timer_val;
+    frame_sequence_timer_val = rhs.frame_sequence_timer_val;
+    sample_timer            = rhs.sample_timer;
+    frame_sequence_timer    = rhs.frame_sequence_timer;
+    sample_buffer           = rhs.sample_buffer;
+
+    return *this;
 }
 
 void APU::initSDLAudio()
@@ -100,7 +136,8 @@ void APU::initSDLAudio()
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
 {
     if (sound_on == false &&
-        addr < 0xFF26)
+        addr < 0xFF26 &&
+        addr != 0xFF20) // NR41 can still be written to when off
     {
         logger->info("Tried to write to addr: 0x{0:x}, val 0x{1:x} but APU sound is disabled",
             addr,
@@ -155,6 +192,10 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
+                if (i == 0xFF23)
+                {   // NR44 should be left the same
+                    continue;
+                }
                 setByte(i, 0);
             }
             sound_channel_1->is_enabled = false;
@@ -200,13 +241,13 @@ uint8_t APU::readByte(const uint16_t & addr)
 
     switch (addr)
     {
-    case 0xFF24:
+    case 0xFF24:    // NR50
         ret = channel_control;
         break;
-    case 0xFF25:
+    case 0xFF25:    // NR51
         ret = selection_of_sound_output;
         break;
-    case 0xFF26:
+    case 0xFF26:    // NR52
         ret = static_cast<uint8_t>(sound_on) << 7
             | 0x70  // Unused bits are 1s
             | static_cast<uint8_t>(sound_channel_1->isRunning())

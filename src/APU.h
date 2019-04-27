@@ -49,6 +49,7 @@ class APU
 public:
     APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> logger);
     virtual ~APU();
+    APU& operator=(const APU& rhs);
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);

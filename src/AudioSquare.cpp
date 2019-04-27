@@ -40,6 +40,36 @@ AudioSquare::~AudioSquare()
 
 }
 
+AudioSquare& AudioSquare::operator=(const AudioSquare& rhs)
+{   // Copy from rhs
+    duty_pos            = rhs.duty_pos;
+    sweep_period        = rhs.sweep_period;
+    sweep_period_load   = rhs.sweep_period_load;
+    sweep_shift         = rhs.sweep_shift;
+    wave_pattern_duty   = rhs.wave_pattern_duty;
+    sound_length_data   = rhs.sound_length_data;
+    sound_length_load   = rhs.sound_length_load;
+    initial_volume_of_envelope = rhs.initial_volume_of_envelope;
+    envelope_period_load = rhs.envelope_period_load;
+    envelope_period     = rhs.envelope_period;
+    frequency_16        = rhs.frequency_16;
+    sweep_frequency_16  = rhs.sweep_frequency_16;
+    timer               = rhs.timer;
+    curr_sample         = rhs.curr_sample;
+    volume              = rhs.volume;
+    output_volume       = rhs.output_volume;
+    sweep_decrease      = rhs.sweep_decrease;
+    sweep_running       = rhs.sweep_running;
+    envelope_increase   = rhs.envelope_increase;
+    envelope_running    = rhs.envelope_running;
+    dac_enabled         = rhs.dac_enabled;
+    stop_output_when_sound_length_ends = rhs.stop_output_when_sound_length_ends;
+    restart_sound       = rhs.restart_sound;
+    is_enabled          = rhs.is_enabled;
+
+    return *this;
+}
+
 void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
 {
     uint16_t useAddr = addr - reg_offset;

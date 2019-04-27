@@ -11,6 +11,7 @@ class AudioNoise
 public:
     AudioNoise(const uint16_t & register_offset, std::shared_ptr<spdlog::logger> logger);
     virtual ~AudioNoise();
+    AudioNoise& operator=(const AudioNoise& rhs);
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
