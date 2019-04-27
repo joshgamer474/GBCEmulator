@@ -50,6 +50,7 @@ public:
 
     GPU(std::shared_ptr<spdlog::logger> logger);
     ~GPU();
+    GPU& operator=(const GPU& rhs);
 
     void init_color_gb();
     void run(const uint8_t & cpuTicks);
