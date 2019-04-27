@@ -56,6 +56,30 @@ MBC::~MBC()
     logger.reset();
 }
 
+MBC& MBC::operator=(const MBC& rhs)
+{   // Copy from rhs
+    rom_banking_mode        = rhs.rom_banking_mode;
+    ram_banking_mode        = rhs.ram_banking_mode;
+    external_ram_enabled    = rhs.external_ram_enabled;
+    rtc_timer_enabled = rhs.rtc_timer_enabled;
+
+    curr_rom_bank   = rhs.curr_rom_bank;
+    curr_ram_bank   = rhs.curr_ram_bank;
+    num_rom_banks   = rhs.num_rom_banks;
+    num_ram_banks   = rhs.num_ram_banks;
+    romBanks        = rhs.romBanks;
+    ramBanks        = rhs.ramBanks;
+    rtcRegisters    = rhs.rtcRegisters;
+    mbc_num         = rhs.mbc_num;
+    mbc_type        = rhs.mbc_type;
+
+    prev_mbc3_latch = rhs.prev_mbc3_latch;
+    curr_mbc3_latch = rhs.curr_mbc3_latch;
+    wroteToRAMBanks = rhs.wroteToRAMBanks;
+
+    return *this;
+}
+
 void MBC::MBC1_init()
 {
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
