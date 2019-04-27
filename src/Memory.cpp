@@ -50,6 +50,28 @@ Memory::~Memory()
     logger.reset();
 }
 
+Memory& Memory::operator=(const Memory& rhs)
+{   // Copy from rhs
+    timer_enabled           = rhs.timer_enabled;
+    curr_clock              = rhs.curr_clock;
+    clock_frequency         = rhs.clock_frequency;
+    clock_speed             = rhs.clock_speed;
+    clock_div_accumulator   = rhs.clock_div_accumulator;
+    clock_tima_accumulator  = rhs.clock_tima_accumulator;
+    interrupt_flag          = rhs.interrupt_flag;
+    interrupt_enable        = rhs.interrupt_enable;
+    cgb_speed_mode          = rhs.cgb_speed_mode;
+    cgb_undoc_reg_ff6c      = rhs.cgb_undoc_reg_ff6c;
+    cgb_perform_speed_switch = rhs.cgb_perform_speed_switch;
+
+    is_color_gb             = rhs.is_color_gb;
+    num_working_ram_banks   = rhs.num_working_ram_banks;
+    curr_working_ram_bank   = rhs.curr_working_ram_bank;
+    working_ram_banks       = rhs.working_ram_banks;
+
+    return *this;
+}
+
 void Memory::reset()
 {
     cartridgeReader.reset();
@@ -119,12 +141,22 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 		{   // 0xC000 - 0xFDFF : Internal work RAM and (echo) Internal work RAM
 			if ((pos & 0xF000) < 0xD000)
 			{   // 0xC000 - 0xCFFF
+                if (pos == 0xC264 || pos == 0xC265)
+                {
+                    logger->info("Reading pos 0x{0:x}, val: 0x{1:x}",
+                        pos,
+                        working_ram_banks[0][pos - 0xC000]);
+                }
 				return working_ram_banks[0][pos - 0xC000];
 			}
 			else if ((pos & 0xF000) < 0xE000)
 			{
                 if (is_color_gb)
                 {   // 0xD000 - 0xDFFF
+                    if (curr_working_ram_bank == 0)
+                    {
+                        return working_ram_banks[1][pos - 0xD000];
+                    }
                     return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
                 }
                 else
@@ -140,6 +172,10 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 				}
 				else if (pos >= 0xF000 && is_color_gb)
 				{   // 0xF000 - 0xFDFF
+                    if (curr_working_ram_bank == 0)
+                    {
+                        return working_ram_banks[1][pos - 0xF000];
+                    }
 					return working_ram_banks[curr_working_ram_bank][pos - 0xF000];
 				}
                 else
@@ -295,13 +331,26 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 
 		if ((pos & 0xF000) < 0xD000)
 		{   // 0xC000 - 0xCFFF : Internal Work RAM bank 0
+            if (pos == 0xC264 || pos == 0xC265)
+            {
+                logger->info("Writing pos: 0x{0:x}, val: 0x{1:x}",
+                    pos,
+                    val);
+            }
 			working_ram_banks[0][pos - 0xC000] = val;
 		}
 		else if ((pos & 0xF000) < 0xE000)
 		{   // 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
             if (is_color_gb)
             {
-                working_ram_banks[curr_working_ram_bank][pos - 0xD000] = val;
+                if (curr_working_ram_bank == 0)
+                {
+                    working_ram_banks[1][pos - 0xD000] = val;
+                }
+                else
+                {
+                    working_ram_banks[curr_working_ram_bank][pos - 0xD000] = val;
+                }
             }
             else
             {   // Only Work RAM bank 1 is available in non color gb mode
@@ -318,7 +367,14 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 			{   // 0xD000 - 0xDFFF : (echo) Internal Work RAM bank 1-7
                 if (is_color_gb)
                 {
-                    working_ram_banks[curr_working_ram_bank][pos - 0xF000] = val;
+                    if (curr_working_ram_bank == 0)
+                    {
+                        working_ram_banks[1][pos - 0xF000] = val;
+                    }
+                    else
+                    {
+                        working_ram_banks[curr_working_ram_bank][pos - 0xF000] = val;
+                    }
                 }
                 else
                 {   // Only Work RAM bank 1 is available in non color gb mode
@@ -619,20 +675,11 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 	switch (addr)
 	{
-        // DIV - Divider Register
-	case 0xFF04:
-		timer[addr - 0xFF04] = 0x00;
-		break;
-
-        // TIMA, TMA - Timer Counter, Timer Modulo
-	case 0xFF05:
-    case 0xFF06:
-		timer[addr - 0xFF04] = val;
-		break;
-
-        // TAC - Timer Control
-	case 0xFF07:
-		timer[addr - 0xFF04] = val;
+	case 0xFF04: timer[DIV] = 0x00; break;  // Divider Register
+    case 0xFF05: timer[TIMA] = val; break;  // Timer Counter
+    case 0xFF06: timer[TMA] = val; break;   // Timer Modulo
+	case 0xFF07:                            // Timer Control
+        timer[TAC] = val;
 
 		// Bits 0-1
 		switch ((val & 0x03))
@@ -654,7 +701,7 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
             clock_tima_accumulator = 0;
             updateTimerRates();
 		}
-
+        updateTimerRates();
 	}
 }
 
@@ -693,7 +740,8 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
     while (clock_div_accumulator >= clock_div_rate)
     {
         divider_reg++;
-        clock_div_accumulator -= clock_div_rate;
+        //clock_div_accumulator -= clock_div_rate;
+        clock_div_accumulator = 0;
     }
 
     // Update 0xFF05 - TIMA

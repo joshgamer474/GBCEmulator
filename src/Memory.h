@@ -38,7 +38,8 @@ public:
         std::shared_ptr<GPU> gpu,
         std::shared_ptr<Joypad> joypad,
         std::shared_ptr<APU> apu);
-	~Memory();
+	virtual ~Memory();
+    Memory& operator=(const Memory& rhs);
 
     void reset();
 	void initWorkRAM(bool isColorGB);
@@ -86,8 +87,8 @@ public:
     uint32_t clock_div_rate;
     uint32_t clock_tima_rate;
     uint32_t clock_speed;
-    uint32_t clock_div_accumulator;
-    uint32_t clock_tima_accumulator;
+    int32_t clock_div_accumulator;
+    int32_t clock_tima_accumulator;
 
 private:
     void updateTimerRates();
