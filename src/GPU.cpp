@@ -66,42 +66,69 @@ GPU::~GPU()
 
 GPU& GPU::operator=(const GPU& rhs)
 {   // Copy from rhs
-    is_color_gb = rhs.is_color_gb;
-    num_vram_banks = rhs.num_vram_banks;
-    curr_vram_bank = rhs.curr_vram_bank;
-    ticks_accumulated = rhs.ticks_accumulated;
-    lcd_display_enable = rhs.lcd_display_enable;
+    is_color_gb         = rhs.is_color_gb;
+    num_vram_banks      = rhs.num_vram_banks;
+    curr_vram_bank      = rhs.curr_vram_bank;
+    ticks_accumulated   = rhs.ticks_accumulated;
+    lcd_display_enable  = rhs.lcd_display_enable;
+    bg_display_enable   = rhs.bg_display_enable;
+    window_display_enable = rhs.window_display_enable;
+    object_display_enable = rhs.object_display_enable;
     lcd_status_interrupt_signal = rhs.lcd_status_interrupt_signal;
     wait_frame_to_render_window = rhs.wait_frame_to_render_window;
-    render_full_frame = rhs.render_full_frame;
-    lcd_control = rhs.lcd_control;
-    vram_banks = rhs.vram_banks;
+    render_full_frame   = rhs.render_full_frame;
+    lcd_control         = rhs.lcd_control;
+    vram_banks          = rhs.vram_banks;
     object_attribute_memory = rhs.object_attribute_memory;
-    bg_tiles = rhs.bg_tiles;
-    cgb_bg_to_oam_priority_array = rhs.cgb_bg_to_oam_priority_array;
-    gpu_mode = rhs.gpu_mode;
+    bg_tiles            = rhs.bg_tiles;
+    gpu_mode            = rhs.gpu_mode;
     cgb_background_palette_index = rhs.cgb_background_palette_index;
     cgb_sprite_palette_index = rhs.cgb_sprite_palette_index;
-    scroll_x = rhs.scroll_x;
-    scroll_y = rhs.scroll_y;
-    lcd_y = rhs.lcd_y;
-    lcd_y_compare = rhs.lcd_y_compare;
-    y_roll_over = rhs.y_roll_over;
-    bg_display_enable = rhs.bg_display_enable;
+    scroll_x            = rhs.scroll_x;
+    scroll_y            = rhs.scroll_y;
+    lcd_y               = rhs.lcd_y;
+    lcd_y_compare       = rhs.lcd_y_compare;
+    y_roll_over         = rhs.y_roll_over;
     bg_tile_data_select_method = rhs.bg_tile_data_select_method;
     bg_tile_map_select_method = rhs.bg_tile_map_select_method;
-    cgb_auto_increment_background_palette_index = rhs.cgb_auto_increment_background_palette_index;
-    cgb_auto_increment_sprite_palette_index = rhs.cgb_auto_increment_sprite_palette_index;
+    window_tile_map_display_select = rhs.window_tile_map_display_select;
+    bg_tile_data_select = rhs.bg_tile_data_select;
+    bg_tile_map_select = rhs.bg_tile_map_select;
     is_cgb_tile_palette_updated = rhs.is_cgb_tile_palette_updated;
     is_tile_palette_updated = rhs.is_tile_palette_updated;
 
-    cgb_dma_in_progress = rhs.cgb_dma_in_progress;
-    cgb_dma_hblank_in_progress = rhs.cgb_dma_hblank_in_progress;
+    cgb_auto_increment_background_palette_index = rhs.cgb_auto_increment_background_palette_index;
+    cgb_auto_increment_sprite_palette_index = rhs.cgb_auto_increment_sprite_palette_index;
+    cgb_background_palettes         = rhs.cgb_background_palettes;
+    cgb_sprite_palettes             = rhs.cgb_sprite_palettes;
+    cgb_background_palette_data     = rhs.cgb_background_palette_data;
+    cgb_sprite_palette_data         = rhs.cgb_sprite_palette_data;
+    cgb_bg_to_oam_priority_array    = rhs.cgb_bg_to_oam_priority_array;
+    cgb_bg_scanline_color_palettes  = rhs.cgb_bg_scanline_color_palettes;
+
+    hdma1 = rhs.hdma1;
+    hdma2 = rhs.hdma2;
+    hdma3 = rhs.hdma3;
+    hdma4 = rhs.hdma4;
+    hdma5 = rhs.hdma5;
+    cgb_dma_in_progress         = rhs.cgb_dma_in_progress;
+    cgb_dma_hblank_in_progress  = rhs.cgb_dma_hblank_in_progress;
     cgb_dma_transfer_bytes_left = rhs.cgb_dma_transfer_bytes_left;
 
-    frame_is_ready = rhs.frame_is_ready;
-    bg_tiles_updated = rhs.bg_tiles_updated;
-    objects_pos_to_use = rhs.objects_pos_to_use;
+    object_size = rhs.object_size;
+
+    enable_lcd_y_compare_interrupt = rhs.enable_lcd_y_compare_interrupt;
+
+    frame_is_ready      = rhs.frame_is_ready;
+    bg_tiles_updated    = rhs.bg_tiles_updated;
+    objects_pos_to_use  = rhs.objects_pos_to_use;
+
+    memcpy(frame, rhs.frame, SCREEN_PIXEL_W * SCREEN_PIXEL_H * sizeof(SDL_Color));
+    memcpy(curr_frame, rhs.curr_frame, SCREEN_PIXEL_W * SCREEN_PIXEL_H * sizeof(SDL_Color));
+
+    memcpy(bg_palette_color, rhs.bg_palette_color, PALETTE_DATA_SIZE * sizeof(SDL_Color));
+    memcpy(object_palette0_color, rhs.object_palette0_color, PALETTE_DATA_SIZE * sizeof(SDL_Color));
+    memcpy(object_palette1_color, rhs.object_palette1_color, PALETTE_DATA_SIZE * sizeof(SDL_Color));
 
     return *this;
 }
@@ -1054,11 +1081,13 @@ void GPU::drawOAMLine()
             {
                 uint8_t curr_sprite_y = lcd_y - sprite_y;
 
+                // the sprite is not flipped and
+                // curr_sprite_y > 7
                 if (!sprite_y_flip && curr_sprite_y > 7)
                 {   // Select bottom 8x8 sprite
                     sprite_tile_num |= 0x01;
-                }
-                else if (sprite_y_flip && curr_sprite_y <= 7)
+                }   // the sprite is flipped and curr_sprite_y <= 7
+                else if (sprite_y_flip && curr_sprite_y < 8)
                 {   // Select bottom 8x8 sprite
                     sprite_tile_num |= 0x01;
                 }

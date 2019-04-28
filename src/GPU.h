@@ -95,7 +95,6 @@ private:
     void update_lcd_status_coincidence_flag();
     void printFrame();
 
-
     uint8_t getTileBlockNum(int use_tile_num);
     uint8_t getSpriteTileBlockNum(int use_tile_num);
     Tile * getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num);
