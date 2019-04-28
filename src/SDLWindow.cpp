@@ -1,5 +1,6 @@
 #include <SDLWindow.h>
 #include <algorithm>
+#include <SDL_thread.h>
 
 SDLWindow::SDLWindow()
 {
@@ -72,7 +73,7 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(SDL_Color * frame)
 {
-    //updateWindowTitle(std::to_string(emu->frameTimeMicro.count()));    // Turn microseconds into milliseconds
+    //updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
 
     SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
     //SDL_RenderClear(renderer);
@@ -137,6 +138,41 @@ int SDLWindow::run()
             case SDLK_x: joypad->set_joypad_button(Joypad::BUTTON::B);      break;
             case SDLK_m: joypad->set_joypad_button(Joypad::BUTTON::START);  break;
             case SDLK_n: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
+            case SDLK_r:
+            {
+                if (!emu_savestate || !emu)
+                {
+                    break;
+                }
+
+                emu->stop();
+                if (emu_thread.joinable())
+                {
+                    // Close emulator thread
+                    emu_thread.join();
+                }
+
+                // Load emulator savestate into emulator
+                *emu.get() = *emu_savestate.get();
+
+                hookToEmulator(emu);
+                startEmulator();
+                break;
+            }
+            case SDLK_t:
+            {
+                if (emu_savestate)
+                {
+                    emu_savestate.reset();
+                }
+
+                // Create emulator savestate
+                emu_savestate = std::make_shared<GBCEmulator>(emu->getROMName(), emu->getROMName() + ".log");
+
+                // Copy current emulator into emulator savestate
+                *emu_savestate.get() = *emu.get();
+                break;
+            }
             }
             break;
         } // end case SDL_KEYDOWN

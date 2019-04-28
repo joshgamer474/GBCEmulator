@@ -47,6 +47,7 @@ class GBCEmulator
 public:
     GBCEmulator(const std::string romName, const std::string logName = "log.txt", bool debugMode = false);
     virtual ~GBCEmulator();
+    GBCEmulator& operator=(const GBCEmulator& rhs);
 
     void set_logging_level(spdlog::level::level_enum l);
     void run();
@@ -65,6 +66,7 @@ public:
     void set_joypad_button(Joypad::BUTTON button);
     void release_joypad_button(Joypad::BUTTON button);
     void setTimePerFrame(double d);
+    std::string getROMName() const;
 
     void setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function);
 

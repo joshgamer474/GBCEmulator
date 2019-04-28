@@ -36,8 +36,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     set_logging_level(spdlog::level::info);
 
     gpu->logger->set_level(spdlog::level::info);
-    cpu->logger->set_level(spdlog::level::info);
-    memory->logger->set_level(spdlog::level::warn);
+    cpu->logger->set_level(spdlog::level::warn);
+    memory->logger->set_level(spdlog::level::info);
     apu->logger->set_level(spdlog::level::warn);
     apu->setChannelLogLevel(spdlog::level::warn);
     joypad->logger->set_level(spdlog::level::debug);
@@ -57,6 +57,33 @@ GBCEmulator::~GBCEmulator()
     gpu.reset();
     apu.reset();
     loggerSink.reset();
+}
+
+GBCEmulator& GBCEmulator::operator=(const GBCEmulator& rhs)
+{   // Copy from rhs
+    *this->apu.get()    = *rhs.apu.get();
+    *this->cpu.get()    = *rhs.cpu.get();
+    *this->gpu.get()    = *rhs.gpu.get();
+    *this->memory.get() = *rhs.memory.get();
+    *this->joypad.get() = *rhs.joypad.get();
+    *this->mbc.get()    = *rhs.mbc.get();
+    *this->cartridgeReader.get() = *rhs.cartridgeReader.get();
+
+    ranInstruction  = rhs.ranInstruction;
+    debugMode       = rhs.debugMode;
+    isInitialized   = rhs.isInitialized;
+    frameProcessingTimeMicro = rhs.frameProcessingTimeMicro;
+    frameShowTimeMicro = rhs.frameShowTimeMicro;
+    stopRunning     = rhs.stopRunning;
+    logFileBaseName = rhs.logFileBaseName;
+    filenameNoExtension = rhs.filenameNoExtension;
+    ticksPerFrame   = rhs.ticksPerFrame;
+    ticksAccumulated = rhs.ticksAccumulated;
+    frameTimeStart  = rhs.frameTimeStart;
+    timePerFrame    = rhs.timePerFrame;
+    frameIsUpdatedFunction = rhs.frameIsUpdatedFunction;
+
+    return *this;
 }
 
 void GBCEmulator::read_rom(std::string filename)
@@ -218,7 +245,7 @@ void GBCEmulator::runNextInstruction()
 
 void GBCEmulator::runTo(uint16_t pc)
 {
-    while (cpu->get_register_16(CPU::PC) != pc && !stopRunning)
+    while (cpu->get_register_16(CPU::REGISTERS::PC) != pc && !stopRunning)
     {
         runNextInstruction();
     }
@@ -370,4 +397,13 @@ void GBCEmulator::setTimePerFrame(double d)
 void GBCEmulator::setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function)
 {
     frameIsUpdatedFunction = function;
+}
+
+std::string GBCEmulator::getROMName() const
+{
+    if (cartridgeReader)
+    {
+        return cartridgeReader->cartridgeFilename;
+    }
+    return "";
 }

@@ -36,6 +36,7 @@ private:
     void updateWindowTitle(const std::string & framerate);
 
     std::shared_ptr<GBCEmulator> emu;
+    std::shared_ptr<GBCEmulator> emu_savestate;
     std::shared_ptr<Joypad> joypad;
     std::shared_ptr<JoypadXInput> joypadx;
     std::thread emu_thread;
