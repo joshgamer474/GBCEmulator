@@ -53,7 +53,10 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
 
 MBC::~MBC()
 {
-    logger.reset();
+    if (logger)
+    {
+        logger.reset();
+    }
 }
 
 MBC& MBC::operator=(const MBC& rhs)
@@ -72,6 +75,9 @@ MBC& MBC::operator=(const MBC& rhs)
     rtcRegisters    = rhs.rtcRegisters;
     mbc_num         = rhs.mbc_num;
     mbc_type        = rhs.mbc_type;
+
+    rom_from_to = rhs.rom_from_to;
+    ram_from_to = rhs.ram_from_to;
 
     prev_mbc3_latch = rhs.prev_mbc3_latch;
     curr_mbc3_latch = rhs.curr_mbc3_latch;
