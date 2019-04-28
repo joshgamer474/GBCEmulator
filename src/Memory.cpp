@@ -64,6 +64,14 @@ Memory& Memory::operator=(const Memory& rhs)
     cgb_undoc_reg_ff6c      = rhs.cgb_undoc_reg_ff6c;
     cgb_perform_speed_switch = rhs.cgb_perform_speed_switch;
 
+    memcpy(cgb_undoc_regs, rhs.cgb_undoc_regs, 0xFF77 - 0xFF72);
+    memcpy(high_ram, rhs.high_ram, 0x7F);
+    gamepad = rhs.gamepad;
+    memcpy(timer, rhs.timer, 4);
+    memcpy(linkport, rhs.linkport, 3);
+    firstTen = rhs.firstTen;
+    blargg = rhs.blargg;
+
     is_color_gb             = rhs.is_color_gb;
     num_working_ram_banks   = rhs.num_working_ram_banks;
     curr_working_ram_bank   = rhs.curr_working_ram_bank;
