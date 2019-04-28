@@ -41,11 +41,12 @@ public:
         0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
     };
 
-	int num_ROM_banks;
-	int num_RAM_banks;
-	bool is_bios;
-	std::shared_ptr<spdlog::logger> logger;
-	std::vector<unsigned char> romBuffer;
+    std::shared_ptr<spdlog::logger> logger;
+    std::vector<unsigned char> romBuffer;
+    std::string cartridgeFilename;
+    int num_ROM_banks;
+    int num_RAM_banks;
+    bool is_bios;
 
 private:
     struct CartridgeType
@@ -66,7 +67,6 @@ private:
     void setRumble(unsigned char cartridge_type);
 
 	CartridgeType cartridgeType;
-    std::string cartridgeFilename;
 
     // Information about the cartridge
     unsigned char game_title[16];
