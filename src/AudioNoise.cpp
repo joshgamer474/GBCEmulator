@@ -159,7 +159,7 @@ void AudioNoise::reset()
     // Reload Length timer
     if (sound_length_data == 0)
     {
-        //sound_length_data = 0x40;
+        sound_length_data = 0x40;
     }
 
     // Reload volume envelope

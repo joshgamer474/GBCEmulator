@@ -177,6 +177,7 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
 
 void AudioSquare::reset()
 {
+    logger->debug("Resetting Square channel");
     is_enabled = true;
     envelope_running = true;
 
@@ -195,6 +196,7 @@ void AudioSquare::reset()
     if (sound_length_data == 0)
     {
         sound_length_data = 0x40;
+        logger->debug("sound_length_data: 0x{0:x}", sound_length_data);
     }
 
     /// Reset Sweep
@@ -275,10 +277,12 @@ void AudioSquare::tickLengthCounter()
         else
         {   // sound_length_data > 0;
             sound_length_data--;
+            logger->debug("sound_length_data--: 0x{0:x}", sound_length_data);
         }
 
         if (sound_length_data == 0)
         {   // Length counter hit 0, stop sound output
+            logger->debug("sound_length_data == 0, disabling channel");
             is_enabled = false;
         }
     }
@@ -409,8 +413,8 @@ bool AudioSquare::isRunning()
         is_enabled,
         dac_enabled);
 
-    //return (sound_length_data & 0x3F) > 0
-    return sound_length_data > 0
-        && is_enabled
-        && dac_enabled;
+    //return sound_length_data > 0
+    //    && is_enabled
+    //    && dac_enabled;
+    return is_enabled && dac_enabled;
 }

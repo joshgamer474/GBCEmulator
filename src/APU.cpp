@@ -76,6 +76,7 @@ APU& APU::operator=(const APU& rhs)
     double_speed_mode           = rhs.double_speed_mode;
     send_samples_to_debugger    = rhs.send_samples_to_debugger;
     double_speed_mode_modifier  = rhs.double_speed_mode_modifier;
+    audio_device_id             = rhs.audio_device_id;
 
     *sound_channel_1.get() = *rhs.sound_channel_1.get();
     *sound_channel_2.get() = *rhs.sound_channel_2.get();
@@ -145,7 +146,7 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         return;
     }
 
-    logger->trace("Writing to addr: 0x{0:x}, val: 0x{1:x}",
+    logger->debug("Writing to addr: 0x{0:x}, val: 0x{1:x}",
         addr,
         val);
 
@@ -192,10 +193,6 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
-                if (i == 0xFF23)
-                {   // NR44 should be left the same
-                    continue;
-                }
                 setByte(i, 0);
             }
             sound_channel_1->is_enabled = false;
@@ -257,7 +254,7 @@ uint8_t APU::readByte(const uint16_t & addr)
          break;
     }
 
-    logger->trace("Reading addr: 0x{0:x}, val: 0x{1:x}",
+    logger->debug("Reading addr: 0x{0:x}, val: 0x{1:x}",
         addr,
         ret);
 
@@ -292,14 +289,19 @@ void APU::run(const uint8_t & cpuTickDiff)
 
     while (diff > 0)
     {
+        diff--;
+
         // Tick frame sequencer
         if (frame_sequence_timer > 0)
         {
             frame_sequence_timer--;
+            //logger->debug("frame_sequence_timer--: 0x{0:x}", frame_sequence_timer);
         }
 
         if (frame_sequence_timer == 0)
         {
+            logger->debug("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
+                frame_sequence_step);
             switch (frame_sequence_step)
             {
             case 0:
@@ -399,13 +401,12 @@ void APU::run(const uint8_t & cpuTickDiff)
 
         } // end if(sample_timer)
 
-        diff--;
-    }
+    } // end while(diff > 0)
 }
 
 void APU::writeSamplesOut(const uint32_t & audio_device)
 {
-    logger->debug("Pushing sample of size: {}", sample_buffer.size());
+    logger->trace("Pushing sample of size: {}", sample_buffer.size());
 
     // Push sample_buffer to SDL
 #ifndef USE_FLOAT
