@@ -21,6 +21,7 @@ void ROMTestFixture::test()
 {
     ASSERT_FALSE(unit_test.rom_path.empty());
     //ASSERT_TRUE(unit_test.passing_frame_hash);
+    ASSERT_TRUE(std::experimental::filesystem::exists(unit_test.rom_path));
 
     std::string romPath = unit_test.rom_path.string();
     emu = std::make_unique<GBCEmulator>(romPath, romPath + ".log");
