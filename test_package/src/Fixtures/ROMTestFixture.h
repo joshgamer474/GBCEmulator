@@ -65,7 +65,7 @@ private:
     std::experimental::filesystem::path rom_root;
     ROMUnitTest unit_test;
     uint64_t curr_hash;
-    std::atomic<bool> hash_passed;
+    std::atomic_bool hash_passed;
 };
 
 #endif // TEST_PACKAGE_SRC_ROM_TEST_FIXTURE_H

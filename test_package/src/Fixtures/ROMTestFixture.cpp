@@ -28,7 +28,7 @@ void ROMTestFixture::test()
     emu->setFrameUpdateMethod(std::bind(&ROMTestFixture::frameUpdatedFunction, this, std::placeholders::_1));
     emu->runWithoutSleep = true; // Run the emulator w/o sleeping
 
-    std::atomic<bool> jumpOut = false;
+    std::atomic_bool jumpOut(false);
     auto future = std::async(std::launch::async, [&]()
         {
             while (!hash_passed)

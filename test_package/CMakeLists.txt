@@ -34,6 +34,12 @@ target_link_libraries(GBCEmulatorTestPackage
     GBCEmulator
     CONAN_PKG::gtest)
 
+# Add std::experimental::filesystem
+if(UNIX)
+    target_link_libraries(GBCEmulatorTestPackage
+        stdc++fs)
+endif(UNIX)
+
 message("CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 
 # Copy blarggtest roms dir to build dir

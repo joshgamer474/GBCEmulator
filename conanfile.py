@@ -10,7 +10,8 @@ class GBCEmulator(ConanFile):
     settings = {"os" : ["Windows", "Linux"], 
                 "arch": ["x86", "x86_64"],
                 "compiler": ["Visual Studio", "gcc"],
-                "build_type": ["Debug", "Release"]}
+                "build_type": ["Debug", "Release"],
+                "cppstd": ["17"]}
     options = {"shared": [True, False]}
     generators = "cmake"
     requires = (
@@ -37,6 +38,8 @@ class GBCEmulator(ConanFile):
         self.keep_imports = True
 
     def build(self):
+        if self.settings.os == "Linux":
+            "stdc++fs"
         cmake = CMake(self, build_type=self.settings.build_type)
         cmake.configure()
         cmake.build()
