@@ -82,3 +82,8 @@ include_directories(${CONAN_INCLUDE_DIRS}
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
 
+# Enable unit testing
+enable_testing()
+
+# Add unit tests
+add_subdirectory(test_package)

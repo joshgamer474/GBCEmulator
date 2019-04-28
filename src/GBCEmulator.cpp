@@ -1,9 +1,11 @@
 #include "GBCEmulator.h"
+#include <libpng16/png.h>
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     :   stopRunning(false),
         debugMode(false),
         ranInstruction(false),
+        runWithoutSleep(false),
         logFileBaseName(logName),
         frameIsUpdatedFunction(nullptr)
 {
@@ -38,8 +40,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::warn);
-    apu->setChannelLogLevel(spdlog::level::warn);
+    apu->logger->set_level(spdlog::level::debug);
+    apu->setChannelLogLevel(spdlog::level::debug);
     joypad->logger->set_level(spdlog::level::debug);
     logger->set_level(spdlog::level::info);
     logCounter = 0;
@@ -49,6 +51,10 @@ GBCEmulator::~GBCEmulator()
 {
     // Write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
+
+    // Write out last frame hash
+    uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);
+    logger->info("Last frame hash: {}", lastFrameHash);
 
     cpu->memory->reset();
     cpu.reset();
@@ -174,7 +180,7 @@ void GBCEmulator::runNextInstruction()
         }
         gpu->frame_is_ready = false;
 
-        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->logger->trace("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
 
         // Write out accumulated audio samples to audio device
         apu->writeSamplesOut(apu->audio_device_id);
@@ -183,8 +189,11 @@ void GBCEmulator::runNextInstruction()
         auto currTime = getCurrentTime();
         frameProcessingTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
 
-        // Let the APU sleep the emulator
-        apu->sleepUntilBufferIsEmpty(frameTimeStart);
+        if (runWithoutSleep == false)
+        {
+            // Let the APU sleep the emulator
+            apu->sleepUntilBufferIsEmpty(frameTimeStart);
+        }
 
         // Calculate frame show time for debug purposes
         currTime = getCurrentTime();
@@ -406,4 +415,81 @@ std::string GBCEmulator::getROMName() const
         return cartridgeReader->cartridgeFilename;
     }
     return "";
+}
+
+uint64_t GBCEmulator::calculateFrameHash(SDL_Color* frame)
+{
+    uint64_t hash = 0;
+    uint32_t rgba = 0;
+
+    for (int i = 0; i < SCREEN_PIXEL_H * SCREEN_PIXEL_W; i++)
+    {
+        rgba = frame[i].r;
+        rgba <<= 8;
+        rgba += frame[i].g;
+        rgba <<= 8;
+        rgba += frame[i].b;
+        rgba <<= 8;
+        rgba += frame[i].a;
+
+        hash += rgba;
+    }
+    return hash;
+}
+
+void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
+{
+    // Open file
+    FILE* fp = fopen(filepath.string().c_str(), "wb");
+    if (!fp) abort();
+
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png) abort();
+
+    png_infop info = png_create_info_struct(png);
+    if (!info) abort();
+
+    if (setjmp(png_jmpbuf(png))) abort();
+
+    png_init_io(png, fp);
+
+    // Output is 8bit depth, RGBA format
+    png_set_IHDR(
+        png,
+        info,
+        SCREEN_PIXEL_W,
+        SCREEN_PIXEL_H,
+        8,
+        PNG_COLOR_TYPE_RGBA,
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT);
+    png_write_info(png, info);
+
+    // Allocate memory for one row (4 bytes per pixel - RGBA)
+    png_bytep row = (png_bytep)malloc(4 * SCREEN_PIXEL_W * sizeof(png_byte));
+
+    // Write image data
+    int x, y;
+    for (y = 0; y < SCREEN_PIXEL_H; y++)
+    {
+        for (x = 0; x < SCREEN_PIXEL_W; x++)
+        {
+            SDL_Color& pixel = gpu->curr_frame[((y * SCREEN_PIXEL_W) + x)];
+            row[(x * 4) + 0] = pixel.r;
+            row[(x * 4) + 1] = pixel.g;
+            row[(x * 4) + 2] = pixel.b;
+            row[(x * 4) + 3] = pixel.a;
+        } 
+        // Row is copied to row, write out row
+        png_write_row(png, row);
+    }
+    // End write
+    png_write_end(png, NULL);
+
+    // Free row
+    free(row);
+
+    // Close file
+    fclose(fp);
 }

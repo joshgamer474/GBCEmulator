@@ -18,6 +18,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <experimental/filesystem>
 
 #include "APU.h"
 #include "CPU.h"
@@ -69,10 +70,13 @@ public:
     std::string getROMName() const;
 
     void setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function);
+    static uint64_t calculateFrameHash(SDL_Color* frame);
+    void saveFrameToPNG(std::experimental::filesystem::path filepath);
 
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
+    bool runWithoutSleep;
     std::chrono::microseconds frameProcessingTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
                                                 // so it is easily accessible to all wrappers
     std::chrono::microseconds frameShowTimeMicro;
