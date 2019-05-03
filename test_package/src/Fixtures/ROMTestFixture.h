@@ -6,6 +6,7 @@
 #include <UnitTests.h>
 #include <experimental/filesystem>
 #include <atomic>
+#include <array>
 #include <memory>
 #include <GBCEmulator.h>
 #include <string>
@@ -39,17 +40,23 @@ protected:
             // Remove .log file
             auto logPath = unit_test.rom_path;
             logPath += ".log";
-            std::experimental::filesystem::remove(logPath);
+            if (std::experimental::filesystem::exists(logPath))
+            {
+                std::experimental::filesystem::remove(logPath);
+            }
 
             // Remove .sav file
             auto savPath = unit_test.rom_path.replace_extension(".sav");
-            std::experimental::filesystem::remove(savPath);
+            if (std::experimental::filesystem::exists(savPath))
+            {
+                std::experimental::filesystem::remove(savPath);
+            }
         }
     }
 
     void init();
     void test();
-    void frameUpdatedFunction(SDL_Color* frame);
+    void frameUpdatedFunction(std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& /* frame */);
     ROMUnitTest getUnitTest(blargg::cgb_sound test);
     ROMUnitTest getUnitTest(blargg::cpu_instrs test);
     ROMUnitTest getUnitTest(blargg::dmg_sound test);

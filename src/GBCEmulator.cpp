@@ -176,7 +176,7 @@ void GBCEmulator::runNextInstruction()
         // Push frame out to be displayed
         if (frameIsUpdatedFunction)
         {
-            frameIsUpdatedFunction(gpu->curr_frame);
+            frameIsUpdatedFunction(gpu->getFrame());
         }
         gpu->frame_is_ready = false;
 
@@ -296,11 +296,6 @@ bool GBCEmulator::frame_is_ready()
     return gpu->frame_is_ready;
 }
 
-SDL_Color * GBCEmulator::get_frame()
-{
-    return gpu->getFrame();
-}
-
 std::shared_ptr<APU> GBCEmulator::get_APU()
 {
     if (apu)
@@ -403,7 +398,7 @@ void GBCEmulator::setTimePerFrame(double d)
     timePerFrame = std::chrono::duration<double>(d);
 }
 
-void GBCEmulator::setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function)
+void GBCEmulator::setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function)
 {
     frameIsUpdatedFunction = function;
 }
@@ -431,6 +426,26 @@ uint64_t GBCEmulator::calculateFrameHash(SDL_Color* frame)
         rgba += frame[i].b;
         rgba <<= 8;
         rgba += frame[i].a;
+
+        hash += rgba;
+    }
+    return hash;
+}
+
+uint64_t GBCEmulator::calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame)
+{
+    uint64_t hash = 0;
+    uint32_t rgba = 0;
+
+    for (const auto& pixel : frame)
+    {
+        rgba = pixel.r;
+        rgba <<= 8;
+        rgba += pixel.g;
+        rgba <<= 8;
+        rgba += pixel.b;
+        rgba <<= 8;
+        rgba += pixel.a;
 
         hash += rgba;
     }

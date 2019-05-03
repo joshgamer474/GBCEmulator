@@ -59,7 +59,7 @@ void ROMTestFixture::test()
     ASSERT_TRUE(hash_passed);
 }
 
-void ROMTestFixture::frameUpdatedFunction(SDL_Color* frame)
+void ROMTestFixture::frameUpdatedFunction(std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame)
 {
     curr_hash = GBCEmulator::calculateFrameHash(frame);
 

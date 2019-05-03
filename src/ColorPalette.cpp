@@ -64,12 +64,12 @@ void ColorPalette::setColor(const uint16_t & data, SDL_Color & color)
     color.b *= 8;
 }
 
-SDL_Color ColorPalette::getColor(const uint8_t & index)
+const SDL_Color& ColorPalette::getColor(const uint8_t & index) const
 {
     return colors[index];
 }
 
-std::array<uint8_t, 8> ColorPalette::getRawData()
+const std::array<uint8_t, 8>& ColorPalette::getRawData() const
 {
     return raw_data;
 }

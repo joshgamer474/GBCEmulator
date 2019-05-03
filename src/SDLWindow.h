@@ -5,6 +5,7 @@
 #include <GBCEmulator.h>
 #include <JoypadXInput.h>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -24,7 +25,7 @@ public:
     SDLWindow();
     virtual ~SDLWindow();
 
-    void display(SDL_Color * frame);
+    void display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame);
     void hookToEmulator(std::shared_ptr<GBCEmulator> emulator);
     static bool romIsValid(const std::string & filepath);
     static std::string getFileExtension(const std::string & filepath);
@@ -40,6 +41,7 @@ private:
     std::shared_ptr<Joypad> joypad;
     std::shared_ptr<JoypadXInput> joypadx;
     std::thread emu_thread;
+    std::mutex renderer_mutex;
     SDL_GLContext glContext;
     SDL_Window* window;
     SDL_Surface* screenSurface;

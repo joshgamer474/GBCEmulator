@@ -3,12 +3,14 @@
 #include <SDL_thread.h>
 
 SDLWindow::SDLWindow()
+    : ScreenInterface()
 {
     init();
 }
 
 SDLWindow::~SDLWindow()
 {
+    std::lock_guard<std::mutex> lg(renderer_mutex);
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -71,11 +73,17 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     joypadx = std::make_shared<JoypadXInput>(joypad);   // Joypad XInput support
 }
 
-void SDLWindow::display(SDL_Color * frame)
+void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    //updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
+    updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
 
-    SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
+    if (!renderer)
+    {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lg(renderer_mutex);
+    SDL_UpdateTexture(screen_texture, NULL, frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
     //SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
@@ -207,7 +215,7 @@ int SDLWindow::run()
 
         if (joypadx)
         {
-            joypadx->refreshButtonStates(joypadx->findControllers());
+            //joypadx->refreshButtonStates(joypadx->findControllers());
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));

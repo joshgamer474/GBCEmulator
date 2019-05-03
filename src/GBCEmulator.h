@@ -69,8 +69,9 @@ public:
     void setTimePerFrame(double d);
     std::string getROMName() const;
 
-    void setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function);
+    void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
     static uint64_t calculateFrameHash(SDL_Color* frame);
+    static uint64_t calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame);
     void saveFrameToPNG(std::experimental::filesystem::path filepath);
 
     bool ranInstruction;
@@ -110,7 +111,7 @@ private:
     std::chrono::duration<double> frameTimeStart;
     std::chrono::duration<double> timePerFrame;
 
-    std::function<void(SDL_Color * /* frame */)> frameIsUpdatedFunction;
+    std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> frameIsUpdatedFunction;
 };
 
 #endif

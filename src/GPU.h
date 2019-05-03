@@ -1,6 +1,8 @@
 #ifndef GPU_H
 #define GPU_H
 
+#include <array>
+#include <mutex>
 #include <vector>
 #include <SDL.h>
 #include "ColorPalette.h"
@@ -16,6 +18,7 @@
 #define SCREEN_PIXEL_H 144
 #define SCREEN_PIXEL_W 160
 #define SCREEN_FRAMERATE 60
+#define SCREEN_PIXEL_TOTAL SCREEN_PIXEL_H * SCREEN_PIXEL_W
 
 #define TOTAL_SCREEN_PIXEL_H 256
 #define TOTAL_SCREEN_PIXEL_W 256
@@ -54,7 +57,7 @@ public:
 
     void init_color_gb();
     void run(const uint8_t & cpuTicks);
-    SDL_Color * getFrame();
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
     uint8_t readByte(uint16_t pos, bool limit_access = true);
     void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
     std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
@@ -154,6 +157,7 @@ private:
     // Graphics
     bool lcd_status_interrupt_signal;
     bool wait_frame_to_render_window;
+    std::mutex frame_mutex;
 
     SDL_Color frame[SCREEN_PIXEL_W * SCREEN_PIXEL_H];
 

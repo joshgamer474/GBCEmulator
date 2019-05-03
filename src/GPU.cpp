@@ -26,7 +26,10 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 	object_attribute_memory.resize(OAM_SIZE);
     bg_tiles.resize(num_vram_banks);
-	bg_tiles[0].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    for (int i = 0; i < num_vram_banks; i++)
+    {
+        bg_tiles[i].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    }
 
     cgb_bg_to_oam_priority_array.fill(0);
 
@@ -140,8 +143,10 @@ void GPU::init_color_gb()
 	vram_banks.resize(num_vram_banks, std::vector<unsigned char>(VRAM_SIZE, 0));
 
     bg_tiles.resize(num_vram_banks);
-    bg_tiles[0].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
-    bg_tiles[1].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    for (int i = 0; i < num_vram_banks; i++)
+    {
+        bg_tiles[i].resize(NUM_BG_TILE_BLOCKS, std::vector<Tile>(NUM_BG_TILES_PER_BLOCK));
+    }
 
     // Initialize OAM sprite order for CGB
     for (int i = 0; i < OAM_NUM_SPRITES; i++)
@@ -491,23 +496,32 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 	object_display_enable =					(lcd_control & BIT1) ? true : false;
 	bg_display_enable =						(lcd_control & BIT0) ? true : false;
 
-	if (old_lcd_display_enable == true && lcd_display_enable == false)
-	{
-        logger->info("Turning off display, setting lcd_y to 0");
-		lcd_y = 0;
-		update_lcd_status_coincidence_flag();
-        set_lcd_status_mode_flag(GPU_MODE_VBLANK);
-        ticks_accumulated = 0;
-	}
-	else if ((old_lcd_display_enable == false && lcd_display_enable == true))
-	{
-        logger->info("Turning display on, setting lcd_y to 0, old_lcd_display_enable: {0:b}, lcd_display_enable: {1:b}",
-            old_lcd_display_enable,
-            lcd_display_enable);
-		lcd_y = 0;
-		update_lcd_status_coincidence_flag();
-        ticks_accumulated = 0;
-	}
+ //   if (old_lcd_display_enable == true &&
+ //       lcd_display_enable == false)
+ //   {
+ //       logger->info("Turning off display, setting lcd_y to 0");
+ //       lcd_y = 0;
+ //       update_lcd_status_coincidence_flag();
+ //       set_lcd_status_mode_flag(GPU_MODE_VBLANK);
+ //       ticks_accumulated = 0;
+	//}
+	//else if (old_lcd_display_enable == false &&
+ //       lcd_display_enable == true)
+	//{
+ //       logger->info("Turning display on, setting lcd_y to 0, old_lcd_display_enable: {0:b}, lcd_display_enable: {1:b}",
+ //           old_lcd_display_enable,
+ //           lcd_display_enable);
+	//	lcd_y = 0;
+	//	update_lcd_status_coincidence_flag();
+ //       set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+ //       ticks_accumulated = 0;
+	//}
+
+    if (lcd_display_enable == false)
+    {
+        //ticks_accumulated = 0;
+        //set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+    }
 
     if (old_window_display_enable &&
         !window_display_enable &&
@@ -775,6 +789,7 @@ void GPU::drawBackgroundLine()
     uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
     // Draw scanline
+    std::lock_guard<std::mutex> lg(frame_mutex);
     for (uint8_t frame_x = 0; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
         // Get tile offset in tile_map
@@ -839,6 +854,15 @@ void GPU::drawBackgroundLine()
 
         // Get pixel
         const uint8_t & pixel = tile->getPixel(pixel_use_row, pixel_use_col);
+
+        if (frame_x + frame_y_offset > SCREEN_PIXEL_TOTAL)
+        {
+            use_pixel_x++;
+            logger->error("frame_x + frame_y_offset > SCREEN_PIXEL_TOTAL, frame_x: {}, frame_y_offset: {}",
+                frame_x,
+                frame_y_offset);
+            continue;
+        }
 
         // Draw pixel
         if (is_color_gb)
@@ -925,6 +949,7 @@ void GPU::drawWindowLine()
     }
 
     // Draw scanline
+    std::lock_guard<std::mutex> lg(frame_mutex);
     for (uint8_t frame_x = pixel_x_start; frame_x < SCREEN_PIXEL_W; frame_x++)
     {
         use_pixel_x = frame_x - pixel_x_start;
@@ -1027,9 +1052,16 @@ void GPU::drawOAMLine()
         sortNonCGBOAMSpriteOrder();
     }
 
+    std::lock_guard<std::mutex> lg(frame_mutex);
+
     //for (int i = 0; i < object_attribute_memory.size(); i += 4)
     for (const int & i : objects_pos_to_use)
     {
+        //if (i % 2 == 1)
+        //{
+        //    continue;
+        //}
+
         // Parse current sprite's 4 bytes of data
         curr_sprite     = i / 4;
         sprite_y        = object_attribute_memory[i] - 16;
@@ -1037,15 +1069,15 @@ void GPU::drawOAMLine()
         sprite_tile_num = object_attribute_memory[i + 2];
         byte3           = object_attribute_memory[i + 3];
 
-        object_behind_bg    = byte3 & 0x80;
-        sprite_y_flip       = byte3 & 0x40;
-        sprite_x_flip       = byte3 & 0x20;
-        sprite_palette_num  = byte3 & 0x10; // Non CGB Mode only
+        object_behind_bg    = byte3 & BIT7;
+        sprite_y_flip       = byte3 & BIT6;
+        sprite_x_flip       = byte3 & BIT5;
+        sprite_palette_num  = byte3 & BIT4; // Non CGB Mode only
 
         if (is_color_gb)
         {
+            cgb_tile_vram_bank_num = byte3 & BIT3;
             cgb_sprite_palette_num = byte3 & 0x07;
-            cgb_tile_vram_bank_num = byte3 & 0x08;
         }
 
         // Calculate sprite_y_start and sprite_y_end
@@ -1218,6 +1250,8 @@ void GPU::drawOAMLine()
 
 void GPU::renderLine()
 {
+    logger->info("lcd_y: {}", lcd_y);
+
     if (bg_display_enable)
     {
         drawBackgroundLine();
@@ -1375,6 +1409,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
 
 			if (lcd_y > 153)
 			{   // Copy frame into curr_frame for use by external programs
+                std::lock_guard<std::mutex> lg(frame_mutex);
                 std::memcpy(curr_frame, frame, sizeof(SDL_Color) * SCREEN_PIXEL_W * SCREEN_PIXEL_H);
                 frame_is_ready = true;
 				lcd_y = 0;
@@ -1388,7 +1423,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 }
 			}
 
-			ticks_accumulated = 0;
+            ticks_accumulated = 0;
 		}
 		break;
 
@@ -1398,7 +1433,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
 		if (ticks_accumulated >= 80)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
-			ticks_accumulated = 0;
+            ticks_accumulated = 0;
 		}
 		break;
 
@@ -1459,11 +1494,6 @@ Tile * GPU::updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t ti
         bg_tiles_updated = true;
 	}
     return tile;
-}
-
-SDL_Color * GPU::getFrame()
-{
-    return curr_frame;
 }
 
 std::vector<std::vector<std::vector<Tile>>>& GPU::getBGTiles()
@@ -1541,4 +1571,12 @@ void GPU::sortNonCGBOAMSpriteOrder()
     {
         objects_pos_to_use[i] = indices[i] * 4;
     }
+}
+
+std::array<SDL_Color, SCREEN_PIXEL_TOTAL> GPU::getFrame() const
+{
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> array;
+    std::copy(curr_frame, curr_frame + (SCREEN_PIXEL_TOTAL),
+        array.data());
+    return array;
 }
