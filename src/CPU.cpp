@@ -297,8 +297,8 @@ uint8_t CPU::handleInterrupt()
         if ((memory->interrupt_flag & mask) && (memory->interrupt_enable & mask))
         {
             mask = ~mask;
-            //memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
-            memory->interrupt_flag = 0xE0;
+            memory->interrupt_flag &= mask;	// clear bit in interrupt_flag
+            //memory->interrupt_flag = 0xE0;
 
             // PUSH PC after HALT
             PUSH(PC);
@@ -3071,353 +3071,233 @@ std::string CPU::getOpcodeString(uint8_t opcode)
 
     switch (opcode)
     {
-    case 0x00: ret = "NOP"; break;
-    case 0x10: ret = "STOP 0"; break;
-    case 0x76: ret = "HALT"; break;
-    case 0xCB: ret = "PREFIX CB, " + getOpcodeStringCB(getByteFromMemory(get_register_16(PC) + 1)); break;
-    case 0xF3: ret = "DI"; break;
-    case 0xFB: ret = "EI"; break;
-    case 0xC3: ret = "JP " + numToHex(peekNextTwoBytes()); break;
-    case 0x07: ret = "RLCA"; break;
-    case 0x17: ret = "RLA"; break;
-    case 0x27: ret = "DAA"; break;
-    case 0x37: ret = "SCF"; break;
-    case 0x08: ret = "LD (" + numToHex(peekNextTwoBytes()) + "), SP"; break;
-    case 0xE8: ret = "ADD SP, " + numToHex(peekNextByteSigned()); break;
-    case 0xF8: ret = "LD HL, SP+" + numToHex(peekNextByteSigned()); break;
-    case 0xC9: ret = "RET"; break;
-    case 0xD9: ret = "RETI"; break;
-    case 0xE9: ret = "JP (HL)"; break;
-    case 0xF9: ret = "LD SP, HL"; break;
-    case 0xEA: ret = "LD (" + numToHex(peekNextTwoBytes()) + "), A"; break;
-    case 0xFA: ret = "LD A, (" + numToHex(peekNextTwoBytes()) + ")"; break;
-    case 0xCE: ret = "ADC A, " + numToHex(peekNextByte()); break;
-    case 0xDE: ret = "SBC A, " + numToHex(peekNextByte()); break;
-    case 0xEE: ret = "XOR " + numToHex(peekNextByte()); break;
-    case 0xFE: ret = "CP " + numToHex(peekNextByte()); break;
-    case 0x0F: ret = "RRCA"; break;
-    case 0x1F: ret = "RRA"; break;
-    case 0x2F: ret = "CPL"; break;
-    case 0x3F: ret = "CCF"; break;
+        // 0x00-0x3F
+    case 0x00: return "NOP";
+    case 0x10: return "STOP 0";
+    case 0x20: return "JP NZ, " + peekNextByteSigned();
+    case 0x30: return "JP NC, " + peekNextByteSigned();
 
-    default:
-        // Row matching, opcodes 0x40 - 0xBF
-        switch (upper8)
-        {
-        case 0x04:
-        case 0x05:
-        case 0x06:
-			ret = "LD " + REGISTERS_STR[reg_list[regPattern1]] + ", " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-			break;
-        case 0x07:
-			if (lower8 <= 0x05)
-			{
-				ret = "LD (HL), " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-			}
-			else
-			{
-				ret = "LD A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-			}
-			break;
+    case 0x01: return "LD BC, " + numToHex(peekNextTwoBytes());
+    case 0x11: return "LD DE, " + numToHex(peekNextTwoBytes());
+    case 0x21: return "LD HL, " + numToHex(peekNextTwoBytes());
+    case 0x31: return "LD SP, " + numToHex(peekNextTwoBytes());
 
-        case 0x08:
-            if (lower8 <= 0x07)
-            {
-                ret = "ADD A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            else
-            {
-                ret = "ADC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            break;
+    case 0x02: return "LD (BC), A";
+    case 0x12: return "LD (DE), A";
+    case 0x22: return "LD (HL+), A";
+    case 0x32: return "LD (HL-), A";
 
-        case 0x09:
-            if (lower8 <= 0x07)
-            {
-                ret = "SUB " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            else
-            {
-                ret = "SBC A, " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            break;
+    case 0x03: return "INC BC";
+    case 0x13: return "INC DE";
+    case 0x23: return "INC HL";
+    case 0x33: return "INC SP";
 
-        case 0x0A:
-            if (lower8 <= 0x07)
-            {
-                ret = "AND " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            else
-            {
-                ret = "XOR " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            break;
+    case 0x04: return "INC B";
+    case 0x14: return "INC D";
+    case 0x24: return "INC H";
+    case 0x34: return "INC (HL)";
 
-        case 0x0B:
-            if (lower8 <= 0x07)
-            {
-                ret = "OR " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            else
-            {
-                ret = "CP " + REGISTERS_STR[REGISTERS::B + regPattern2]; break;
-            }
-            break;
+    case 0x05: return "DEC B";
+    case 0x15: return "DEC D";
+    case 0x25: return "DEC H";
+    case 0x35: return "DEC (HL)";
 
-        } // end switch(upper8)
+    case 0x06: return "LD B, " + numToHex(peekNextByte());
+    case 0x16: return "LD D, " + numToHex(peekNextByte());
+    case 0x26: return "LD H, " + numToHex(peekNextByte());
+    case 0x36: return "LD (HL), " + numToHex(peekNextByte());
 
+    case 0x07: return "RLCA";
+    case 0x17: return "RLA";
+    case 0x27: return "DAA";
+    case 0x37: return "SCF";
 
-        // Column matching
-        switch (lower8)
-        {
-        case 0x00:
-            if (upper8 >= 0x2 && upper8 <= 0x3)
-            {
-                ret = "JR " + FLAGTYPES_STR[upper8 - 2] + ", " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
-            }
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "RET " + FLAGTYPES_STR[upper8 - 0xC]; break;
-            }
-            else if (upper8 == 0xE)
-            {
-                ret = "LD (0xFF00 + " + numToHex(peekNextByte()) + "), A"; break;
-            }
-            else if (upper8 == 0xF)
-            {
-                ret = "LD A, (0xFF00 + " + numToHex(peekNextByte()) + ")"; break;
-            }
-            break;
+    case 0x08: return "LD (" + numToHex(peekNextTwoBytes()) + "), SP";
+    case 0x18: return "JR " + std::to_string(peekNextByteSigned());
+    case 0x28: return "JR Z, " + std::to_string(peekNextByteSigned());
+    case 0x38: return "JR C, " + std::to_string(peekNextByteSigned());
 
-        case 0x01:
-            if (upper8 <= 0x2)
-            {
-                ret = "LD " + REGISTERS_STR[upper8] + ", " + numToHex(peekNextTwoBytes()); break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "LD SP, " + numToHex(peekNextTwoBytes()); break;
-            }
-            else if (upper8 >= 0xC)
-            {
-                ret = "POP " + REGISTERS_STR[upper8 - 0xC]; break;
-            }
-            break;
+    case 0x09: return "ADD HL, BC";
+    case 0x19: return "ADD HL, DE";
+    case 0x29: return "ADD HL, HL";
+    case 0x39: return "ADD HL, SP";
 
-        case 0x02:
-            if (upper8 <= 0x1)
-            {
-                ret = "LD (" + REGISTERS_STR[upper8] + "), A"; break;
-            }
-            else if (upper8 >= 0x2 && upper8 <= 0x3)
-            {
+    case 0x0A: return "LD A, (BC)";
+    case 0x1A: return "LD A, (DE)";
+    case 0x2A: return "LD A, (HL+)";
+    case 0x3A: return "LD A, (HL-)";
 
-                if (upper8 == 0x2)
-                {
-                    temp = "+";
-                }
-                else if (upper8 == 0x3)
-                {
-                    temp = "-";
-                }
-                ret = "LD (HL" + temp + "), A"; break;
-            }
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "JP " + REGISTERS_STR[upper8 - 0xC] + ", " + numToHex(peekNextTwoBytes()); break;
-            }
-            else if (upper8 == 0xE)
-            {
-                ret = "LD (C), A"; break;
-            }
-            else if (upper8 == 0xF)
-            {
-                ret = "LD A, (C)"; break;
-            }
-            break;
+    case 0x0B: return "DEC BC";
+    case 0x1B: return "DEC DE";
+    case 0x2B: return "DEC HL";
+    case 0x3B: return "DEC SP";
 
-        case 0x03:
-            if (upper8 <= 0x2)
-            {
-                ret = "INC " + REGISTERS_STR[upper8]; break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "INC SP"; break;
-            }
-            break;
+    case 0x0C: return "INC C";
+    case 0x1C: return "INC E";
+    case 0x2C: return "INC L";
+    case 0x3C: return "INC A";
 
-        case 0x04:
-            if (upper8 <= 0x2)
-            {
-                ret = "INC " + REGISTERS_STR[CPU::REGISTERS::B + (2 * upper8)]; break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "INC (HL)"; break;
-            }
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xC] + ", " + numToHex(peekNextTwoBytes()); break;
-            }
-            break;
+    case 0x0D: return "DEC C";
+    case 0x1D: return "DEC E";
+    case 0x2D: return "DEC L";
+    case 0x3D: return "DEC A";
 
-        case 0x05:
-            if (upper8 <= 0x2)
-            {
-                ret = "DEC " + REGISTERS_STR[CPU::REGISTERS::B + (2 * upper8)]; break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "DEC (HL)"; break;
-            }
-            else if (upper8 >= 0xC)
-            {
-                ret = "PUSH " + REGISTERS_STR[upper8 - 0xC]; break;
-            }
-            break;
+    case 0x0E: return "LD C, " + numToHex(peekNextByte());
+    case 0x1E: return "LD E, " + numToHex(peekNextByte());
+    case 0x2E: return "LD L, " + numToHex(peekNextByte());
+    case 0x3E: return "LD A, " + numToHex(peekNextByte());
 
-        case 0x06:
-            if (upper8 <= 0x2)
-            {
-                ret = "LD " + REGISTERS_STR[upper8] + ", " + numToHex(peekNextByte()); break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "LD (HL), " + numToHex(peekNextByte()); break;
-            }
-            else
-            {
-                switch (upper8)
-                {
-                case 0xC: ret = "ADD A, " + numToHex(peekNextByte()); break;
-                case 0xD: ret = "SUB "  + numToHex(peekNextByte()); break;
-                case 0xE: ret = "AND "  + numToHex(peekNextByte()); break;
-                case 0xF: ret = "OR "   + numToHex(peekNextByte()); break;
-                }
-				break;
-            }
-            break;
+    case 0x0F: return "RRCA";
+    case 0x1F: return "RRA";
+    case 0x2F: return "CPL";
+    case 0x3F: return "CCF";
 
-        case 0x07:
-            if (upper8 >= 0x0C)
-            {
-                ret = "RST " + std::to_string(upper8 - 0xC) + "0H"; break;
-            }
-            break;
+        // 0x40-0x7F
+    case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45:
+        return "LD B, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x46: return "LD B, (HL)";
+    case 0x47: return "LD B, A";
+    case 0x48: case 0x49: case 0x4A: case 0x4B: case 0x4C: case 0x4D:
+        return "LD C, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x4E: return "LD C, (HL)";
+    case 0x4F: return "LD C, A";
 
-        case 0x08:
-            if (upper8 == 0x1)
-            {
-                ret = "JR " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
-            }
-            else if (upper8 >= 0x2 && upper8 <= 0x3)
-            {
-                ret = "JR " + FLAGTYPES_STR[upper8] + ", " + numToHex(static_cast<int16_t>(get_register_16(PC) + peekNextByteSigned() + 2)); break;
-            }
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "RET " + FLAGTYPES_STR[upper8 - 0xA]; break;
-            }
-            break;
+    case 0x50: case 0x51: case 0x52: case 0x53: case 0x54: case 0x55:
+        return "LD D, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x56: return "LD D, (HL)";
+    case 0x57: return "LD D, A";
+    case 0x58: case 0x59: case 0x5A: case 0x5B: case 0x5C: case 0x5D:
+        return "LD E, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x5E: return "LD E, (HL)";
+    case 0x5F: return "LD E, A";
 
-        case 0x09:
-            if (upper8 >= 0 && upper8 <= 0x2)
-            {
-                ret = "ADD HL, " + REGISTERS_STR[upper8]; break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "ADD HL, SP"; break;
-            }
-            break;
+    case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65:
+        return "LD H, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x66: return "LD H, (HL)";
+    case 0x67: return "LD H, A";
+    case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D:
+        return "LD L, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x6E: return "LD L, (HL)";
+    case 0x6F: return "LD L, A";
 
-        case 0x0A:
-            if (upper8 >= 0 && upper8 <= 0x1)
-            {
-                ret = "LD A, (" + REGISTERS_STR[upper8] + ")"; break;
-            }
-            else if (upper8 >= 0x2 && upper8 <= 0x3)
-            {
-                if (upper8 == 0x2)
-                {
-                    temp = "+";
-                }
-                else if (upper8 == 0x3)
-                {
-                    temp = "-";
-                }
-                ret = "LD A, (HL" + temp + ")"; break;
-            }
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "JP " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes()); break;
-            }
-            break;
+    case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75:
+        return "LD (HL), " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x76: return "HALT";
+    case 0x77: return "LD (HL), A";
+    case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D:
+        return "LD A, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x7E: return "LD A, (HL)";
+    case 0x7F: return "LD A, A";
 
-        case 0x0B:
-            if (upper8 >= 0 && upper8 <= 0x2)
-            {
-                ret = "DEC " + REGISTERS_STR[upper8]; break;
-            }
-            else if (upper8 == 0x3)
-            {
-                ret = "DEC SP"; break;
-            }
-            break;
+        // 0x80-0xBF
+    case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
+        return "ADD A, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x86: return "ADD A, (HL)";
+    case 0x87: return "ADD A, A";
+    case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D:
+        return "ADC A, " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x8E: return "ADC A, (HL)";
+    case 0x8F: return "ADC A, A";
 
-        case 0x0C:
-            if (upper8 >= 0 && upper8 <= 0x2)
-            {
-                ret = "INC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
-            }
-			else if (upper8 == 0x3)
-			{
-				ret = "INC A"; break;
-			}
-            else if (upper8 >= 0xC && upper8 <= 0xD)
-            {
-                ret = "CALL " + FLAGTYPES_STR[upper8 - 0xA] + ", " + numToHex(peekNextTwoBytes());; break;
-            }
-            break;
+    case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95:
+        return "SUB " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x96: return "SUB (HL)";
+    case 0x97: return "SUB A";
+    case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D:
+        return "SBC " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0x9E: return "SBC (HL)";
+    case 0x9F: return "SBC A";
 
-        case 0x0D:
-            if (upper8 >= 0 && upper8 <= 0x2)
-            {
-                ret = "DEC " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)]; break;
-            }
-			else if (upper8 == 0x3)
-			{
-				ret = "DEC A"; break;
-			}
-            else if (upper8 == 0xC)
-            {
-                ret = "CALL " + numToHex(peekNextTwoBytes());; break;
-            }
-            break;
+    case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:
+        return "AND " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0xA6: return "AND (HL)";
+    case 0xA7: return "AND A";
+    case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD:
+        return "XOR " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0xAE: return "XOR (HL)";
+    case 0xAF: return "XOR A";
 
-        case 0x0E:
-            if (upper8 >= 0 && upper8 <= 0x2)
-            {
-                ret = "LD " + REGISTERS_STR[REGISTERS::C + (upper8 * 2)] + ", " + numToHex(peekNextByte()); break;
-			}
-			else if (upper8 == 0x3)
-			{
-				ret = "LD A, " + numToHex(peekNextByte()); break;
-			}
-            break;
+    case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5:
+        return "OR " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0xB6: return "OR (HL)";
+    case 0xB7: return "OR A";
+    case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD:
+        return "CP " + REGISTERS_STR[REGISTERS::B + regPattern2];
+    case 0xBE: return "CP (HL)";
+    case 0xBF: return "CP A";
 
-        case 0x0F:
-            if (upper8 >= 0xC)
-            {
-                ret = "RST " + std::to_string(upper8 - 0xC) + "8H"; break;
-            }
-            break;
+    // 0xC0-0xFF
+    case 0xC0: return "RET NZ";
+    case 0xD0: return "RET NC";
+    case 0xE0: return "LDH (0xFF00 + " + numToHex(peekNextByte()) + ", A";
+    case 0xF0: return "LDH A, (0xFF00 + " + numToHex(peekNextByte()) + ")";
 
-        } // end switch(lower8)
+    case 0xC1: return "POP BC";
+    case 0xD1: return "POP DE";
+    case 0xE1: return "POP HL";
+    case 0xF1: return "POP AF";
+
+    case 0xC2: return "JP NZ, " + numToHex(peekNextTwoBytes());
+    case 0xD2: return "JP NC, " + numToHex(peekNextTwoBytes());
+    case 0xE2: return "LD (C), A";
+    case 0xF2: return "LD A, (C)";
+
+    case 0xC3: return "JP " + numToHex(peekNextTwoBytes());
+    case 0xF3: return "DI";
+
+    case 0xC4: return "CALL NZ, " + numToHex(peekNextTwoBytes());
+    case 0xD4: return "CALL NC, " + numToHex(peekNextTwoBytes());
+
+    case 0xC5: return "PUSH BC";
+    case 0xD5: return "PUSH DE";
+    case 0xE5: return "PUSH HL";
+    case 0xF5: return "PUSH AF";
+
+    case 0xC6: return "ADD A, " + numToHex(peekNextByte());
+    case 0xD6: return "SUB " + numToHex(peekNextByte());
+    case 0xE6: return "AND " + numToHex(peekNextByte());
+    case 0xF6: return "OR " + numToHex(peekNextByte());
+
+    case 0xC7: return "RST 0x00";
+    case 0xD7: return "RST 0x10";
+    case 0xE7: return "RST 0x20";
+    case 0xF7: return "RST 0x30";
+
+    case 0xC8: return "RET Z";
+    case 0xD8: return "RET C";
+    case 0xE8: return "ADD SP, " + peekNextByteSigned();
+    case 0xF8: return "LD HL, SP + " + peekNextByteSigned();
+
+    case 0xC9: return "RET";
+    case 0xD9: return "RETI";
+    case 0xE9: return "JP (HL)";
+    case 0xF9: return "LD SP, HL";
+
+    case 0xCA: return "JP Z, " + numToHex(peekNextTwoBytes());
+    case 0xDA: return "JP C, " + numToHex(peekNextTwoBytes());
+    case 0xEA: return "LD (" + numToHex(peekNextTwoBytes()) + ") , A";
+    case 0xFA: return "LD A, (" + numToHex(peekNextTwoBytes()) + ")";
+
+    case 0xCB: return "PREFIX CB, " + getOpcodeStringCB(peekNextByte());
+    case 0xFB: return "EI";
+
+    case 0xCC: return "CALL Z, " + numToHex(peekNextTwoBytes());
+    case 0xDC: return "CALL C, " + numToHex(peekNextTwoBytes());
+
+    case 0xCD: return "CALL " + numToHex(peekNextTwoBytes());
+
+    case 0xCE: return "ADC A, " + numToHex(peekNextByte());
+    case 0xDE: return "SBC A, " + numToHex(peekNextByte());
+    case 0xEE: return "XOR " + numToHex(peekNextByte());
+    case 0xFE: return "CP " + numToHex(peekNextByte());
+
+    case 0xCF: return "RST 0x08";
+    case 0xDF: return "RST 0x18";
+    case 0xEF: return "RST 0x28";
+    case 0xFF: return "RST 0x38";
+
+    default: return "Unknown";
     }
-
-    return ret;
 }
 
 std::string CPU::getOpcodeStringCB(uint8_t opcode)
@@ -3453,60 +3333,60 @@ std::string CPU::getOpcodeStringCB(uint8_t opcode)
     case 0x00:
         if (lower8 <= 0x7)
         {
-            ret = "RLC " + temp; break;
+            return "RLC " + temp;
         }
         else if (lower8 >= 0x8)
         {
-            ret = "RRC " + temp; break;
+            return "RRC " + temp;
         }
 
     case 0x01:
         if (lower8 <= 0x7)
         {
-            ret = "RL " + temp; break;
+            return "RL " + temp;
         }
         else if (lower8 >= 0x8)
         {
-            ret = "RR " + temp; break;
+            return "RR " + temp;
         }
 
     case 0x02:
         if (lower8 <= 0x7)
         {
-            ret = "SLA " + temp; break;
+            return "SLA " + temp;
         }
         else if (lower8 >= 0x8)
         {
-            ret = "SRA " + temp; break;
+            return "SRA " + temp;
         }
 
     case 0x03:
         if (lower8 <= 0x7)
         {
-            ret = "SWAP " + temp; break;
+            return "SWAP " + temp;
         }
         else if (lower8 >= 0x8)
         {
-            ret = "SRL " + temp; break;
+            return "SRL " + temp;
         }
 
     case 0x04:
     case 0x05:
     case 0x06:
     case 0x07:
-        ret = "BIT " + temp; break;
+        return "BIT " + temp;
 
     case 0x08:
     case 0x09:
     case 0x0A:
     case 0x0B:
-        ret = "RES " + temp; break;
+        return "RES " + temp;
 
     case 0x0C:
     case 0x0D:
     case 0x0E:
     case 0x0F:
-        ret = "SET " + temp; break;
+        return "SET " + temp;
 
     default:
         ret = "UNKNOWN"; break;
