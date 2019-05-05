@@ -496,26 +496,26 @@ void GPU::set_lcd_control(unsigned char lcdControl)
 	object_display_enable =					(lcd_control & BIT1) ? true : false;
 	bg_display_enable =						(lcd_control & BIT0) ? true : false;
 
- //   if (old_lcd_display_enable == true &&
- //       lcd_display_enable == false)
- //   {
- //       logger->info("Turning off display, setting lcd_y to 0");
- //       lcd_y = 0;
- //       update_lcd_status_coincidence_flag();
- //       set_lcd_status_mode_flag(GPU_MODE_VBLANK);
- //       ticks_accumulated = 0;
-	//}
-	//else if (old_lcd_display_enable == false &&
- //       lcd_display_enable == true)
-	//{
- //       logger->info("Turning display on, setting lcd_y to 0, old_lcd_display_enable: {0:b}, lcd_display_enable: {1:b}",
- //           old_lcd_display_enable,
- //           lcd_display_enable);
-	//	lcd_y = 0;
-	//	update_lcd_status_coincidence_flag();
- //       set_lcd_status_mode_flag(GPU_MODE_HBLANK);
- //       ticks_accumulated = 0;
-	//}
+    if (old_lcd_display_enable == true &&
+        lcd_display_enable == false)
+    {
+        logger->info("Turning off display, setting lcd_y to 0");
+        lcd_y = 0;
+        update_lcd_status_coincidence_flag();
+        set_lcd_status_mode_flag(GPU_MODE_VBLANK);
+        ticks_accumulated = 0;
+	}
+	else if (old_lcd_display_enable == false &&
+        lcd_display_enable == true)
+	{
+        logger->info("Turning display on, setting lcd_y to 0, old_lcd_display_enable: {0:b}, lcd_display_enable: {1:b}",
+            old_lcd_display_enable,
+            lcd_display_enable);
+		lcd_y = 0;
+		update_lcd_status_coincidence_flag();
+        set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+        ticks_accumulated = 0;
+	}
 
     if (lcd_display_enable == false)
     {
@@ -561,6 +561,10 @@ void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
 {
     int prev_gpu_mode = gpu_mode;
     gpu_mode = mode;
+
+    logger->debug("Changing GPU mode to: %s, previous GPU mode: %s",
+        getGPUModeStr((GPU_MODE)prev_gpu_mode).c_str(),
+        getGPUModeStr((GPU_MODE)gpu_mode).c_str());
 
     // Clear bits 0 and 1
     lcd_status &= 0xFC;
@@ -1250,6 +1254,11 @@ void GPU::drawOAMLine()
 
 void GPU::renderLine()
 {
+    if (lcd_y > 144)
+    {
+        return;
+    }
+
     logger->info("lcd_y: {}", lcd_y);
 
     if (bg_display_enable)
@@ -1579,4 +1588,17 @@ std::array<SDL_Color, SCREEN_PIXEL_TOTAL> GPU::getFrame() const
     std::copy(curr_frame, curr_frame + (SCREEN_PIXEL_TOTAL),
         array.data());
     return array;
+}
+
+std::string GPU::getGPUModeStr(GPU_MODE mode) const
+{
+    switch (mode)
+    {
+    case GPU_MODE::GPU_MODE_HBLANK: return "HBLANK";
+    case GPU_MODE::GPU_MODE_VBLANK: return "VBLANK";
+    case GPU_MODE::GPU_MODE_OAM:    return "OAM";
+    case GPU_MODE::GPU_MODE_VRAM:   return "VRAM";
+    case GPU_MODE::GPU_MODE_NONE:   return "NONE";
+    default: return "Unknown";
+    }
 }

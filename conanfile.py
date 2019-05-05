@@ -11,16 +11,16 @@ class GBCEmulator(ConanFile):
                 "arch": ["x86", "x86_64"],
                 "compiler": ["Visual Studio", "gcc"],
                 "build_type": ["Debug", "Release"],
-                "cppstd": ["17"]}
+                "cppstd": ["14", "17"]}
     options = {"shared": [True, False]}
     generators = "cmake"
     requires = (
         "sdl2/2.0.9@bincrafters/stable",
         "spdlog/1.2.1@bincrafters/stable",
         "gtest/1.8.1@bincrafters/stable",
-        "libpng/1.6.36@bincrafters/stable",
+        "libpng/1.6.34@bincrafters/stable",
         )
-    exports_sources = "src/*", "CMakeLists.txt"
+    exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False"
 
     def configure(self):

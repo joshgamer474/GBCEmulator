@@ -121,7 +121,7 @@ void EmuView::setupFPSCounting()
 
 void EmuView::runEmulator()
 {
-    if (thread)
+    if (thread && thread->joinable())
     {
         logger->trace("Stopping GBCEmulator thread");
         thread->join();
@@ -160,7 +160,7 @@ void EmuView::initFrame()
     logger->trace("Initializing QImage frame, setting up frame getting function to GBCEmulator");
 
     // Create QImage frame
-    frame = std::make_unique<QImage>(reinterpret_cast<unsigned char*>(emu->get_frame()),
+    frame = std::make_unique<QImage>(reinterpret_cast<unsigned char*>(emu->getFrameRaw()),
         SCREEN_PIXEL_W,
         SCREEN_PIXEL_H,
         QImage::Format_RGBA8888);
@@ -236,4 +236,49 @@ void EmuView::updateScene()
     this->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
     this->addPixmap(frame_pixmap);
     this->setSceneRect(frame_pixmap.rect());
+}
+
+void EmuView::takeSaveState()
+{
+    if (!emu)
+    {
+        return;
+    }
+
+    // Stop the emulator first so we don't save it while running
+    emu->setStopRunning(true);
+    if (emu_savestate)
+    {
+        emu_savestate.reset();
+    }
+
+    // Create emulator savestate
+    emu_savestate = std::make_shared<GBCEmulator>(emu->getROMName(), emu->getROMName() + ".log");
+
+    // Copy current emulator into emulator savestate
+    *emu_savestate.get() = *emu.get();
+
+    // Start emulator again
+    runEmulator();
+}
+
+void EmuView::loadSaveState()
+{
+    if (!emu_savestate || !emu)
+    {   // Need a save state and an emulator to load a savestate
+        return;
+    }
+
+    emu->stop();
+    if (thread && thread->joinable())
+    {
+        // Close emulator thread
+        thread->join();
+    }
+
+    // Load emulator savestate into emulator
+    *emu.get() = *emu_savestate.get();
+
+    // Start emulator again
+    runEmulator();
 }

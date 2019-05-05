@@ -70,6 +70,8 @@ public:
     std::string getROMName() const;
 
     void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
+    SDL_Color* getFrameRaw() const;
     static uint64_t calculateFrameHash(SDL_Color* frame);
     static uint64_t calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame);
     void saveFrameToPNG(std::experimental::filesystem::path filepath);

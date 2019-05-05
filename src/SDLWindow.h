@@ -35,6 +35,8 @@ private:
     void init();
     void startEmulator();
     void updateWindowTitle(const std::string & framerate);
+    void takeSaveState();
+    void loadSaveState();
 
     std::shared_ptr<GBCEmulator> emu;
     std::shared_ptr<GBCEmulator> emu_savestate;

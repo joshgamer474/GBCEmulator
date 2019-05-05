@@ -213,7 +213,7 @@ void GBCEmulator::runNextInstruction()
 
         if (gpu->frame_is_ready)
         {
-            frameIsUpdatedFunction();
+            frameIsUpdatedFunction(gpu->getFrame());
             gpu->frame_is_ready = false;
         }
 
@@ -401,6 +401,24 @@ void GBCEmulator::setTimePerFrame(double d)
 void GBCEmulator::setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function)
 {
     frameIsUpdatedFunction = function;
+}
+
+std::array<SDL_Color, SCREEN_PIXEL_TOTAL> GBCEmulator::getFrame() const
+{
+    if (gpu)
+    {
+        return gpu->getFrame();
+    }
+    return std::array<SDL_Color, SCREEN_PIXEL_TOTAL>();
+}
+
+SDL_Color* GBCEmulator::getFrameRaw() const
+{
+    if (gpu)
+    {
+        return gpu->curr_frame;
+    }
+    return NULL;
 }
 
 std::string GBCEmulator::getROMName() const

@@ -95,6 +95,7 @@ private:
     void set_lcd_control(unsigned char lcd_control);
     void set_lcd_status(unsigned char lcd_status);
     void set_lcd_status_mode_flag(GPU_MODE);
+    std::string getGPUModeStr(GPU_MODE mode) const;
     void update_lcd_status_coincidence_flag();
     void printFrame();
 

@@ -39,6 +39,7 @@ public:
     uint8_t scaleFrameToFit();
 
     std::shared_ptr<GBCEmulator> emu;
+    std::shared_ptr<GBCEmulator> emu_savestate;
     QGraphicsView  *emuView;
     std::unique_ptr<QImage> frame;
     QPixmap frame_pixmap;
@@ -49,6 +50,10 @@ public:
 
 Q_SIGNALS:
     void updateFPS(QString fps);
+
+public slots:
+    void takeSaveState();
+    void loadSaveState();
 
 private:
     int hashImage(const QImage & p);

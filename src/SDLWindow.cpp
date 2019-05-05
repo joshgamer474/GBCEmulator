@@ -3,7 +3,7 @@
 #include <SDL_thread.h>
 
 SDLWindow::SDLWindow()
-    : ScreenInterface()
+    :   ScreenInterface()
 {
     init();
 }
@@ -148,37 +148,12 @@ int SDLWindow::run()
             case SDLK_n: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
             case SDLK_r:
             {
-                if (!emu_savestate || !emu)
-                {
-                    break;
-                }
-
-                emu->stop();
-                if (emu_thread.joinable())
-                {
-                    // Close emulator thread
-                    emu_thread.join();
-                }
-
-                // Load emulator savestate into emulator
-                *emu.get() = *emu_savestate.get();
-
-                hookToEmulator(emu);
-                startEmulator();
+                loadSaveState();
                 break;
             }
             case SDLK_t:
             {
-                if (emu_savestate)
-                {
-                    emu_savestate.reset();
-                }
-
-                // Create emulator savestate
-                emu_savestate = std::make_shared<GBCEmulator>(emu->getROMName(), emu->getROMName() + ".log");
-
-                // Copy current emulator into emulator savestate
-                *emu_savestate.get() = *emu.get();
+                takeSaveState();
                 break;
             }
             }
@@ -285,4 +260,49 @@ bool SDLWindow::romIsValid(const std::string& filepath)
     }
 
     return ret;
+}
+
+void SDLWindow::takeSaveState()
+{
+    if (!emu)
+    {
+        return;
+    }
+
+    // Stop the emulator first so we don't save it while running
+    emu->setStopRunning(true);
+    if (emu_savestate)
+    {
+        emu_savestate.reset();
+    }
+
+    // Create emulator savestate
+    emu_savestate = std::make_shared<GBCEmulator>(emu->getROMName(), emu->getROMName() + ".log");
+
+    // Copy current emulator into emulator savestate
+    *emu_savestate.get() = *emu.get();
+
+    // Start emulator again
+    startEmulator();
+}
+
+void SDLWindow::loadSaveState()
+{
+    if (!emu_savestate || !emu)
+    {   // Need a save state and an emulator to load a savestate
+        return;
+    }
+
+    emu->stop();
+    if (emu_thread.joinable())
+    {
+        // Close emulator thread
+        emu_thread.join();
+    }
+
+    // Load emulator savestate into emulator
+    *emu.get() = *emu_savestate.get();
+
+    hookToEmulator(emu);
+    startEmulator();
 }
