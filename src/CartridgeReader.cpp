@@ -14,6 +14,29 @@ CartridgeReader::~CartridgeReader()
     logger.reset();
 }
 
+CartridgeReader& CartridgeReader::operator=(const CartridgeReader& rhs)
+{   // Copy from rhs
+    num_ROM_banks       = rhs.num_ROM_banks;
+    num_RAM_banks       = rhs.num_RAM_banks;
+    is_bios             = rhs.is_bios;
+    romBuffer           = rhs.romBuffer;
+    cartridgeFilename   = rhs.cartridgeFilename;
+
+    // Information about the cartridge
+    memcpy(game_title, rhs.game_title, 16);
+    memcpy(manufacturer_code, rhs.manufacturer_code, 4);
+    cgb_flag            = rhs.cgb_flag;
+    sgb_flag            = rhs.sgb_flag;
+    cartridge_type      = rhs.cartridge_type;
+    rom_size            = rhs.rom_size;
+    ram_size            = rhs.ram_size;
+    destination_code    = rhs.destination_code;
+    game_version        = rhs.game_version;
+    header_checksum     = rhs.header_checksum;
+
+    return *this;
+}
+
 void CartridgeReader::setRomDestination(std::string filename)
 {
 	cartridgeFilename = filename;
@@ -49,13 +72,10 @@ bool CartridgeReader::readRom()
             std::istream_iterator<unsigned char>(rom),
             std::istream_iterator<unsigned char>());
 
-        // std::vector<unsigned char> romBufferr((std::istreambuf_iterator<char>(rom)), (std::istreambuf_iterator<char>()));
-        // romBuffer = romBufferr;
-
         // Read information from cartridge
         getCartridgeInformation();
         logger->info("Finished reading in {}", game_title);
-        
+
         rom.close();
         return true;
 	}
@@ -104,26 +124,14 @@ void CartridgeReader::getCartridgeInformation()
  	header_checksum     = romBuffer[0x014D];
 }
 
-bool CartridgeReader::getColorGBFlag()
+bool CartridgeReader::getColorGBFlag() const
 {
 	return cgb_flag;
 }
 
-bool CartridgeReader::isColorGB()
+bool CartridgeReader::isColorGB() const
 {
     return cgb_flag & 0x80;
-}
-
-std::uint8_t CartridgeReader::readByte(std::uint16_t pos)
-{
-	logger->info("Reading byte from pos 0x{0:x}", pos);
-	return romBuffer[pos];
-}
-
-void CartridgeReader::setByte(std::uint16_t pos, uint8_t val)
-{
-	logger->info("Writing byte 0x{0:x} to pos 0x{1:x}", val, pos);
-	romBuffer[pos] = val;
 }
 
 
@@ -317,7 +325,13 @@ void CartridgeReader::setRumble(unsigned char cartridge_type)
     }
 }
 
-int CartridgeReader::getMBCNum()
+int CartridgeReader::getMBCNum() const
 {
     return cartridgeType.mbc;
+}
+
+void CartridgeReader::freeRom()
+{
+    romBuffer.resize(0);
+    romBuffer.shrink_to_fit();
 }

@@ -63,6 +63,12 @@ target_link_libraries(GBCEmulator
     ${CONAN_TARGETS}
     ${CONAN_LIB})
 
+# Add std::experimental::filesystem
+if(UNIX)
+    target_link_libraries(GBCEmulator
+        stdc++fs)
+endif(UNIX)
+
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
@@ -82,3 +88,8 @@ include_directories(${CONAN_INCLUDE_DIRS}
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
 
+# Enable unit testing
+enable_testing()
+
+# Add unit tests
+add_subdirectory(test_package)

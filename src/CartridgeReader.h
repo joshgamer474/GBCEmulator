@@ -11,18 +11,18 @@ class CartridgeReader
 {
 public:
 	CartridgeReader(std::shared_ptr<spdlog::logger> logger);
-	~CartridgeReader();
+	virtual ~CartridgeReader();
+    CartridgeReader& operator=(const CartridgeReader& rhs);
 
 	void setRomDestination(std::string filename);
 	bool readRom();
+    void freeRom();
 	void getCartridgeInformation();
-	bool getColorGBFlag();
-    int getMBCNum();
-    bool isColorGB();
-	void setByte(std::uint16_t pos, uint8_t val);
-	std::uint8_t readByte(std::uint16_t pos);
+    bool getColorGBFlag() const;
+    int getMBCNum() const;
+    bool isColorGB() const;
 
-	unsigned char bios[256] = {
+	const unsigned char bios[256] = {
         0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
         0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
         0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1A, 0xCD, 0x95, 0x00, 0xCD, 0x96, 0x00, 0x13, 0x7B,
@@ -41,11 +41,12 @@ public:
         0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
     };
 
-	int num_ROM_banks;
-	int num_RAM_banks;
-	bool is_bios;
-	std::shared_ptr<spdlog::logger> logger;
-	std::vector<unsigned char> romBuffer;
+    std::shared_ptr<spdlog::logger> logger;
+    std::vector<unsigned char> romBuffer;
+    std::string cartridgeFilename;
+    int num_ROM_banks;
+    int num_RAM_banks;
+    bool is_bios;
 
 private:
     struct CartridgeType
@@ -66,7 +67,6 @@ private:
     void setRumble(unsigned char cartridge_type);
 
 	CartridgeType cartridgeType;
-    std::string cartridgeFilename;
 
     // Information about the cartridge
     unsigned char game_title[16];

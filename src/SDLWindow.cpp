@@ -1,13 +1,16 @@
 #include <SDLWindow.h>
 #include <algorithm>
+#include <SDL_thread.h>
 
 SDLWindow::SDLWindow()
+    :   ScreenInterface()
 {
     init();
 }
 
 SDLWindow::~SDLWindow()
 {
+    std::lock_guard<std::mutex> lg(renderer_mutex);
     SDL_GL_DeleteContext(glContext);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -70,11 +73,17 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     joypadx = std::make_shared<JoypadXInput>(joypad);   // Joypad XInput support
 }
 
-void SDLWindow::display(SDL_Color * frame)
+void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    //updateWindowTitle(std::to_string(emu->frameTimeMicro.count()));    // Turn microseconds into milliseconds
+    updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
 
-    SDL_UpdateTexture(screen_texture, NULL, frame, SCREEN_PIXEL_W * sizeof(SDL_Color));
+    if (!renderer)
+    {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lg(renderer_mutex);
+    SDL_UpdateTexture(screen_texture, NULL, frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
     //SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
@@ -112,6 +121,11 @@ int SDLWindow::run()
             // Check file extension for valid game type
             if (romIsValid(romNameStr))
             {
+                if (emu)
+                {
+                    emu->stop();
+                }
+
                 emu = std::make_shared<GBCEmulator>(romNameStr, romNameStr + ".log");
                 hookToEmulator(emu);
                 startEmulator();
@@ -132,6 +146,16 @@ int SDLWindow::run()
             case SDLK_x: joypad->set_joypad_button(Joypad::BUTTON::B);      break;
             case SDLK_m: joypad->set_joypad_button(Joypad::BUTTON::START);  break;
             case SDLK_n: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
+            case SDLK_r:
+            {
+                loadSaveState();
+                break;
+            }
+            case SDLK_t:
+            {
+                takeSaveState();
+                break;
+            }
             }
             break;
         } // end case SDL_KEYDOWN
@@ -166,7 +190,7 @@ int SDLWindow::run()
 
         if (joypadx)
         {
-            joypadx->refreshButtonStates(joypadx->findControllers());
+            //joypadx->refreshButtonStates(joypadx->findControllers());
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
@@ -236,4 +260,49 @@ bool SDLWindow::romIsValid(const std::string& filepath)
     }
 
     return ret;
+}
+
+void SDLWindow::takeSaveState()
+{
+    if (!emu)
+    {
+        return;
+    }
+
+    // Stop the emulator first so we don't save it while running
+    emu->setStopRunning(true);
+    if (emu_savestate)
+    {
+        emu_savestate.reset();
+    }
+
+    // Create emulator savestate
+    emu_savestate = std::make_shared<GBCEmulator>(emu->getROMName(), emu->getROMName() + ".log");
+
+    // Copy current emulator into emulator savestate
+    *emu_savestate.get() = *emu.get();
+
+    // Start emulator again
+    startEmulator();
+}
+
+void SDLWindow::loadSaveState()
+{
+    if (!emu_savestate || !emu)
+    {   // Need a save state and an emulator to load a savestate
+        return;
+    }
+
+    emu->stop();
+    if (emu_thread.joinable())
+    {
+        // Close emulator thread
+        emu_thread.join();
+    }
+
+    // Load emulator savestate into emulator
+    *emu.get() = *emu_savestate.get();
+
+    hookToEmulator(emu);
+    startEmulator();
 }

@@ -20,6 +20,11 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
     num_rom_banks = numROMBanks;
     num_ram_banks = numRAMBanks;
 
+    if (num_ram_banks == 0)
+    {
+        num_ram_banks++;
+    }
+
     romBanks.resize(num_rom_banks, std::vector<unsigned char>(ROM_BANK_SIZE, 0));
     ramBanks.resize(num_ram_banks, std::vector<unsigned char>(RAM_BANK_SIZE, 0));
 
@@ -48,7 +53,37 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
 
 MBC::~MBC()
 {
-    logger.reset();
+    if (logger)
+    {
+        logger.reset();
+    }
+}
+
+MBC& MBC::operator=(const MBC& rhs)
+{   // Copy from rhs
+    rom_banking_mode        = rhs.rom_banking_mode;
+    ram_banking_mode        = rhs.ram_banking_mode;
+    external_ram_enabled    = rhs.external_ram_enabled;
+    rtc_timer_enabled = rhs.rtc_timer_enabled;
+
+    curr_rom_bank   = rhs.curr_rom_bank;
+    curr_ram_bank   = rhs.curr_ram_bank;
+    num_rom_banks   = rhs.num_rom_banks;
+    num_ram_banks   = rhs.num_ram_banks;
+    romBanks        = rhs.romBanks;
+    ramBanks        = rhs.ramBanks;
+    rtcRegisters    = rhs.rtcRegisters;
+    mbc_num         = rhs.mbc_num;
+    mbc_type        = rhs.mbc_type;
+
+    rom_from_to = rhs.rom_from_to;
+    ram_from_to = rhs.ram_from_to;
+
+    prev_mbc3_latch = rhs.prev_mbc3_latch;
+    curr_mbc3_latch = rhs.curr_mbc3_latch;
+    wroteToRAMBanks = rhs.wroteToRAMBanks;
+
+    return *this;
 }
 
 void MBC::MBC1_init()
@@ -130,6 +165,7 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x1000:
 	case 0x2000:
 	case 0x3000:
+        logger->trace("Reading from ROM bank: 0");
 		return romBanks[0][pos];
 
 		// ROM 01 - N
@@ -137,15 +173,14 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 	case 0x5000:
 	case 0x6000:
 	case 0x7000:
-        if (mbc_num == 1)
-        {
-            if (ram_banking_mode)
-            {   // Only ROM banks 0x00-0x1F can be used during RAM banking mode
-                return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
-            }
+        if (mbc_num == 1 && ram_banking_mode)
+        {   // Only ROM banks 0x00-0x1F can be used during RAM banking mode
+            logger->trace("Reading from ROM bank: {}", curr_rom_bank % 0x1F);
+            return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
         }
         
         // All ROM banks can be accessed
+        logger->trace("Reading from ROM bank: {}", curr_rom_bank % num_rom_banks);
         return romBanks[curr_rom_bank % num_rom_banks][pos - 0x4000];
 
 		// External RAM
@@ -161,10 +196,12 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
         {
             if (rom_banking_mode)
             {   // Only RAM bank 0x00 is accessible in ROM banking mode
+                logger->trace("Reading from RAM bank: 0");
                 return ramBanks[0][pos - 0xA000];
             }
             else if (ram_banking_mode)
             {   // ram_banking_mode == true
+                logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
                 return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
             }
             else
@@ -177,15 +214,18 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
         {
             if (curr_ram_bank <= 0x03)
             {
+                logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
                 return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
             }
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
             {
+                logger->trace("Reading from RTC register: {}", curr_ram_bank - 0x08);
                 return rtcRegisters[curr_ram_bank - 0x08];
             }
         }
         else
         {
+            logger->trace("Reading from RAM bank: {}", curr_ram_bank % num_ram_banks);
             return ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000];
         }
 
@@ -467,7 +507,7 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
 
 void MBC::saveRAMToFile(const std::string & filename)
 {
-    if (!wroteToRAMBanks)
+    if (!wroteToRAMBanks || ramBanksAreEmpty())
     {
         logger->info("Game did not write to RAM, not writing out .sav file");
         return;
@@ -485,6 +525,21 @@ void MBC::saveRAMToFile(const std::string & filename)
 
     // Close file
     file.close();
+}
+
+bool MBC::ramBanksAreEmpty() const
+{
+    for (size_t i = 0; i < ramBanks.size(); i++)
+    {
+        for (size_t j = 0; j < ramBanks[i].size(); j++)
+        {
+            if (ramBanks[i][j])
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void MBC::latchCurrTimeToRTC()

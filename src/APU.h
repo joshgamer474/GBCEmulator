@@ -49,16 +49,17 @@ class APU
 public:
     APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> logger);
     virtual ~APU();
+    APU& operator=(const APU& rhs);
 
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr);
-    void run(const uint64_t & cpuTicks);
+    void run(const uint8_t & cpuTicks);
     void initCGB();
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
     void writeSamplesOut(const uint32_t & audio_device);
-    void sleepUntilBufferIsEmpty();
+    void sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time);
 
     std::shared_ptr<spdlog::logger> logger;
     uint64_t samplesPerFrame;
@@ -74,8 +75,7 @@ private:
     void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
-    
-    std::chrono::system_clock::duration prev_time;
+
     std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> audioFileOut;
     std::unique_ptr<AudioSquare> sound_channel_1;
@@ -93,7 +93,6 @@ private:
     uint16_t sample_buffer_counter;
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
-    uint64_t curr_apu_ticks;
     uint64_t sample_timer;
     uint64_t sample_timer_val;
     uint64_t double_speed_mode_modifier;

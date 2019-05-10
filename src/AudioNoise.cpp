@@ -41,6 +41,30 @@ AudioNoise::~AudioNoise()
 
 }
 
+AudioNoise& AudioNoise::operator=(const AudioNoise& rhs)
+{
+    timer                   = rhs.timer;
+    initial_volume_of_envelope = rhs.initial_volume_of_envelope;
+    envelope_period         = rhs.envelope_period;
+    envelope_period_load    = rhs.envelope_period_load;
+    shift_clock_frequency   = rhs.shift_clock_frequency;
+    stop_output_when_sound_length_ends = rhs.stop_output_when_sound_length_ends;
+    sound_length_data       = rhs.sound_length_data;
+    dividing_ratio_of_frequencies = rhs.dividing_ratio_of_frequencies;
+    volume                  = rhs.volume;
+    output_volume           = rhs.output_volume;
+    lfsr                    = rhs.lfsr;
+    restart_sound           = rhs.restart_sound;
+    envelope_increase       = rhs.envelope_increase;
+    stop_output_when_sound_length_ends = rhs.stop_output_when_sound_length_ends;
+    is_enabled              = rhs.is_enabled;
+    half_counter_step       = rhs.half_counter_step;
+    envelope_running        = rhs.envelope_running;
+    dac_enabled             = rhs.dac_enabled;
+
+    return *this;
+}
+
 void AudioNoise::setByte(const uint16_t & addr, const uint8_t & val)
 {
     uint16_t useAddr = addr - reg_offset;

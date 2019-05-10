@@ -2,12 +2,13 @@
 #include "stdafx.h"
 #endif // _WIN32
 
-#include "Memory.h"
-#include "CartridgeReader.h"
-#include "MBC.h"
-#include "GPU.h"
-#include "Joypad.h"
-#include "APU.h"
+#include <GBCEmulator.h>
+#include <Memory.h>
+#include <CartridgeReader.h>
+#include <MBC.h>
+#include <GPU.h>
+#include <Joypad.h>
+#include <APU.h>
 #include "Debug.h"
 #include <string>
 
@@ -26,8 +27,11 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     apu(_apu)
 {
 	timer_enabled   = false;
-	prev_clock_div  = prev_clock_tima = curr_clock = 0;
+    curr_clock = 0;
 	clock_frequency = 4096;
+    clock_speed = 0;
+    clock_div_accumulator = 0;
+    clock_tima_accumulator = 0;
 
     interrupt_flag      = false;
     interrupt_enable    = false;
@@ -44,6 +48,36 @@ Memory::~Memory()
 {
     reset();
     logger.reset();
+}
+
+Memory& Memory::operator=(const Memory& rhs)
+{   // Copy from rhs
+    timer_enabled           = rhs.timer_enabled;
+    curr_clock              = rhs.curr_clock;
+    clock_frequency         = rhs.clock_frequency;
+    clock_speed             = rhs.clock_speed;
+    clock_div_accumulator   = rhs.clock_div_accumulator;
+    clock_tima_accumulator  = rhs.clock_tima_accumulator;
+    interrupt_flag          = rhs.interrupt_flag;
+    interrupt_enable        = rhs.interrupt_enable;
+    cgb_speed_mode          = rhs.cgb_speed_mode;
+    cgb_undoc_reg_ff6c      = rhs.cgb_undoc_reg_ff6c;
+    cgb_perform_speed_switch = rhs.cgb_perform_speed_switch;
+
+    memcpy(cgb_undoc_regs, rhs.cgb_undoc_regs, 0xFF77 - 0xFF72);
+    memcpy(high_ram, rhs.high_ram, 0x7F);
+    gamepad = rhs.gamepad;
+    memcpy(timer, rhs.timer, 4);
+    memcpy(linkport, rhs.linkport, 3);
+    firstTen = rhs.firstTen;
+    blargg = rhs.blargg;
+
+    is_color_gb             = rhs.is_color_gb;
+    num_working_ram_banks   = rhs.num_working_ram_banks;
+    curr_working_ram_bank   = rhs.curr_working_ram_bank;
+    working_ram_banks       = rhs.working_ram_banks;
+
+    return *this;
 }
 
 void Memory::reset()
@@ -115,12 +149,22 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 		{   // 0xC000 - 0xFDFF : Internal work RAM and (echo) Internal work RAM
 			if ((pos & 0xF000) < 0xD000)
 			{   // 0xC000 - 0xCFFF
+                if (pos == 0xC264 || pos == 0xC265)
+                {
+                    logger->info("Reading pos 0x{0:x}, val: 0x{1:x}",
+                        pos,
+                        working_ram_banks[0][pos - 0xC000]);
+                }
 				return working_ram_banks[0][pos - 0xC000];
 			}
 			else if ((pos & 0xF000) < 0xE000)
 			{
                 if (is_color_gb)
                 {   // 0xD000 - 0xDFFF
+                    if (curr_working_ram_bank == 0)
+                    {
+                        return working_ram_banks[1][pos - 0xD000];
+                    }
                     return working_ram_banks[curr_working_ram_bank][pos - 0xD000];
                 }
                 else
@@ -136,6 +180,10 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 				}
 				else if (pos >= 0xF000 && is_color_gb)
 				{   // 0xF000 - 0xFDFF
+                    if (curr_working_ram_bank == 0)
+                    {
+                        return working_ram_banks[1][pos - 0xF000];
+                    }
 					return working_ram_banks[curr_working_ram_bank][pos - 0xF000];
 				}
                 else
@@ -291,13 +339,26 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 
 		if ((pos & 0xF000) < 0xD000)
 		{   // 0xC000 - 0xCFFF : Internal Work RAM bank 0
+            if (pos == 0xC264 || pos == 0xC265)
+            {
+                logger->info("Writing pos: 0x{0:x}, val: 0x{1:x}",
+                    pos,
+                    val);
+            }
 			working_ram_banks[0][pos - 0xC000] = val;
 		}
 		else if ((pos & 0xF000) < 0xE000)
 		{   // 0xD000 - 0xDFFF : Internal Work RAM bank 1-7
             if (is_color_gb)
             {
-                working_ram_banks[curr_working_ram_bank][pos - 0xD000] = val;
+                if (curr_working_ram_bank == 0)
+                {
+                    working_ram_banks[1][pos - 0xD000] = val;
+                }
+                else
+                {
+                    working_ram_banks[curr_working_ram_bank][pos - 0xD000] = val;
+                }
             }
             else
             {   // Only Work RAM bank 1 is available in non color gb mode
@@ -314,7 +375,14 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 			{   // 0xD000 - 0xDFFF : (echo) Internal Work RAM bank 1-7
                 if (is_color_gb)
                 {
-                    working_ram_banks[curr_working_ram_bank][pos - 0xF000] = val;
+                    if (curr_working_ram_bank == 0)
+                    {
+                        working_ram_banks[1][pos - 0xF000] = val;
+                    }
+                    else
+                    {
+                        working_ram_banks[curr_working_ram_bank][pos - 0xF000] = val;
+                    }
                 }
                 else
                 {   // Only Work RAM bank 1 is available in non color gb mode
@@ -477,6 +545,10 @@ void Memory::initROMBanks()
 		mbc->romBanks[i] = std::vector<unsigned char>(cartridgeReader->romBuffer.begin() + (i * mbc->ROM_BANK_SIZE), cartridgeReader->romBuffer.begin() + ((i + 1)* mbc->ROM_BANK_SIZE));
 		counter += mbc->ROM_BANK_SIZE;
 	}
+
+    // Free cartridgeReader from holding ROM in memory
+    // since it's now in the emulator's ROM banks
+    cartridgeReader->freeRom();
 }
 
 // Performs copying of ROM/RAM to GPU->OAM memory
@@ -606,25 +678,16 @@ void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma
 
 void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 {
-	uint32_t old_clock_frequency = clock_frequency;
+	const uint32_t old_clock_frequency = clock_frequency;
     bool old_timer_enabled = timer_enabled;
 
 	switch (addr)
 	{
-        // DIV - Divider Register
-	case 0xFF04:
-		timer[addr - 0xFF04] = 0x00;
-		break;
-
-        // TIMA, TMA - Timer Counter, Timer Modulo
-	case 0xFF05:
-    case 0xFF06:
-		timer[addr - 0xFF04] = val;
-		break;
-
-        // TAC - Timer Control
-	case 0xFF07:
-		timer[addr - 0xFF04] = val;
+	case 0xFF04: timer[DIV] = 0x00; break;  // Divider Register
+    case 0xFF05: timer[TIMA] = val; break;  // Timer Counter
+    case 0xFF06: timer[TMA] = val; break;   // Timer Modulo
+	case 0xFF07:                            // Timer Control
+        timer[TAC] = val;
 
 		// Bits 0-1
 		switch ((val & 0x03))
@@ -642,42 +705,64 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 		if (old_clock_frequency != clock_frequency ||
             (old_timer_enabled == false && timer_enabled == true))
 		{
-			prev_clock_tima = curr_clock;
+            clock_div_accumulator = 0;
+            clock_tima_accumulator = 0;
+            updateTimerRates();
 		}
+        updateTimerRates();
 	}
 }
 
-
-void Memory::updateTimer(std::uint64_t ticks, double clock_speed)
+void Memory::updateTimerRates()
 {
-	std::uint8_t & divider_reg      = timer[DIV];
-	std::uint8_t & timer_counter    = timer[TIMA];
-	curr_clock = ticks;
-    std::uint64_t clock_div_rate    = clock_speed / TIMER_DIV_RATE;
-    std::uint64_t clock_tima_rate   = clock_speed / clock_frequency;
-    std::uint64_t clock_div_diff = curr_clock - prev_clock_div;
-    std::uint64_t clock_tima_diff = curr_clock - prev_clock_tima;
+    // Update clock rate variables
+    if (cgb_speed_mode & BIT7)
+    {
+        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / TIMER_DIV_RATE);
+        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / clock_frequency);
+    }
+    else
+    {
+        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / TIMER_DIV_RATE);
+        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / clock_frequency);
+    }
+}
+
+
+void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
+{
+	uint8_t & divider_reg       = timer[DIV];
+	uint8_t & timer_counter     = timer[TIMA];
+
+    curr_clock = ticks;
+    clock_div_accumulator += ticks;
+    clock_tima_accumulator += ticks;
+
+    if (clock_speed != clockSpeed)
+    {
+        clock_speed = clockSpeed;
+        updateTimerRates();
+    }
 
     // Update 0xFF04 - DIV
-    while (clock_div_diff >= clock_div_rate)
-	{
-		divider_reg++;
-        prev_clock_div = curr_clock - (clock_div_diff - clock_div_rate);
-        clock_div_diff = curr_clock - prev_clock_div;
-	}
+    while (clock_div_accumulator >= clock_div_rate)
+    {
+        divider_reg++;
+        //clock_div_accumulator -= clock_div_rate;
+        clock_div_accumulator = 0;
+    }
 
-	// Update 0xFF05 - TIMA
+    // Update 0xFF05 - TIMA
     //while (timer_enabled && clock_tima_diff >= clock_tima_rate)
-    if (timer_enabled && clock_tima_diff >= clock_tima_rate)
-	{
-		timer_counter++;
-		if (timer_counter == 0x00)
-		{
-			timer_counter = timer[TMA];
-			interrupt_flag |= INTERRUPT_TIMER;
-		}
-		//prev_clock_tima = curr_clock;
-        prev_clock_tima += clock_tima_rate;
-        clock_tima_diff = curr_clock - prev_clock_tima;
-	}
+    if (timer_enabled &&
+        clock_tima_accumulator >= clock_tima_rate)
+    {
+        timer_counter++;
+        if (timer_counter == 0x00)
+        {
+            timer_counter = timer[TMA];
+            interrupt_flag |= INTERRUPT_TIMER;
+        }
+        clock_tima_accumulator -= clock_tima_rate;
+    }
 }

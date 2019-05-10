@@ -25,6 +25,24 @@ AudioWave::~AudioWave()
 
 }
 
+AudioWave& AudioWave::operator=(const AudioWave& rhs)
+{   // Copy from rhs
+    volume              = rhs.volume;
+    output_volume       = rhs.output_volume;
+    frequency_16        = rhs.frequency_16;
+    frequency           = rhs.frequency;
+    timer               = rhs.timer;
+    period              = rhs.period;
+    nibble_pos          = rhs.nibble_pos;
+    sound_length_data   = rhs.sound_length_data;
+    restart_sound       = rhs.restart_sound;
+    is_enabled          = rhs.is_enabled;
+    channel_is_enabled  = rhs.channel_is_enabled;
+    stop_output_when_sound_length_ends = rhs.stop_output_when_sound_length_ends;
+
+    return *this;
+}
+
 void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
 {
     switch (addr)

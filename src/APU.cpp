@@ -13,7 +13,6 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     channel_control         = 0;
     selection_of_sound_output = 0;
     sound_on                = 0;
-    curr_apu_ticks          = 0;
     left_volume             = 0;
     right_volume            = 0;
     left_volume_use         = 0;
@@ -37,7 +36,9 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
 
+#ifdef WRITE_AUDIO_OUT
     audioFileOut = std::make_unique<std::ofstream>("audioOut.pcm", std::ios::binary);
+#endif // WRITE_AUDIO_OUT
 
     sample_buffer.resize(SAMPLE_BUFFER_SIZE / double_speed_mode_modifier);
 
@@ -47,15 +48,48 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     }
 
     initSDLAudio();
-
-    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 APU::~APU()
 {
+#ifdef WRITE_AUDIO_OUT
     audioFileOut->close();
+#endif // WRITE_AUDIO_OUT
 
     SDL_CloseAudioDevice(audio_device_id);
+}
+
+APU& APU::operator=(const APU& rhs)
+{   // Copy APU from rhs
+    frame_sequence_step         = rhs.frame_sequence_step;
+    channel_control             = rhs.channel_control;
+    selection_of_sound_output   = rhs.selection_of_sound_output;
+    sound_on                    = rhs.sound_on;
+    left_volume                 = rhs.left_volume;
+    right_volume                = rhs.right_volume;
+    left_volume_use             = rhs.left_volume_use;
+    right_volume_use            = rhs.right_volume_use;
+    sample_buffer_counter       = rhs.sample_buffer_counter;
+    samplesPerFrame             = rhs.samplesPerFrame;
+    left_out_enabled            = rhs.left_out_enabled;
+    right_out_enabled           = rhs.right_out_enabled;
+    double_speed_mode           = rhs.double_speed_mode;
+    send_samples_to_debugger    = rhs.send_samples_to_debugger;
+    double_speed_mode_modifier  = rhs.double_speed_mode_modifier;
+    audio_device_id             = rhs.audio_device_id;
+
+    *sound_channel_1.get() = *rhs.sound_channel_1.get();
+    *sound_channel_2.get() = *rhs.sound_channel_2.get();
+    *sound_channel_3.get() = *rhs.sound_channel_3.get();
+    *sound_channel_4.get() = *rhs.sound_channel_4.get();
+
+    sample_timer_val        = rhs.sample_timer_val;
+    frame_sequence_timer_val = rhs.frame_sequence_timer_val;
+    sample_timer            = rhs.sample_timer;
+    frame_sequence_timer    = rhs.frame_sequence_timer;
+    sample_buffer           = rhs.sample_buffer;
+
+    return *this;
 }
 
 void APU::initSDLAudio()
@@ -103,7 +137,8 @@ void APU::initSDLAudio()
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
 {
     if (sound_on == false &&
-        addr < 0xFF26)
+        addr < 0xFF26 &&
+        addr != 0xFF20) // NR41 can still be written to when off
     {
         logger->info("Tried to write to addr: 0x{0:x}, val 0x{1:x} but APU sound is disabled",
             addr,
@@ -111,24 +146,24 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         return;
     }
 
-    logger->trace("Writing to addr: 0x{0:x}, val: 0x{1:x}",
+    logger->debug("Writing to addr: 0x{0:x}, val: 0x{1:x}",
         addr,
         val);
 
     if (addr >= 0xFF10 && addr <= 0xFF14)
-    {   // Channel 1 - Square 1
+    {   // Channel 1 - Square 1 - NR10-NR14
         sound_channel_1->setByte(addr, val);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
-    {   // Channel 2 - Square 2
+    {   // Channel 2 - Square 2 - NR21-NR24
         sound_channel_2->setByte(addr, val);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
-    {   // Channel 3 - Wave
+    {   // Channel 3 - Wave - NR30-NR34
         sound_channel_3->setByte(addr, val);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
-    {   // Channel 4 - Noise
+    {   // Channel 4 - Noise - NR41-NR44
         sound_channel_4->setByte(addr, val);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
@@ -203,13 +238,13 @@ uint8_t APU::readByte(const uint16_t & addr)
 
     switch (addr)
     {
-    case 0xFF24:
+    case 0xFF24:    // NR50
         ret = channel_control;
         break;
-    case 0xFF25:
+    case 0xFF25:    // NR51
         ret = selection_of_sound_output;
         break;
-    case 0xFF26:
+    case 0xFF26:    // NR52
         ret = static_cast<uint8_t>(sound_on) << 7
             | 0x70  // Unused bits are 1s
             | static_cast<uint8_t>(sound_channel_1->isRunning())
@@ -219,7 +254,7 @@ uint8_t APU::readByte(const uint16_t & addr)
          break;
     }
 
-    logger->trace("Reading addr: 0x{0:x}, val: 0x{1:x}",
+    logger->debug("Reading addr: 0x{0:x}, val: 0x{1:x}",
         addr,
         ret);
 
@@ -248,20 +283,25 @@ void APU::reset()
     SDL_ClearQueuedAudio(audio_device_id);
 }
 
-void APU::run(const uint64_t & cpuTickDiff)
+void APU::run(const uint8_t & cpuTickDiff)
 {
-    uint64_t diff = cpuTickDiff;
+    uint8_t diff = cpuTickDiff;
 
     while (diff > 0)
     {
+        diff--;
+
         // Tick frame sequencer
         if (frame_sequence_timer > 0)
         {
             frame_sequence_timer--;
+            //logger->debug("frame_sequence_timer--: 0x{0:x}", frame_sequence_timer);
         }
 
         if (frame_sequence_timer == 0)
         {
+            logger->debug("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
+                frame_sequence_step);
             switch (frame_sequence_step)
             {
             case 0:
@@ -350,8 +390,6 @@ void APU::run(const uint64_t & cpuTickDiff)
             sample_buffer[sample_buffer_counter++] = sample;
             samplesPerFrame++;
 
-            //SDL_QueueAudio(audio_device_id, sample.data(), sizeof(float) * 2);
-
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
             {   // Force write out audio samples
@@ -363,13 +401,12 @@ void APU::run(const uint64_t & cpuTickDiff)
 
         } // end if(sample_timer)
 
-        diff--;
-    }
+    } // end while(diff > 0)
 }
 
 void APU::writeSamplesOut(const uint32_t & audio_device)
 {
-    logger->debug("Pushing sample of size: {}", sample_buffer.size());
+    logger->trace("Pushing sample of size: {}", sample_buffer.size());
 
     // Push sample_buffer to SDL
 #ifndef USE_FLOAT
@@ -520,9 +557,9 @@ void APU::setChannelLogLevel(spdlog::level::level_enum level)
     sound_channel_4->logger->set_level(level);
 }
 
-void APU::sleepUntilBufferIsEmpty()
+void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time)
 {
-    int microInt = 0;
+    int microElapsedInt = 0;
 
     // Drain audio buffer (?)
     uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
@@ -540,26 +577,26 @@ void APU::sleepUntilBufferIsEmpty()
 
         // Check if time spent sleeping is greater than 1 frame time (16.667 ms)
         auto currTime = std::chrono::system_clock::now().time_since_epoch();
-        auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(currTime - prev_time);
-        microInt = microseconds.count();
-        if (microInt >= MICROSEC_PER_FRAME - 100)
+        auto microsecondsElapsed = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frame_start_time);
+        microElapsedInt = microsecondsElapsed.count();
+        if (microElapsedInt >= MICROSEC_PER_FRAME - 100)
         {
             break;
         }
 
         // Sleep for 1 millisecond
         SDL_Delay(1);   // std::this_thread::sleep_for() causes audio delay on Linux
+        //std::this_thread::sleep_for(std::chrono::microseconds(200));
         queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     }
 
     logger->trace("Slept for {} milliseconds, buffer size diff: {}, buffer size start: {}, buffer size end: {}",
-        microInt / 1000.0,
+        microElapsedInt / 1000.0,
         queuedAudioSizeOrig - queuedAudioSize,
         queuedAudioSizeOrig,
         queuedAudioSize);
 
     samplesPerFrame = 0;
-    prev_time = std::chrono::system_clock::now().time_since_epoch();
 }
 
 void APU::setSampleUpdateMethod(std::function<void(float, int)> function)

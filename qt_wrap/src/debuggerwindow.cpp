@@ -25,7 +25,6 @@ DebuggerWindow::DebuggerWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
 {
     ui->setupUi(this);
     ui->scrollArea->setWidget(hexWidget);
-    ui->graphicsView->setScene(emuView->getThis());
     connectToolbarButtons();
 
     if (emuView->emu)
@@ -36,6 +35,8 @@ DebuggerWindow::DebuggerWindow(QWidget *parent, std::shared_ptr<EmuView> emu)
 
     connect(this, &DebuggerWindow::runEmulator, emuView.get(), &EmuView::runEmulator);
     connect(this, &DebuggerWindow::runTo, emuView.get(), &EmuView::runTo);
+    connect(this, &DebuggerWindow::takeSaveState, emuView.get(), &EmuView::takeSaveState);
+    connect(this, &DebuggerWindow::loadSaveState, emuView.get(), &EmuView::loadSaveState);
 
     this->show();
 }
@@ -235,6 +236,18 @@ void DebuggerWindow::connectToolbarButtons()
         audioDebuggerWindow = std::make_shared<AudioDebuggerWindow>();
         audioDebuggerWindow->initEmulatorConnections(emu);
     });
+
+    // Connect Take Save State button
+    connect(ui->actionTakeSaveState, &QAction::triggered, [&]()
+    {
+        emit takeSaveState();
+    });
+
+    // Connect Load Save State button
+    connect(ui->actionLoadSaveState, &QAction::triggered, [&]()
+    {
+        emit loadSaveState();
+    });
 }
 
 void DebuggerWindow::updateRegisterLabels()
@@ -249,6 +262,20 @@ void DebuggerWindow::updateRegisterLabels()
     uint8_t instruc = cpu->getByteFromMemory(CPU::PC);
     QString intrucTrans = QString::fromStdString(cpu->getOpcodeString(instruc));
     ui->label_Instruction_Value->setText("0x" + makeQStringHex(instruc, 2) + " : " + intrucTrans);
+
+    // Create register print out
+    QString registers;
+    registers += "PC: " + ui->label_PC_Value->text() + " ";    // PC
+    registers += "Instr: 0x" + makeQStringHex(instruc, 2) + " : ";// Instruction
+    registers += intrucTrans + "\t";                            // Instruction string
+    registers += "AF: " + ui->label_AF_Value->text() + " ";    // AF
+    registers += "BC: " + ui->label_BC_Value->text() + " ";    // BC
+    registers += "DE: " + ui->label_DE_Value->text() + " ";    // DE
+    registers += "HL: " + ui->label_HL_Value->text() + " ";    // HL
+    registers += "SP: " + ui->label_SP_Value->text();           // SP
+
+    // Push register print out to text box
+    ui->textBrowser->append(registers);
 }
 
 void DebuggerWindow::updateHexWidget(bool getFullMemoryMap)
@@ -284,6 +311,6 @@ void DebuggerWindow::updateHexWidget(bool getFullMemoryMap)
 
 template<typename T>
 QString DebuggerWindow::makeQStringHex(T number, int num_digits)
-{
+{   // Base 16
     return QString::number(number, 16).rightJustified(num_digits, '0').toUpper();
 }

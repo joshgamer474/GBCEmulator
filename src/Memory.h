@@ -38,7 +38,8 @@ public:
         std::shared_ptr<GPU> gpu,
         std::shared_ptr<Joypad> joypad,
         std::shared_ptr<APU> apu);
-	~Memory();
+	virtual ~Memory();
+    Memory& operator=(const Memory& rhs);
 
     void reset();
 	void initWorkRAM(bool isColorGB);
@@ -47,7 +48,7 @@ public:
     void do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5);
     void do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5);
     void writeToTimerRegisters(uint16_t addr, uint8_t val);
-	void updateTimer(uint64_t ticks, double clock_speed);
+	void updateTimer(const uint8_t & ticks, const uint32_t & clock_speed);
 
 	uint8_t readByte(uint16_t pos, bool limit_access = true);
 	void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
@@ -80,7 +81,16 @@ public:
 
 	// Timer variables
 	bool timer_enabled;
-	uint64_t prev_clock_div, curr_clock, prev_clock_tima;
+    uint32_t curr_clock;
 	uint32_t clock_frequency;
+
+    uint32_t clock_div_rate;
+    uint32_t clock_tima_rate;
+    uint32_t clock_speed;
+    int32_t clock_div_accumulator;
+    int32_t clock_tima_accumulator;
+
+private:
+    void updateTimerRates();
 };
 #endif

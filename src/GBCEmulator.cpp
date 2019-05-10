@@ -1,9 +1,11 @@
 #include "GBCEmulator.h"
+#include <libpng16/png.h>
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     :   stopRunning(false),
         debugMode(false),
         ranInstruction(false),
+        runWithoutSleep(false),
         logFileBaseName(logName),
         frameIsUpdatedFunction(nullptr)
 {
@@ -29,19 +31,19 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
     // Calculate number of CPU cycles that can tick in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
-    ticksRan = 0;
-    prevTicks = 0;
+    ticksAccumulated = 0;
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
 
     // Set log levels
-    set_logging_level(spdlog::level::trace);
+    set_logging_level(spdlog::level::info);
+
     gpu->logger->set_level(spdlog::level::info);
-    cpu->logger->set_level(spdlog::level::info);
-    memory->logger->set_level(spdlog::level::warn);
-    apu->logger->set_level(spdlog::level::warn);
-    apu->setChannelLogLevel(spdlog::level::warn);
+    cpu->logger->set_level(spdlog::level::warn);
+    memory->logger->set_level(spdlog::level::info);
+    apu->logger->set_level(spdlog::level::debug);
+    apu->setChannelLogLevel(spdlog::level::debug);
     joypad->logger->set_level(spdlog::level::debug);
-    logger->set_level(spdlog::level::debug);
+    logger->set_level(spdlog::level::info);
     logCounter = 0;
 }
 
@@ -50,6 +52,10 @@ GBCEmulator::~GBCEmulator()
     // Write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
+    // Write out last frame hash
+    uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);
+    logger->info("Last frame hash: {}", lastFrameHash);
+
     cpu->memory->reset();
     cpu.reset();
     cartridgeReader.reset();
@@ -57,6 +63,33 @@ GBCEmulator::~GBCEmulator()
     gpu.reset();
     apu.reset();
     loggerSink.reset();
+}
+
+GBCEmulator& GBCEmulator::operator=(const GBCEmulator& rhs)
+{   // Copy from rhs
+    *this->apu.get()    = *rhs.apu.get();
+    *this->cpu.get()    = *rhs.cpu.get();
+    *this->gpu.get()    = *rhs.gpu.get();
+    *this->memory.get() = *rhs.memory.get();
+    *this->joypad.get() = *rhs.joypad.get();
+    *this->mbc.get()    = *rhs.mbc.get();
+    *this->cartridgeReader.get() = *rhs.cartridgeReader.get();
+
+    ranInstruction  = rhs.ranInstruction;
+    debugMode       = rhs.debugMode;
+    isInitialized   = rhs.isInitialized;
+    frameProcessingTimeMicro = rhs.frameProcessingTimeMicro;
+    frameShowTimeMicro = rhs.frameShowTimeMicro;
+    stopRunning     = rhs.stopRunning;
+    logFileBaseName = rhs.logFileBaseName;
+    filenameNoExtension = rhs.filenameNoExtension;
+    ticksPerFrame   = rhs.ticksPerFrame;
+    ticksAccumulated = rhs.ticksAccumulated;
+    frameTimeStart  = rhs.frameTimeStart;
+    timePerFrame    = rhs.timePerFrame;
+    frameIsUpdatedFunction = rhs.frameIsUpdatedFunction;
+
+    return *this;
 }
 
 void GBCEmulator::read_rom(std::string filename)
@@ -115,79 +148,85 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    uint64_t tickDiff;
+    uint8_t ticksRan = cpu->runNextInstruction();
 
-    cpu->runNextInstruction();
-
-    tickDiff = cpu->ticks - prevTicks;
-    
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
     {   // In double speed mode, divide tickDiff by 2 to simulate
         // running the CPU at double speed
-        tickDiff >>= 1;
+        ticksRan >>= 1;
     }
 
 #ifdef USE_AUDIO_TIMING
     if (memory->cgb_speed_mode & BIT7)
     {   // Fixes GBC double speed games to have 60FPS
-        apu->run(tickDiff >> 1);
-        gpu->run(tickDiff >> 1);
+        apu->run(ticksRan >> 1);
+        gpu->run(ticksRan >> 1);
     }
     else
 #endif
     {
-        apu->run(tickDiff);
-        gpu->run(tickDiff);
+        apu->run(ticksRan);
+        gpu->run(ticksRan);
     }
-
-    ticksRan += cpu->ticks - prevTicks;
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)
-    {   // Calculate frameTimeMicro for debug purposes
-        auto currTime = getCurrentTime();
-        frameTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
-        logger->debug("Frametime (milliseconds): {}",
-            std::to_string(frameTimeMicro.count() / 1000.0));
-
+    {
         // Push frame out to be displayed
         if (frameIsUpdatedFunction)
         {
-            frameIsUpdatedFunction(gpu->curr_frame);
+            frameIsUpdatedFunction(gpu->getFrame());
         }
         gpu->frame_is_ready = false;
 
-        apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
+        apu->logger->trace("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
 
         // Write out accumulated audio samples to audio device
         apu->writeSamplesOut(apu->audio_device_id);
 
-        // Let the APU sleep the emulator
-        apu->sleepUntilBufferIsEmpty();
+        // Calculate frame processing time for debug purposes
+        auto currTime = getCurrentTime();
+        frameProcessingTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
+
+        if (runWithoutSleep == false)
+        {
+            // Let the APU sleep the emulator
+            apu->sleepUntilBufferIsEmpty(frameTimeStart);
+        }
+
+        // Calculate frame show time for debug purposes
+        currTime = getCurrentTime();
+        frameShowTimeMicro = std::chrono::duration_cast<std::chrono::microseconds>(currTime - frameTimeStart);
+        logger->debug("Frame Show time (milli): {}, Frame Processing time (milli): {}",
+            std::to_string(frameShowTimeMicro.count() / 1000.0),
+            std::to_string(frameProcessingTimeMicro.count() / 1000.0));
+
+        // Update frameTimeStart to current time
+        frameTimeStart = getCurrentTime();
     }
 #else
-    if (ticksRan >= ticksPerFrame)
+    ticksAccumulated += ticksRan;
+    if (ticksAccumulated >= ticksPerFrame)
     {
-    {
-        ticksRan -= ticksPerFrame;
+        ticksAccumulated -= ticksPerFrame;
 
         if (gpu->frame_is_ready)
         {
-            frameIsUpdatedFunction();
+            frameIsUpdatedFunction(gpu->getFrame());
             gpu->frame_is_ready = false;
         }
 
         apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
         apu->samplesPerFrame = 0;
 
-        // Sleep until next burst of ticks is ready to be ran
+        // Sleep until next burst of ticks_accumulated is ready to be ran
         waitToStartNextFrame();
+
+        // Update frameTimeStart to current time
+        frameTimeStart = getCurrentTime();
     }
 #endif // USE_AUDIO_TIMING
-
-    // Update frameTimeStart to current time
-    frameTimeStart = getCurrentTime();
 
     if (memory->cgb_perform_speed_switch)
     {   // Perform CPU double speed mode
@@ -210,13 +249,12 @@ void GBCEmulator::runNextInstruction()
     }
     logCounter++;
 
-    prevTicks = cpu->ticks;
     ranInstruction = true;
 }
 
 void GBCEmulator::runTo(uint16_t pc)
 {
-    while (cpu->get_register_16(CPU::PC) != pc && !stopRunning)
+    while (cpu->get_register_16(CPU::REGISTERS::PC) != pc && !stopRunning)
     {
         runNextInstruction();
     }
@@ -256,11 +294,6 @@ void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
 bool GBCEmulator::frame_is_ready()
 {
     return gpu->frame_is_ready;
-}
-
-SDL_Color * GBCEmulator::get_frame()
-{
-    return gpu->getFrame();
 }
 
 std::shared_ptr<APU> GBCEmulator::get_APU()
@@ -365,7 +398,131 @@ void GBCEmulator::setTimePerFrame(double d)
     timePerFrame = std::chrono::duration<double>(d);
 }
 
-void GBCEmulator::setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function)
+void GBCEmulator::setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function)
 {
     frameIsUpdatedFunction = function;
+}
+
+std::array<SDL_Color, SCREEN_PIXEL_TOTAL> GBCEmulator::getFrame() const
+{
+    if (gpu)
+    {
+        return gpu->getFrame();
+    }
+    return std::array<SDL_Color, SCREEN_PIXEL_TOTAL>();
+}
+
+SDL_Color* GBCEmulator::getFrameRaw() const
+{
+    if (gpu)
+    {
+        return gpu->curr_frame;
+    }
+    return NULL;
+}
+
+std::string GBCEmulator::getROMName() const
+{
+    if (cartridgeReader)
+    {
+        return cartridgeReader->cartridgeFilename;
+    }
+    return "";
+}
+
+uint64_t GBCEmulator::calculateFrameHash(SDL_Color* frame)
+{
+    uint64_t hash = 0;
+    uint32_t rgba = 0;
+
+    for (int i = 0; i < SCREEN_PIXEL_H * SCREEN_PIXEL_W; i++)
+    {
+        rgba = frame[i].r;
+        rgba <<= 8;
+        rgba += frame[i].g;
+        rgba <<= 8;
+        rgba += frame[i].b;
+        rgba <<= 8;
+        rgba += frame[i].a;
+
+        hash += rgba;
+    }
+    return hash;
+}
+
+uint64_t GBCEmulator::calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame)
+{
+    uint64_t hash = 0;
+    uint32_t rgba = 0;
+
+    for (const auto& pixel : frame)
+    {
+        rgba = pixel.r;
+        rgba <<= 8;
+        rgba += pixel.g;
+        rgba <<= 8;
+        rgba += pixel.b;
+        rgba <<= 8;
+        rgba += pixel.a;
+
+        hash += rgba;
+    }
+    return hash;
+}
+
+void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
+{
+    // Open file
+    FILE* fp = fopen(filepath.string().c_str(), "wb");
+    if (!fp) abort();
+
+    png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png) abort();
+
+    png_infop info = png_create_info_struct(png);
+    if (!info) abort();
+
+    if (setjmp(png_jmpbuf(png))) abort();
+
+    png_init_io(png, fp);
+
+    // Output is 8bit depth, RGBA format
+    png_set_IHDR(
+        png,
+        info,
+        SCREEN_PIXEL_W,
+        SCREEN_PIXEL_H,
+        8,
+        PNG_COLOR_TYPE_RGBA,
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT);
+    png_write_info(png, info);
+
+    // Allocate memory for one row (4 bytes per pixel - RGBA)
+    png_bytep row = (png_bytep)malloc(4 * SCREEN_PIXEL_W * sizeof(png_byte));
+
+    // Write image data
+    int x, y;
+    for (y = 0; y < SCREEN_PIXEL_H; y++)
+    {
+        for (x = 0; x < SCREEN_PIXEL_W; x++)
+        {
+            SDL_Color& pixel = gpu->curr_frame[((y * SCREEN_PIXEL_W) + x)];
+            row[(x * 4) + 0] = pixel.r;
+            row[(x * 4) + 1] = pixel.g;
+            row[(x * 4) + 2] = pixel.b;
+            row[(x * 4) + 3] = pixel.a;
+        } 
+        // Row is copied to row, write out row
+        png_write_row(png, row);
+    }
+    // End write
+    png_write_end(png, NULL);
+
+    // Free row
+    free(row);
+
+    // Close file
+    fclose(fp);
 }

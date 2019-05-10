@@ -277,7 +277,7 @@
           <x>0</x>
           <y>0</y>
           <width>383</width>
-          <height>366</height>
+          <height>395</height>
          </rect>
         </property>
         <property name="sizePolicy">
@@ -290,6 +290,17 @@
       </widget>
       <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QTextBrowser" name="textBrowser">
+          <property name="html">
+           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
@@ -305,34 +316,6 @@
            </size>
           </property>
          </spacer>
-        </item>
-        <item>
-         <widget class="QGraphicsView" name="graphicsView">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-            <horstretch>1</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>320</width>
-            <height>288</height>
-           </size>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Plain</enum>
-          </property>
-          <property name="verticalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="resizeAnchor">
-           <enum>QGraphicsView::AnchorViewCenter</enum>
-          </property>
-         </widget>
         </item>
        </layout>
       </widget>
@@ -360,6 +343,8 @@
    <addaction name="actionStep_Out"/>
    <addaction name="actionOpenVRAMViewer"/>
    <addaction name="actionOpenAudioDebugger"/>
+   <addaction name="actionTakeSaveState"/>
+   <addaction name="actionLoadSaveState"/>
   </widget>
   <action name="actionOpen_ROM">
    <property name="text">
@@ -460,6 +445,16 @@
    </property>
    <property name="toolTip">
     <string>Open the Audio Debugger</string>
+   </property>
+  </action>
+  <action name="actionTakeSaveState">
+   <property name="text">
+    <string>TakeSaveState</string>
+   </property>
+  </action>
+  <action name="actionLoadSaveState">
+   <property name="text">
+    <string>LoadSaveState</string>
    </property>
   </action>
  </widget>

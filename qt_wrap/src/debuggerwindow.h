@@ -30,7 +30,8 @@ public:
 signals:
     void runEmulator();
     void runTo(uint16_t);
-
+    void takeSaveState();
+    void loadSaveState();
 
 private:
     void updateRegisterLabels();

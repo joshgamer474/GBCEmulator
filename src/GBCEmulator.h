@@ -18,6 +18,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <experimental/filesystem>
 
 #include "APU.h"
 #include "CPU.h"
@@ -47,6 +48,7 @@ class GBCEmulator
 public:
     GBCEmulator(const std::string romName, const std::string logName = "log.txt", bool debugMode = false);
     virtual ~GBCEmulator();
+    GBCEmulator& operator=(const GBCEmulator& rhs);
 
     void set_logging_level(spdlog::level::level_enum l);
     void run();
@@ -65,14 +67,22 @@ public:
     void set_joypad_button(Joypad::BUTTON button);
     void release_joypad_button(Joypad::BUTTON button);
     void setTimePerFrame(double d);
+    std::string getROMName() const;
 
-    void setFrameUpdateMethod(std::function<void(SDL_Color * /* frame */)> function);
+    void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
+    SDL_Color* getFrameRaw() const;
+    static uint64_t calculateFrameHash(SDL_Color* frame);
+    static uint64_t calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame);
+    void saveFrameToPNG(std::experimental::filesystem::path filepath);
 
     bool ranInstruction;
     bool debugMode;
     bool isInitialized;
-    std::chrono::microseconds frameTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
+    bool runWithoutSleep;
+    std::chrono::microseconds frameProcessingTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
                                                 // so it is easily accessible to all wrappers
+    std::chrono::microseconds frameShowTimeMicro;
 
 private:
     void read_rom(std::string filename);
@@ -99,11 +109,11 @@ private:
     std::string filenameNoExtension;
 
     uint64_t ticksPerFrame;
-    uint64_t ticksRan, prevTicks;
+    uint32_t ticksAccumulated;
     std::chrono::duration<double> frameTimeStart;
     std::chrono::duration<double> timePerFrame;
 
-    std::function<void(SDL_Color * /* frame */)> frameIsUpdatedFunction;
+    std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> frameIsUpdatedFunction;
 };
 
 #endif

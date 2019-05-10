@@ -22,7 +22,11 @@ install:
   - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
 before_script:
 # Download dependencies, build if pre-built package not available
-  - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 --build=outdated
+  - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 -s cppstd=17 --build=outdated
 script:
 # Build the project
   - conan build . -bf=build_release
+after_script:
+# Run unit tests
+  - cd build_release/bin
+  - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../lib ./GBCEmulatorTestPackage

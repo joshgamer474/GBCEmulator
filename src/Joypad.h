@@ -25,6 +25,7 @@ class Joypad
 public:
 	Joypad(std::shared_ptr<spdlog::logger> logger);
 	~Joypad();
+    Joypad& operator=(const Joypad& rhs);
 
     enum BUTTON : int
     {
@@ -53,7 +54,6 @@ public:
     bool hasInterrupt;
 
 private:
-
 	uint8_t joypad_byte;
     uint8_t joypad_state;
 };

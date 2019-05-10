@@ -16,7 +16,7 @@ class GBCEmulator_qt(ConanFile):
     generators = "cmake"
     requires = (
         "GBCEmulator/0.0.2@josh/testing",
-        "sdl2/2.0.8@bincrafters/stable",
+        "sdl2/2.0.9@bincrafters/stable",
         "qt/5.12.3@bincrafters/stable",
         "spdlog/1.2.1@bincrafters/stable")
     exports_sources = "src/*", "CMakeLists.txt"
