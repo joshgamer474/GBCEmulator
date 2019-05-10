@@ -56,7 +56,7 @@ protected:
 
     void init();
     void test();
-    void frameUpdatedFunction(std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& /* frame */);
+    void frameUpdatedFunction(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */);
     ROMUnitTest getUnitTest(blargg::cgb_sound test);
     ROMUnitTest getUnitTest(blargg::cpu_instrs test);
     ROMUnitTest getUnitTest(blargg::dmg_sound test);
