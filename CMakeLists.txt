@@ -15,6 +15,7 @@ set(GBC_HEADERS
     src/CartridgeReader.h
     src/ColorPalette.h
     src/CPU.h
+    src/Debugger.h
     src/GBCEmulator.h
     src/GPU.h
     src/Joypad.h
@@ -34,6 +35,7 @@ set(GBC_SOURCE
     src/CartridgeReader.cpp
     src/ColorPalette.cpp
     src/CPU.cpp
+    src/Debugger.cpp
     src/GPU.cpp
     src/GBCEmulator.cpp
     src/Joypad.cpp
@@ -45,6 +47,10 @@ set(GBC_SOURCE
 
 set(GBC_RUN_SOURCE
     src/main.cpp)
+
+set(IMGUI_MISC_SOURCE
+    ${CMAKE_BINARY_DIR}/misc/bindings/imgui_impl_opengl3.cpp
+    ${CMAKE_BINARY_DIR}/misc/bindings/imgui_impl_sdl.cpp)
 
 # Create GBCEmulator lib
 if(BUILD_SHARED_LIBS)
@@ -69,8 +75,12 @@ if(UNIX)
         stdc++fs)
 endif(UNIX)
 
+add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GLEW 1)
+
 # Create GBCEmulator executable
-add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+add_executable(GBCEmulator_bin
+    ${GBC_RUN_SOURCE}
+    ${IMGUI_MISC_SOURCE})
 
 target_link_libraries(GBCEmulator_bin
     GBCEmulator)
@@ -83,6 +93,7 @@ target_link_libraries(GBCEmulator_bin
 endif(WIN32)
 
 include_directories(${CONAN_INCLUDE_DIRS}
+    ${CMAKE_BINARY_DIR}/misc/bindings
     "src/")
 
 # Rename GBCEmulator_bin to GBCEmulator

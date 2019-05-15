@@ -19,6 +19,8 @@ class GBCEmulator(ConanFile):
         "spdlog/1.2.1@bincrafters/stable",
         "gtest/1.8.1@bincrafters/stable",
         "libpng/1.6.34@bincrafters/stable",
+        "imgui/1.69@bincrafters/stable",
+        "glew/2.1.0@bincrafters/stable",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False"
@@ -34,6 +36,7 @@ class GBCEmulator(ConanFile):
         self.copy("*.dll", src="bin", dst=dest)
         self.copy("*.a", src="lib", dst="lib")
         self.copy("*.so*", src="lib", dst="lib")
+        self.copy("*", src="misc", dst="misc")
         #self.copy("*.lib", src="lib", dst="lib")
         self.keep_imports = True
 

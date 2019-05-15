@@ -1,6 +1,7 @@
 #include <SDLWindow.h>
 #include <algorithm>
 #include <SDL_thread.h>
+#include <SDL_opengl.h>
 
 SDLWindow::SDLWindow()
     :   ScreenInterface()
@@ -19,13 +20,16 @@ SDLWindow::~SDLWindow()
 
 void SDLWindow::init()
 {
+    draw_debugger = false;
+
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_DisplayMode current;
     SDL_GetCurrentDisplayMode(0, &current);
 
@@ -51,6 +55,9 @@ void SDLWindow::init()
     screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
+
+    // Init debugger
+    debugger = std::make_unique<Debugger>(&glContext, window);
 }
 
 void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
@@ -63,6 +70,11 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     if (emu != emulator)
     {
         emu = emulator;
+
+        if (debugger)
+        {
+            debugger->setEmulator(emu);
+        }
     }
 
     // Set emulator display output to SDL screen
@@ -84,9 +96,14 @@ void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 
     std::lock_guard<std::mutex> lg(renderer_mutex);
     SDL_UpdateTexture(screen_texture, NULL, frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
-    //SDL_RenderClear(renderer);
+    SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+
+    //if (draw_debugger)
+    //{
+    //    debugger->draw(NULL, renderer);
+    //}
 }
 
 void SDLWindow::updateWindowTitle(const std::string & framerate)
@@ -106,6 +123,7 @@ int SDLWindow::run()
     while (run)
     {   // Process input here
         SDL_PollEvent(&event);
+
         switch (event.type)
         {
         case SDL_QUIT:
@@ -126,8 +144,7 @@ int SDLWindow::run()
                     emu->stop();
                 }
 
-                emu = std::make_shared<GBCEmulator>(romNameStr, romNameStr + ".log");
-                hookToEmulator(emu);
+                hookToEmulator(std::make_shared<GBCEmulator>(romNameStr, romNameStr + ".log"));
                 startEmulator();
             }
 
@@ -155,6 +172,10 @@ int SDLWindow::run()
             {
                 takeSaveState();
                 break;
+            }
+            case SDLK_BACKQUOTE:    // ~/`
+            {
+                draw_debugger = !draw_debugger;
             }
             }
             break;
@@ -191,6 +212,12 @@ int SDLWindow::run()
         if (joypadx)
         {
             //joypadx->refreshButtonStates(joypadx->findControllers());
+        }
+
+        // Draw ImGui debugger
+        if (draw_debugger && debugger)
+        {
+            debugger->draw(&event, renderer, screen_texture);
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
