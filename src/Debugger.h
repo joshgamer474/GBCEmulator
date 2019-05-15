@@ -3,14 +3,13 @@
 
 #include <imgui.h>
 #include <GL/glew.h>
-#include <GBCEmulator.h>
 #include <memory>
 
 extern "C" {
 #include <SDL.h>
 }
 
-#define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
+class GBCEmulator;
 
 class Debugger
 {

@@ -75,7 +75,9 @@ if(UNIX)
         stdc++fs)
 endif(UNIX)
 
-add_compile_definitions(IMGUI_IMPL_OPENGL_LOADER_GLEW 1)
+# Force debugger imgui to use glew
+#add_compile_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLEW)
+add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLEW=1)
 
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin

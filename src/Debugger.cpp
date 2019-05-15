@@ -1,4 +1,5 @@
 #include <Debugger.h>
+#include <GBCEmulator.h>
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
@@ -12,16 +13,15 @@ Debugger::Debugger(SDL_GLContext* _glContext, SDL_Window* _window)
     draw_audio_debugger = false;
     draw_register_debugger = false;
 
-
     bool err = false;
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
-    //asdf
+    err = true;
 #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLEW)
     err = glewInit();
 #elif defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
-    //asdf
+    err = true;
 #else
-    //asdf
+    err = true;
 #endif
 
     if (err)
