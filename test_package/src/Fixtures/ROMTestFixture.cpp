@@ -4,6 +4,8 @@
 #include <future>
 #include <GBCEmulator.h>
 
+#define EMU_TEST_TIME_SEC 2
+
 ROMTestFixture::ROMTestFixture()
     : unit_test("", 0)
 {
@@ -43,7 +45,7 @@ void ROMTestFixture::test()
             }
         });
 
-    auto futureStatus = future.wait_for(std::chrono::seconds(5));
+    auto futureStatus = future.wait_for(std::chrono::seconds(EMU_TEST_TIME_SEC));
     switch (futureStatus)
     {
     case std::future_status::timeout:

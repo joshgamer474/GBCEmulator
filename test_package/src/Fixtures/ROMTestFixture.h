@@ -27,30 +27,29 @@ protected:
     virtual void TearDown()
     {
         if (hash_passed == false)
-        {
-            // Save last frame and frame hash
+        {   // Save last frame and frame hash
             auto pngPath = unit_test.rom_path;
             pngPath += "_" + std::to_string(curr_hash) + "_";
             pngPath += "failed.png";
             emu->saveFrameToPNG(pngPath);
+        }
 
-            // Destruct emulator
-            emu.reset();
+        // Destruct emulator
+        emu.reset();
 
-            // Remove .log file
-            auto logPath = unit_test.rom_path;
-            logPath += ".log";
-            if (std::experimental::filesystem::exists(logPath))
-            {
-                std::experimental::filesystem::remove(logPath);
-            }
+        // Remove .log file
+        auto logPath = unit_test.rom_path;
+        logPath += ".log";
+        if (std::experimental::filesystem::exists(logPath))
+        {
+            std::experimental::filesystem::remove(logPath);
+        }
 
-            // Remove .sav file
-            auto savPath = unit_test.rom_path.replace_extension(".sav");
-            if (std::experimental::filesystem::exists(savPath))
-            {
-                std::experimental::filesystem::remove(savPath);
-            }
+        // Remove .sav file
+        auto savPath = unit_test.rom_path.replace_extension(".sav");
+        if (std::experimental::filesystem::exists(savPath))
+        {
+            std::experimental::filesystem::remove(savPath);
         }
     }
 
