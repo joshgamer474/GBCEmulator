@@ -53,6 +53,8 @@ public:
 	uint8_t readByte(uint16_t pos, bool limit_access = true);
 	void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
 
+    void initGBPowerOn();
+
     std::shared_ptr<CartridgeReader> cartridgeReader;
     std::shared_ptr<MBC> mbc;
     std::shared_ptr<GPU> gpu;

@@ -23,7 +23,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
     // Initialize CPU
     cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", loggerSink),
-        memory);
+        memory,
+        cartridgeReader->has_bios);
     
     // Read in game save
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
@@ -474,15 +475,15 @@ void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
 {
     // Open file
     FILE* fp = fopen(filepath.string().c_str(), "wb");
-    if (!fp) abort();
+    if (!fp) return;
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png) abort();
+    if (!png) return;
 
     png_infop info = png_create_info_struct(png);
-    if (!info) abort();
+    if (!info) return;
 
-    if (setjmp(png_jmpbuf(png))) abort();
+    if (setjmp(png_jmpbuf(png))) return;
 
     png_init_io(png, fp);
 

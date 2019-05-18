@@ -194,7 +194,6 @@ int SDLWindow::run()
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
-
     } // end while(run)
 
     if (emu)

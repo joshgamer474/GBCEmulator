@@ -10,7 +10,8 @@
 #include <sstream>
 
 CPU::CPU(std::shared_ptr<spdlog::logger> _logger,
-    std::shared_ptr<Memory> _memory)
+    std::shared_ptr<Memory> _memory,
+    bool provided_boot_rom)
     :
     logger(_logger),
     memory(_memory)
@@ -22,6 +23,11 @@ CPU::CPU(std::shared_ptr<spdlog::logger> _logger,
 	is_stopped = false;
     halt_do_not_increment_pc = false;
     start_logging = false;
+
+    if (!provided_boot_rom)
+    {
+        initGBPowerOn();
+    }
 }
 
 CPU::~CPU()
@@ -373,19 +379,27 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
 	// Check if bios is done running
-	if (registers[PC] >= 0x100 && memory->cartridgeReader->is_bios)
+	if (memory->cartridgeReader->has_bios &&
+        memory->cartridgeReader->is_in_bios &&
+        registers[PC] >= 0x100)
 	{
-		memory->cartridgeReader->is_bios = false;
+		memory->cartridgeReader->is_in_bios = false;
 
         if (memory->is_color_gb)
-        {   // Let games know that emulator is CGB
-            set_register(CPU::REGISTERS::A, static_cast<uint8_t>(0x11));
+        {   // Let games know that the emulator is a CGB
+            set_register(REGISTERS::A, static_cast<uint8_t>(0x11));
         }
 
 		//printRegisters();
 		logger->info("Done running bootstrap, moving on to cartridge");
 		start_logging = true;
 	}
+
+    if (start_logging == false &&
+        logger->level() == spdlog::level::trace)
+    {
+        start_logging = true;
+    }
 
 
 	if (start_logging)
@@ -3458,4 +3472,31 @@ std::string CPU::numToHex(T number)
     }
 
     return stream.str();
+}
+
+// Sets registers to values after running through boot up ROM
+void CPU::initGBPowerOn()
+{
+    if (!memory)
+    {
+        logger->error("Did not have Memory to set boot ROM values to");
+        return;
+    }
+
+    // Set CPU registers
+    if (memory->is_color_gb)
+    {   // Let games know that the emulator is a CGB
+        set_register(REGISTERS::AF, static_cast<uint16_t>(0x11B0));
+    }
+    else
+    {   // Let games know that the emulator is a GB
+        set_register(REGISTERS::AF, static_cast<uint16_t>(0x01B0));
+    }
+    set_register(REGISTERS::BC, static_cast<uint16_t>(0x0013));
+    set_register(REGISTERS::DE, static_cast<uint16_t>(0x00D8));
+    set_register(REGISTERS::HL, static_cast<uint16_t>(0x014D));
+    set_register(REGISTERS::SP, static_cast<uint16_t>(0xFFFE));
+    set_register(REGISTERS::PC, static_cast<uint16_t>(0x0100));
+
+    memory->initGBPowerOn();
 }
