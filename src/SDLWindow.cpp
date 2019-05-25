@@ -6,6 +6,15 @@ SDLWindow::SDLWindow()
     :   ScreenInterface()
 {
     init();
+
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> grayFrame;
+    for (SDL_Color& pixel : grayFrame)
+    {
+        pixel.r = 200;
+        pixel.g = 200;
+        pixel.b = 200;
+    }
+    display(grayFrame);
 }
 
 SDLWindow::~SDLWindow()
@@ -75,7 +84,10 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    updateWindowTitle(std::to_string(emu->frameShowTimeMicro.count()));    // Turn microseconds into milliseconds
+    if (emu)
+    {
+        updateWindowTitle(std::to_string(emu->frameShowTimeMicro.count()));    // Turn microseconds into milliseconds
+    }
 
     if (!renderer)
     {
