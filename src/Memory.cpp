@@ -27,7 +27,6 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     apu(_apu)
 {
 	timer_enabled   = false;
-    curr_clock = 0;
 	clock_frequency = 4096;
     clock_speed = 0;
     clock_div_accumulator = 0;
@@ -53,7 +52,6 @@ Memory::~Memory()
 Memory& Memory::operator=(const Memory& rhs)
 {   // Copy from rhs
     timer_enabled           = rhs.timer_enabled;
-    curr_clock              = rhs.curr_clock;
     clock_frequency         = rhs.clock_frequency;
     clock_speed             = rhs.clock_speed;
     clock_div_accumulator   = rhs.clock_div_accumulator;
@@ -736,7 +734,6 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 	uint8_t & divider_reg       = timer[DIV];
 	uint8_t & timer_counter     = timer[TIMA];
 
-    curr_clock = ticks;
     clock_div_accumulator += ticks;
     clock_tima_accumulator += ticks;
 
@@ -746,12 +743,11 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
         updateTimerRates();
     }
 
-    // Update 0xFF04 - DIV
     while (clock_div_accumulator >= clock_div_rate)
-    {
+    {   // Increment 0xFF04 - DIV
         divider_reg++;
-        //clock_div_accumulator -= clock_div_rate;
-        clock_div_accumulator = 0;
+        clock_div_accumulator -= clock_div_rate;
+        //clock_div_accumulator = 0;
     }
 
     // Update 0xFF05 - TIMA
@@ -761,7 +757,7 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
     {
         timer_counter++;
         if (timer_counter == 0x00)
-        {
+        {   // timer_counter overflowed, reload it with TMA
             timer_counter = timer[TMA];
             interrupt_flag |= INTERRUPT_TIMER;
         }

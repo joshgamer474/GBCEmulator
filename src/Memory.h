@@ -83,7 +83,6 @@ public:
 
 	// Timer variables
 	bool timer_enabled;
-    uint32_t curr_clock;
 	uint32_t clock_frequency;
 
     uint32_t clock_div_rate;

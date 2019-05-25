@@ -189,7 +189,7 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
     case 0xFF26:    // NR52
         if (sound_on && (val & BIT7) == 0)
         {   // Disabling sound, reset APU
-            logger->info("Turning off APU, zeroing out 0xFF10-0xFF25");
+            logger->info("Turning APU off, zeroing out 0xFF10-0xFF25");
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
@@ -313,11 +313,11 @@ void APU::run(const uint8_t & cpuTickDiff)
                 break;
             case 2:
             case 6:
-                sound_channel_1->tickSweep();
                 sound_channel_1->tickLengthCounter();
                 sound_channel_2->tickLengthCounter();
                 sound_channel_3->tickLengthCounter();
                 sound_channel_4->tickLengthCounter();
+                sound_channel_1->tickSweep();
                 break;
             case 7:
                 sound_channel_1->tickVolumeEnvelope();
@@ -358,10 +358,10 @@ void APU::run(const uint8_t & cpuTickDiff)
                 uint8_t channel_3_sample = sound_channel_3->output_volume;
                 uint8_t channel_4_sample = sound_channel_4->output_volume;
 #else
-                float channel_1_sample = ((float)sound_channel_1->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_2_sample = ((float)sound_channel_2->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_3_sample = ((float)sound_channel_3->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_4_sample = ((float)sound_channel_4->output_volume) / 30.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_1_sample = ((float)sound_channel_1->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_2_sample = ((float)sound_channel_2->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_3_sample = ((float)sound_channel_3->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_4_sample = ((float)sound_channel_4->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
 #endif
 
                 // Apply samples to left and/or right out channels

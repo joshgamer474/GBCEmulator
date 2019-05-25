@@ -80,7 +80,9 @@ void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
     }
     else
     {
-        // log error ?
+        logger->error("Tried to write: {} to addr: {}",
+            val,
+            addr);
     }
 }
 
@@ -291,6 +293,12 @@ void AudioSquare::tickLengthCounter()
 // http://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware
 void AudioSquare::tickVolumeEnvelope()
 {
+    if (volume == 0 ||
+        volume == 15)
+    {
+        return;
+    }
+
     if (envelope_period == 0)
     {
         return;
@@ -345,25 +353,33 @@ void AudioSquare::tickSweep()
             reloadPeriod(sweep_period, sweep_period_load);
         }
 
+        // Copy Square 1's frequency into sweep_frequency
         sweep_frequency_16 = frequency_16;
 
-        if (sweep_period != 0 || sweep_shift != 0)
-        {
-            sweep_running = true;
-        }
-        else
-        {
-            sweep_running = false;
-        }
+
+        // Check if sweep is running
+        //if (sweep_period != 0 || sweep_shift != 0)
+        //{
+        //    sweep_running = true;
+        //}
+        //else
+        //{
+        //    sweep_running = false;
+        //}
 
         if (sweep_running && sweep_period_load > 0)
-        {
+        {   // Calculate a new frequency post-sweep
             uint16_t newFrequency = calculateSweepFrequency();
 
             if (newFrequency <= 2047 && sweep_shift > 0)
             {   // Set variables to use new frequency
                 sweep_frequency_16 = newFrequency;
                 frequency_16 = newFrequency;
+
+                // Calculate Square 1's period as frequency_16 has been updated
+                period = (2048 - frequency_16) * 4;
+                timer = period; // Reload frequency period
+
                 calculateSweepFrequency();  
             }
         }
@@ -413,8 +429,8 @@ bool AudioSquare::isRunning()
         is_enabled,
         dac_enabled);
 
-    //return sound_length_data > 0
-    //    && is_enabled
-    //    && dac_enabled;
-    return is_enabled && dac_enabled;
+    return sound_length_data > 0
+        && is_enabled
+        && dac_enabled;
+    //return is_enabled && dac_enabled;
 }
