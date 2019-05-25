@@ -21,11 +21,13 @@ public:
     bool getColorGBFlag() const;
     int getMBCNum() const;
     bool isColorGB() const;
+    std::string getGameTitle() const;
 
     std::vector<unsigned char> bios;
     std::shared_ptr<spdlog::logger> logger;
     std::vector<unsigned char> romBuffer;
     std::string cartridgeFilename;
+    std::string game_title_str;
     int num_ROM_banks;
     int num_RAM_banks;
     bool is_in_bios;

@@ -78,7 +78,6 @@ GBCEmulator& GBCEmulator::operator=(const GBCEmulator& rhs)
 
     ranInstruction  = rhs.ranInstruction;
     debugMode       = rhs.debugMode;
-    isInitialized   = rhs.isInitialized;
     frameProcessingTimeMicro = rhs.frameProcessingTimeMicro;
     frameShowTimeMicro = rhs.frameShowTimeMicro;
     stopRunning     = rhs.stopRunning;
@@ -292,7 +291,7 @@ void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
     cartridgeReader->logger->set_level(l);
 }
 
-bool GBCEmulator::frame_is_ready()
+bool GBCEmulator::frame_is_ready() const
 {
     return gpu->frame_is_ready;
 }
@@ -333,7 +332,7 @@ std::shared_ptr<Joypad> GBCEmulator::get_Joypad()
     return NULL;
 }
 
-std::vector<uint8_t> GBCEmulator::get_memory_map()
+std::vector<uint8_t> GBCEmulator::get_memory_map() const
 {
     std::vector<uint8_t> memory_map;
     memory_map.reserve(0xFFFF);
@@ -346,7 +345,7 @@ std::vector<uint8_t> GBCEmulator::get_memory_map()
     return memory_map;
 }
 
-std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uint16_t end_pos)
+std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uint16_t end_pos) const
 {
     std::vector<uint8_t> partial_memory_map;
     partial_memory_map.reserve(end_pos - start_pos);
@@ -374,7 +373,7 @@ void GBCEmulator::release_joypad_button(Joypad::BUTTON button)
     }
 }
 
-void GBCEmulator::waitToStartNextFrame()
+void GBCEmulator::waitToStartNextFrame() const
 {
     // Calculate time elapsed since start of frame
     auto currTimeDouble = getCurrentTime();
@@ -388,10 +387,11 @@ void GBCEmulator::waitToStartNextFrame()
     }
 }
 
-std::chrono::duration<double> GBCEmulator::getCurrentTime()
+std::chrono::duration<double> GBCEmulator::getCurrentTime() const
 {
-    auto currTime = std::chrono::system_clock::now().time_since_epoch();
-    return std::chrono::duration<double>(currTime);
+    return std::chrono::duration<double>(
+        std::chrono::system_clock::now()
+        .time_since_epoch());
 }
 
 void GBCEmulator::setTimePerFrame(double d)
@@ -526,4 +526,13 @@ void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
 
     // Close file
     fclose(fp);
+}
+
+std::string GBCEmulator::getGameTitle() const
+{
+    if (cartridgeReader)
+    {
+        return cartridgeReader->getGameTitle();
+    }
+    return "";
 }

@@ -11,14 +11,11 @@
 #endif // _WIN32
 
 #include <chrono>
+#include <experimental/filesystem>
 #include <fstream>
 #include <functional>
 #include <iterator>
 #include <vector>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/rotating_file_sink.h>
-#include <experimental/filesystem>
 
 #include "APU.h"
 #include "CPU.h"
@@ -29,19 +26,14 @@
 #include "CartridgeReader.h"
 #include "Debug.h"
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/rotating_file_sink.h>
+
 extern "C" {
 #include <SDL.h>
 }
 
 #define USE_AUDIO_TIMING
-
-class APU;
-class CPU;
-class Memory;
-class Joypad;
-class MBC;
-class GPU;
-class CartridgeReader;
 
 class GBCEmulator
 {
@@ -56,32 +48,32 @@ public:
     void runTo(uint16_t pc);
     void stop();
     void setStopRunning(bool val);
-    bool frame_is_ready();
-    SDL_Color * get_frame();
+    bool frame_is_ready() const;
+    void set_joypad_button(Joypad::BUTTON button);
+    void release_joypad_button(Joypad::BUTTON button);
+    void setTimePerFrame(double d);
+    void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
+    void saveFrameToPNG(std::experimental::filesystem::path filepath);
+    SDL_Color* get_frame();
+    SDL_Color* getFrameRaw() const;
+    std::string getROMName() const;
+    std::string getGameTitle() const;
     std::shared_ptr<APU> get_APU();
     std::shared_ptr<CPU> get_CPU();
     std::shared_ptr<GPU> get_GPU();
     std::shared_ptr<Joypad> get_Joypad();
-    std::vector<uint8_t> get_memory_map();
-    std::vector<uint8_t> get_partial_memory_map(uint16_t start_pos, uint16_t end_pos);
-    void set_joypad_button(Joypad::BUTTON button);
-    void release_joypad_button(Joypad::BUTTON button);
-    void setTimePerFrame(double d);
-    std::string getROMName() const;
-
-    void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
+    std::vector<uint8_t> get_memory_map() const;
+    std::vector<uint8_t> get_partial_memory_map(uint16_t start_pos, uint16_t end_pos) const;
     std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
-    SDL_Color* getFrameRaw() const;
+
     static uint64_t calculateFrameHash(SDL_Color* frame);
     static uint64_t calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame);
-    void saveFrameToPNG(std::experimental::filesystem::path filepath);
 
+    // Variables
     bool ranInstruction;
     bool debugMode;
-    bool isInitialized;
     bool runWithoutSleep;
     std::chrono::microseconds frameProcessingTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
-                                                // so it is easily accessible to all wrappers
     std::chrono::microseconds frameShowTimeMicro;
 
 private:
@@ -89,9 +81,10 @@ private:
     void init_memory();
     void init_gpu();
     void init_logging(std::string logName);
-    void waitToStartNextFrame();
-    std::chrono::duration<double> getCurrentTime();
+    void waitToStartNextFrame() const;
+    std::chrono::duration<double> getCurrentTime() const;
  
+    // Variables
     std::shared_ptr<APU> apu;
     std::shared_ptr<CPU> cpu;
     std::shared_ptr<CartridgeReader> cartridgeReader;
@@ -116,4 +109,4 @@ private:
     std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> frameIsUpdatedFunction;
 };
 
-#endif
+#endif // GBCEMULATOR_H

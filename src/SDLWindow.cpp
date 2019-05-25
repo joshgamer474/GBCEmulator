@@ -75,7 +75,7 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
+    updateWindowTitle(std::to_string(emu->frameShowTimeMicro.count()));    // Turn microseconds into milliseconds
 
     if (!renderer)
     {
@@ -93,7 +93,10 @@ void SDLWindow::updateWindowTitle(const std::string & framerate)
 {
     if (window)
     {
-        const std::string title = "GBCEmulator | " + framerate;
+        const std::string title = "GBCEmulator | "
+            + emu->getGameTitle()
+            + " | "
+            + framerate;
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
