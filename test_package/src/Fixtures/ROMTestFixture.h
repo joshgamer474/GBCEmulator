@@ -67,6 +67,7 @@ protected:
 private:
     void setEmuLogLevels(const TestType& test_type);
     void tryRemoveFile(const std::experimental::filesystem::path& file);
+    std::experimental::filesystem::path getExecutablePath();
 
     std::unique_ptr<GBCEmulator> emu;
     std::experimental::filesystem::path rom_root;

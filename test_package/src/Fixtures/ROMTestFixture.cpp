@@ -1,8 +1,15 @@
 #include <Fixtures/ROMTestFixture.h>
+#include <array>
 #include <string>
 #include <chrono>
 #include <future>
 #include <GBCEmulator.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <linux/limits.h>
+#endif // _WIN32
 
 #define EMU_TEST_TIME_SEC 2
 
@@ -14,16 +21,40 @@ ROMTestFixture::ROMTestFixture()
 
 void ROMTestFixture::init()
 {
-    rom_root = std::experimental::filesystem::current_path()
-        .parent_path() / "bin" / "blarggtests";
+    //rom_root = std::experimental::filesystem::current_path()
+    rom_root = getExecutablePath()
+        .parent_path() / "blarggtests";
     hash_passed = false;
+}
+
+std::experimental::filesystem::path
+ROMTestFixture::getExecutablePath()
+{
+#ifdef _WIN32
+    HMODULE module = GetModuleHandlew(nullptr);
+    WCHAR path[MAX_PATH];
+    GetModuleFileNameW(module, path, MAX_PATH);
+    std::wstring pathws(path);
+
+    return std::string(pathws.begin(), pathws.end());
+#else
+    std::vector<char> result;
+    result.resize(PATH_MAX);
+    ssize_t count = readlink("/proc/self/exe", result.data(), PATH_MAX);
+    if (count != -1)
+    {
+        return std::string(result.begin(), result.end());
+    }
+#endif // _WIN32
 }
 
 void ROMTestFixture::test()
 {
     ASSERT_FALSE(unit_test.rom_path.empty());
     //ASSERT_TRUE(unit_test.passing_frame_hash);
-    ASSERT_TRUE(std::experimental::filesystem::exists(unit_test.rom_path));
+    ASSERT_TRUE(std::experimental::filesystem::exists(unit_test.rom_path))
+        << "Path does not exist: "
+        << unit_test.rom_path.string();
 
     // Remove old .log file
     auto logPath = unit_test.rom_path;
