@@ -21,10 +21,6 @@ int main(int argc, char **argv)
             window.hookToEmulator(emu);
             start_emu = true;
         }
-        else
-        {
-            return -2;
-        }
     }
 
     window.run(start_emu);
