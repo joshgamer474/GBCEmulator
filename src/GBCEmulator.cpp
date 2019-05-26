@@ -42,9 +42,9 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::debug);
-    apu->setChannelLogLevel(spdlog::level::debug);
-    joypad->logger->set_level(spdlog::level::debug);
+    apu->logger->set_level(spdlog::level::warn);
+    apu->setChannelLogLevel(spdlog::level::warn);
+    joypad->logger->set_level(spdlog::level::warn);
     logger->set_level(spdlog::level::info);
     logCounter = 0;
 }
