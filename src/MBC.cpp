@@ -559,6 +559,8 @@ void MBC::saveRAMToFile(const std::string & filename)
     std::ofstream file;
     file.open(filename, std::ios::binary);
 
+    logger->info("Saving RAM to {}", filename);
+
     // Write RAM to file
     for (size_t i = 0; i < ramBanks.size(); i++)
     {
@@ -583,6 +585,8 @@ void MBC::saveRTCToFile(const std::string & filename)
     // Open file
     std::ofstream file;
     file.open(filename, std::ios::binary);
+
+    logger->info("Saving RTC to {}", filename);
 
     // Write RTC to file
     file.write(reinterpret_cast<const char *>(rtcRegisters.data()), rtcRegisters.size());
