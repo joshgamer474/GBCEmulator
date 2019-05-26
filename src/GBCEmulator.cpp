@@ -25,10 +25,11 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", loggerSink),
         memory,
         cartridgeReader->has_bios);
-    
-    // Read in game save
+
+    // Read in game save (.sav) and RTC clock (.rtc) if availabel
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
     mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
+    mbc->loadRTCIntoRAM(filenameNoExtension + ".rtc");
 
     // Calculate number of CPU cycles that can tick in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
@@ -50,8 +51,14 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
 GBCEmulator::~GBCEmulator()
 {
-    // Write out .sav file
+    logger->info("Destructing");
+
+    // Try to write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
+
+    // Try to write out .rtc file
+    mbc->latchCurrTimeToRTC();
+    mbc->saveRTCToFile(filenameNoExtension + ".rtc");
 
     // Write out last frame hash
     uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);

@@ -14,6 +14,8 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
     rom_banking_mode = true;
     ram_banking_mode = false;
     external_ram_enabled = false;
+    wroteToRAMBanks  = false;
+    wroteToRTC       = false;
     curr_rom_bank = 1;
     curr_ram_bank = 1;
 
@@ -82,6 +84,7 @@ MBC& MBC::operator=(const MBC& rhs)
     prev_mbc3_latch = rhs.prev_mbc3_latch;
     curr_mbc3_latch = rhs.curr_mbc3_latch;
     wroteToRAMBanks = rhs.wroteToRAMBanks;
+    wroteToRTC      = rhs.wroteToRTC;
 
     return *this;
 }
@@ -105,7 +108,7 @@ void MBC::MBC2_init()
 
 void MBC::MBC3_init()
 {
-    rtcRegisters.resize(0x0C - 0x08);
+    rtcRegisters.resize(5);
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
@@ -437,7 +440,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C && rtc_timer_enabled)
             {
                 rtcRegisters[curr_ram_bank - 0x08] = val;
-                wroteToRAMBanks = true;
+                wroteToRTC = true;
             }
             else
             {
@@ -505,6 +508,45 @@ void MBC::loadSaveIntoRAM(const std::string & filename)
     }
 }
 
+void MBC::loadRTCIntoRAM(const std::string & filename)
+{
+    if (mbc_num != 3)
+    {
+        logger->info("MBC{} does not support RTC clock",
+            mbc_num);
+        return;
+    }
+
+    // Open file
+    std::ifstream file;
+    file.open(filename, std::ios::binary);
+
+    if (file.is_open())
+    {   // Read in file
+        logger->info("Reading in RTC file");
+        std::vector<unsigned char> rtc(
+            (std::istreambuf_iterator<char>(file)),
+            (std::istreambuf_iterator<char>()));
+
+        logger->info("Finished reading in RTC file, size: {} bytes",
+            rtc.size());
+
+        if (rtc.size() == rtcRegisters.size())
+        {   // Write RTC to RTC registers
+            rtcRegisters = std::move(rtc);
+        }
+        else
+        {
+            logger->error("Failed to load in RTC, .rtc size: {}, RTC register size: {}",
+                rtc.size(),
+                rtcRegisters.size());
+        }
+
+        // Close file
+        file.close();
+    }
+}
+
 void MBC::saveRAMToFile(const std::string & filename)
 {
     if (!wroteToRAMBanks || ramBanksAreEmpty())
@@ -526,6 +568,29 @@ void MBC::saveRAMToFile(const std::string & filename)
     // Close file
     file.close();
 }
+
+void MBC::saveRTCToFile(const std::string & filename)
+{
+    if (mbc_num != 3
+        || rtcRegisters.empty()
+        || wroteToRTC == false)
+    {
+        logger->info("MBC{} does not have RTC registers to write out",
+            mbc_num);
+        return;
+    }
+
+    // Open file
+    std::ofstream file;
+    file.open(filename, std::ios::binary);
+
+    // Write RTC to file
+    file.write(reinterpret_cast<const char *>(rtcRegisters.data()), rtcRegisters.size());
+
+    // Close file
+    file.close();
+}
+
 
 bool MBC::ramBanksAreEmpty() const
 {
