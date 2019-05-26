@@ -29,7 +29,7 @@ public:
     void hookToEmulator(std::shared_ptr<GBCEmulator> emulator);
     static bool romIsValid(const std::string & filepath);
     static std::string getFileExtension(const std::string & filepath);
-    int run();
+    int run(bool start_emu = false);
 
 private:
     void init();
@@ -51,6 +51,7 @@ private:
     SDL_Texture* screen_texture;
     SDL_Rect screen_texture_rect;
     uint64_t framerate;
+    bool keep_aspect_ratio;
 };
 
 #endif // SDL_WINDOW_H

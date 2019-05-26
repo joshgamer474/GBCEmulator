@@ -10,6 +10,7 @@
 int main(int argc, char **argv)
 {
     SDLWindow window;
+    bool start_emu = false;
 
     if (argc > 1)
     {
@@ -18,10 +19,15 @@ int main(int argc, char **argv)
         {
             std::shared_ptr<GBCEmulator> emu = std::make_shared<GBCEmulator>(romName, romName + ".log");
             window.hookToEmulator(emu);
+            start_emu = true;
+        }
+        else
+        {
+            return -2;
         }
     }
 
-    window.run();
+    window.run(start_emu);
 
     return 0;
 }
