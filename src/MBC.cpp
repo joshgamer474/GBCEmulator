@@ -613,6 +613,12 @@ bool MBC::ramBanksAreEmpty() const
 
 void MBC::latchCurrTimeToRTC()
 {
+    if (mbc_num != 3 ||
+        rtcRegisters.size() != 5)
+    {
+        return;
+    }
+
     uint16_t dayCounter;
     uint8_t & seconds   = rtcRegisters[0];
     uint8_t & minutes   = rtcRegisters[1];
