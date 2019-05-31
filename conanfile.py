@@ -4,12 +4,12 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.0.2"
+    version = "0.0.3"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
-    settings = {"os" : ["Windows", "Linux"], 
-                "arch": ["x86", "x86_64"],
-                "compiler": ["Visual Studio", "gcc"],
+    settings = {"os" : ["Windows", "Linux", "Android"], 
+                "arch": ["x86", "x86_64", "armv7"],
+                "compiler": ["Visual Studio", "gcc", "clang"],
                 "build_type": ["Debug", "Release"],
                 "cppstd": ["14", "17"]}
     options = {"shared": [True, False]}
@@ -22,6 +22,11 @@ class GBCEmulator(ConanFile):
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False"
+
+    def build_requirements(self):
+        if self.settings.os == "Android":
+            self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
+            #self.build_requires("android-ndk/r18@theodelrieu/testing")
 
     def configure(self):
         self.options["sdl2"].shared = True
@@ -40,7 +45,13 @@ class GBCEmulator(ConanFile):
     def build(self):
         if self.settings.os == "Linux":
             "stdc++fs"
+
         cmake = CMake(self, build_type=self.settings.build_type)
+        # Don't build test_package as ndk doesn't have std::experimental::filesystem
+        if self.settings.os == "Android":
+            cmake.definitions["BUILD_UNIT_TEST"] = False
+        else:
+            cmake.definitions["BUILD_UNIT_TEST"] = True
         cmake.configure()
         cmake.build()
         #cmake.test()
