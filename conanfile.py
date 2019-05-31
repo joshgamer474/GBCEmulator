@@ -26,7 +26,6 @@ class GBCEmulator(ConanFile):
     def build_requirements(self):
         if self.settings.os == "Android":
             self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
-            #self.build_requires("android-ndk/r18@theodelrieu/testing")
 
     def configure(self):
         self.options["sdl2"].shared = True
