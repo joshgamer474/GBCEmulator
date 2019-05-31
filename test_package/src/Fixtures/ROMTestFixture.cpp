@@ -31,7 +31,7 @@ std::experimental::filesystem::path
 ROMTestFixture::getExecutablePath()
 {
 #ifdef _WIN32
-    HMODULE module = GetModuleHandlew(nullptr);
+    HMODULE module = GetModuleHandleW(nullptr);
     WCHAR path[MAX_PATH];
     GetModuleFileNameW(module, path, MAX_PATH);
     std::wstring pathws(path);
@@ -45,6 +45,7 @@ ROMTestFixture::getExecutablePath()
     {
         return std::string(result.begin(), result.end());
     }
+    return "";
 #endif // _WIN32
 }
 
