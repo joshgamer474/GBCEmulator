@@ -8,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <spdlog/spdlog.h>
 
 extern "C" {
 #include <SDL.h>
@@ -22,7 +23,7 @@ enum SDLRenderType : char {
 class SDLWindow : public ScreenInterface
 {
 public:
-    SDLWindow();
+    SDLWindow(const std::string& log_name = "SDLWindow.log");
     virtual ~SDLWindow();
 
     void display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame);
@@ -42,6 +43,7 @@ private:
     std::shared_ptr<GBCEmulator> emu_savestate;
     std::shared_ptr<Joypad> joypad;
     std::shared_ptr<JoypadXInput> joypadx;
+    std::shared_ptr<spdlog::logger> logger;
     std::thread emu_thread;
     std::mutex renderer_mutex;
     SDL_GLContext glContext;

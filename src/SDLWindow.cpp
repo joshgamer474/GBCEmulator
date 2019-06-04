@@ -2,8 +2,9 @@
 #include <algorithm>
 #include <SDL_thread.h>
 
-SDLWindow::SDLWindow()
+SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
+    , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
 {
     init();
 }
@@ -19,7 +20,10 @@ SDLWindow::~SDLWindow()
 
 void SDLWindow::init()
 {
-    SDL_Init(SDL_INIT_VIDEO);
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        logger->error("SDL_Init() failed: {}", SDL_GetError());
+    }
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -34,12 +38,24 @@ void SDLWindow::init()
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+    if (!window)
+    {
+        logger->error("SDL_CreateWindow() failed: {}", SDL_GetError());
+    }
 
     glContext = SDL_GL_CreateContext(window);
     SDL_GL_SetSwapInterval(1); // Enable vsync
+    if (!glContext)
+    {
+        logger->error("SDL_GL_CreateContext() failed: {}", SDL_GetError());
+    }
 
     renderer = SDL_CreateRenderer(window, -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
+    if (!renderer)
+    {
+        logger->error("SDL_CreateRenderer() failed: {}", SDL_GetError());
+    }
 
     SDL_SetRenderDrawColor(renderer, 100, 255, 255, 255);
     screen_texture = SDL_CreateTexture(renderer,
@@ -47,6 +63,10 @@ void SDLWindow::init()
         SDL_TEXTUREACCESS_STREAMING,
         SCREEN_PIXEL_W,
         SCREEN_PIXEL_H);
+    if (!screen_texture)
+    {
+        logger->error("SDL_CreateTexture() failed: {}", SDL_GetError());
+    }
 
     screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
 

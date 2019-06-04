@@ -1,4 +1,4 @@
-#ifndef SCREEN_INTERFACE_Hj
+#ifndef SCREEN_INTERFACE_H
 #define SCREEN_INTERFACE_H
 
 #include <GBCEmulator.h>
