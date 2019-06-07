@@ -8,7 +8,7 @@ class GBCEmulator(ConanFile):
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux", "Android"], 
-                "arch": ["x86", "x86_64", "armv7"],
+                "arch": ["x86", "x86_64", "armv7", "armv8"],
                 "compiler": ["Visual Studio", "gcc", "clang"],
                 "build_type": ["Debug", "Release"],
                 "cppstd": ["14", "17"]}
@@ -62,7 +62,11 @@ class GBCEmulator(ConanFile):
         self.copy("*.h", src="src", dst="include")
 
         if self.options.shared == False:
-            self.copy("*", src="lib",   dst="lib",    keep_path=False)
+            self.copy("*", src="lib", dst="lib", keep_path=True)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+
+    def deploy(self):
+        self.copy("*", dst="bin", src="bin")
+        self.copy("*", dst="lib", src="lib")
