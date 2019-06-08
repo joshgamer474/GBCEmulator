@@ -2,11 +2,24 @@
 #include <algorithm>
 #include <SDL_thread.h>
 
+<<<<<<< HEAD
 SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
     , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
+=======
+SDLWindow::SDLWindow()
+    : ScreenInterface()
+    , keep_aspect_ratio(true)
+>>>>>>> qt_gui
 {
     init();
+
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> grayFrame;
+    for (SDL_Color& pixel : grayFrame)
+    {
+        pixel.r = pixel.g = pixel.b = 200;
+    }
+    display(grayFrame);
 }
 
 SDLWindow::~SDLWindow()
@@ -37,11 +50,16 @@ void SDLWindow::init()
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
+<<<<<<< HEAD
         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!window)
     {
         logger->error("SDL_CreateWindow() failed: {}", SDL_GetError());
     }
+=======
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
+        SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+>>>>>>> qt_gui
 
     glContext = SDL_GL_CreateContext(window);
     SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -57,7 +75,12 @@ void SDLWindow::init()
         logger->error("SDL_CreateRenderer() failed: {}", SDL_GetError());
     }
 
-    SDL_SetRenderDrawColor(renderer, 100, 255, 255, 255);
+    if (keep_aspect_ratio)
+    {   // Force original aspect ratio
+        SDL_RenderSetLogicalSize(renderer, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
+    }
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     screen_texture = SDL_CreateTexture(renderer,
         SDL_PIXELFORMAT_RGBA32,
         SDL_TEXTUREACCESS_STREAMING,
@@ -70,7 +93,8 @@ void SDLWindow::init()
 
     screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
+    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 }
 
 void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
@@ -95,7 +119,10 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    updateWindowTitle(std::to_string(emu->frameProcessingTimeMicro.count()));    // Turn microseconds into milliseconds
+    if (emu)
+    {
+        updateWindowTitle(std::to_string(emu->frameShowTimeMicro.count()));    // Turn microseconds into milliseconds
+    }
 
     if (!renderer)
     {
@@ -113,15 +140,23 @@ void SDLWindow::updateWindowTitle(const std::string & framerate)
 {
     if (window)
     {
-        const std::string title = "GBCEmulator | " + framerate;
+        const std::string title = "GBCEmulator | "
+            + emu->getGameTitle()
+            + " | "
+            + framerate;
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
 
-int SDLWindow::run()
+int SDLWindow::run(bool start_emu)
 {
     SDL_Event event;
     bool run = true;
+
+    if (start_emu)
+    {   // Already hooked up emulator, start it on run()
+        startEmulator();
+    }
 
     while (run)
     {   // Process input here
@@ -201,7 +236,13 @@ int SDLWindow::run()
             switch (event.window.event)
             {
             case SDL_WINDOWEVENT_SIZE_CHANGED:
-                //emu->resizeSDLRenderWindow(event.window.data1, event.window.data2);
+                std::lock_guard<std::mutex> lg(renderer_mutex);
+                // Clear first frame in double buffer
+                SDL_RenderClear(renderer);
+                SDL_RenderPresent(renderer);
+                // Clear second frame in double buffer
+                SDL_RenderClear(renderer);
+                SDL_RenderPresent(renderer);
                 break;
             }
         }
@@ -214,7 +255,6 @@ int SDLWindow::run()
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
-
     } // end while(run)
 
     if (emu)

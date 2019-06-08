@@ -1259,7 +1259,7 @@ void GPU::renderLine()
         return;
     }
 
-    logger->info("lcd_y: {}", lcd_y);
+    logger->debug("lcd_y: {}", lcd_y);
 
     if (bg_display_enable)
     {

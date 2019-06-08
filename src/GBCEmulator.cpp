@@ -23,11 +23,13 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
 
     // Initialize CPU
     cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", loggerSink),
-        memory);
-    
-    // Read in game save
+        memory,
+        cartridgeReader->has_bios);
+
+    // Read in game save (.sav) and RTC clock (.rtc) if availabel
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
     mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
+    mbc->loadRTCIntoRAM(filenameNoExtension + ".rtc");
 
     // Calculate number of CPU cycles that can tick in one frame's time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
@@ -40,17 +42,23 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::debug);
-    apu->setChannelLogLevel(spdlog::level::debug);
-    joypad->logger->set_level(spdlog::level::debug);
+    apu->logger->set_level(spdlog::level::warn);
+    apu->setChannelLogLevel(spdlog::level::warn);
+    joypad->logger->set_level(spdlog::level::warn);
     logger->set_level(spdlog::level::info);
     logCounter = 0;
 }
 
 GBCEmulator::~GBCEmulator()
 {
-    // Write out .sav file
+    logger->info("Destructing");
+
+    // Try to write out .sav file
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
+
+    // Try to write out .rtc file
+    mbc->latchCurrTimeToRTC();
+    mbc->saveRTCToFile(filenameNoExtension + ".rtc");
 
     // Write out last frame hash
     uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);
@@ -77,7 +85,6 @@ GBCEmulator& GBCEmulator::operator=(const GBCEmulator& rhs)
 
     ranInstruction  = rhs.ranInstruction;
     debugMode       = rhs.debugMode;
-    isInitialized   = rhs.isInitialized;
     frameProcessingTimeMicro = rhs.frameProcessingTimeMicro;
     frameShowTimeMicro = rhs.frameShowTimeMicro;
     stopRunning     = rhs.stopRunning;
@@ -291,7 +298,7 @@ void GBCEmulator::set_logging_level(spdlog::level::level_enum l)
     cartridgeReader->logger->set_level(l);
 }
 
-bool GBCEmulator::frame_is_ready()
+bool GBCEmulator::frame_is_ready() const
 {
     return gpu->frame_is_ready;
 }
@@ -332,7 +339,7 @@ std::shared_ptr<Joypad> GBCEmulator::get_Joypad()
     return NULL;
 }
 
-std::vector<uint8_t> GBCEmulator::get_memory_map()
+std::vector<uint8_t> GBCEmulator::get_memory_map() const
 {
     std::vector<uint8_t> memory_map;
     memory_map.reserve(0xFFFF);
@@ -345,7 +352,7 @@ std::vector<uint8_t> GBCEmulator::get_memory_map()
     return memory_map;
 }
 
-std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uint16_t end_pos)
+std::vector<uint8_t> GBCEmulator::get_partial_memory_map(uint16_t start_pos, uint16_t end_pos) const
 {
     std::vector<uint8_t> partial_memory_map;
     partial_memory_map.reserve(end_pos - start_pos);
@@ -373,7 +380,7 @@ void GBCEmulator::release_joypad_button(Joypad::BUTTON button)
     }
 }
 
-void GBCEmulator::waitToStartNextFrame()
+void GBCEmulator::waitToStartNextFrame() const
 {
     // Calculate time elapsed since start of frame
     auto currTimeDouble = getCurrentTime();
@@ -387,10 +394,11 @@ void GBCEmulator::waitToStartNextFrame()
     }
 }
 
-std::chrono::duration<double> GBCEmulator::getCurrentTime()
+std::chrono::duration<double> GBCEmulator::getCurrentTime() const
 {
-    auto currTime = std::chrono::system_clock::now().time_since_epoch();
-    return std::chrono::duration<double>(currTime);
+    return std::chrono::duration<double>(
+        std::chrono::system_clock::now()
+        .time_since_epoch());
 }
 
 void GBCEmulator::setTimePerFrame(double d)
@@ -474,15 +482,15 @@ void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
 {
     // Open file
     FILE* fp = fopen(filepath.string().c_str(), "wb");
-    if (!fp) abort();
+    if (!fp) return;
 
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-    if (!png) abort();
+    if (!png) return;
 
     png_infop info = png_create_info_struct(png);
-    if (!info) abort();
+    if (!info) return;
 
-    if (setjmp(png_jmpbuf(png))) abort();
+    if (setjmp(png_jmpbuf(png))) return;
 
     png_init_io(png, fp);
 
@@ -525,4 +533,13 @@ void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
 
     // Close file
     fclose(fp);
+}
+
+std::string GBCEmulator::getGameTitle() const
+{
+    if (cartridgeReader)
+    {
+        return cartridgeReader->getGameTitle();
+    }
+    return "";
 }

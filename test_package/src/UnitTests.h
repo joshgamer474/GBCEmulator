@@ -5,19 +5,30 @@
 #include <unordered_map>
 #include <string>
 
+enum class TestType {
+    DEFAULT,
+    GPU,
+    APU,
+    CPU,
+    MEMORY,
+};
+
+
 struct ROMUnitTest {
     std::experimental::filesystem::path rom_path;
     uint64_t passing_frame_hash = 0;
+    TestType test_type = TestType::DEFAULT;
 
-    ROMUnitTest(const std::experimental::filesystem::path & path, const uint64_t & hash)
-        : rom_path(path),
-            passing_frame_hash(hash)
+    ROMUnitTest(const std::experimental::filesystem::path & path, const uint64_t & hash,
+        const TestType & type = TestType::DEFAULT)
+        : rom_path(path)
+        , passing_frame_hash(hash)
+        , test_type(type)
     {
     }
 };
 
 namespace blargg {
-
 
     enum class cgb_sound {
         _01_registers,

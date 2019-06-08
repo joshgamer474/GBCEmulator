@@ -38,9 +38,12 @@ public:
     void setFromTo(From_To *, int start, int end);
     void latchCurrTimeToRTC();
     void loadSaveIntoRAM(const std::string & filename);
+    void loadRTCIntoRAM(const std::string & filename);
     void saveRAMToFile(const std::string & filename);
+    void saveRTCToFile(const std::string & filename);
     bool ramBanksAreEmpty() const;
 
+    // Variables
     std::shared_ptr<spdlog::logger> logger;
     std::vector<std::vector<unsigned char>> romBanks;	// size per bank = 16 KB = 0x4000
     std::vector<std::vector<unsigned char>> ramBanks;	// size per bank = 8 KB = 0x2000
@@ -61,6 +64,7 @@ private:
     void HuC3_init();
     void TAMA5_init();
 
+    // Variables
     uint16_t curr_rom_bank;
     uint8_t curr_ram_bank;
     MBC_Type mbc_type;
@@ -71,6 +75,7 @@ private:
     bool rtc_timer_enabled;
     bool external_ram_enabled;
     bool wroteToRAMBanks;
+    bool wroteToRTC;
     uint8_t prev_mbc3_latch;
     uint8_t curr_mbc3_latch;
     From_To rom_from_to;

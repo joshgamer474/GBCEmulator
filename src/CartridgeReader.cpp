@@ -3,10 +3,10 @@
 #include "MBC.h"
 
 CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger)
-    : is_bios(true),
-    logger(_logger)
+    : has_bios(false)
+    , logger(_logger)
 {
-
+    is_in_bios = has_bios;
 }
 
 CartridgeReader::~CartridgeReader()
@@ -18,9 +18,11 @@ CartridgeReader& CartridgeReader::operator=(const CartridgeReader& rhs)
 {   // Copy from rhs
     num_ROM_banks       = rhs.num_ROM_banks;
     num_RAM_banks       = rhs.num_RAM_banks;
-    is_bios             = rhs.is_bios;
+    is_in_bios          = rhs.is_in_bios;
+    has_bios            = rhs.has_bios;
     romBuffer           = rhs.romBuffer;
     cartridgeFilename   = rhs.cartridgeFilename;
+    game_title_str      = rhs.game_title_str;
 
     // Information about the cartridge
     memcpy(game_title, rhs.game_title, 16);
@@ -96,6 +98,7 @@ void CartridgeReader::getCartridgeInformation()
         game_title[i] = romBuffer[i + 0x0134];
     }
     game_title[15] = '\0';
+    game_title_str = std::string(reinterpret_cast<char*>(game_title));
 
 	// Read in Manufacturer code
     for (int i = 0; i < 4; i++)
@@ -334,4 +337,9 @@ void CartridgeReader::freeRom()
 {
     romBuffer.resize(0);
     romBuffer.shrink_to_fit();
+}
+
+std::string CartridgeReader::getGameTitle() const
+{
+    return game_title_str;
 }

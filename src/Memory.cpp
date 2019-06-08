@@ -27,7 +27,6 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     apu(_apu)
 {
 	timer_enabled   = false;
-    curr_clock = 0;
 	clock_frequency = 4096;
     clock_speed = 0;
     clock_div_accumulator = 0;
@@ -53,7 +52,6 @@ Memory::~Memory()
 Memory& Memory::operator=(const Memory& rhs)
 {   // Copy from rhs
     timer_enabled           = rhs.timer_enabled;
-    curr_clock              = rhs.curr_clock;
     clock_frequency         = rhs.clock_frequency;
     clock_speed             = rhs.clock_speed;
     clock_div_accumulator   = rhs.clock_div_accumulator;
@@ -110,7 +108,9 @@ void Memory::initWorkRAM(bool isColorGB)
 
 std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 {
-	if (cartridgeReader->is_bios && pos < 256)
+	if (cartridgeReader->has_bios &&
+        cartridgeReader->is_in_bios &&
+        pos < 256)
 	{
 		return cartridgeReader->bios[pos];
 	}
@@ -734,7 +734,6 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 	uint8_t & divider_reg       = timer[DIV];
 	uint8_t & timer_counter     = timer[TIMA];
 
-    curr_clock = ticks;
     clock_div_accumulator += ticks;
     clock_tima_accumulator += ticks;
 
@@ -744,12 +743,11 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
         updateTimerRates();
     }
 
-    // Update 0xFF04 - DIV
     while (clock_div_accumulator >= clock_div_rate)
-    {
+    {   // Increment 0xFF04 - DIV
         divider_reg++;
-        //clock_div_accumulator -= clock_div_rate;
-        clock_div_accumulator = 0;
+        clock_div_accumulator -= clock_div_rate;
+        //clock_div_accumulator = 0;
     }
 
     // Update 0xFF05 - TIMA
@@ -759,10 +757,46 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
     {
         timer_counter++;
         if (timer_counter == 0x00)
-        {
+        {   // timer_counter overflowed, reload it with TMA
             timer_counter = timer[TMA];
             interrupt_flag |= INTERRUPT_TIMER;
         }
         clock_tima_accumulator -= clock_tima_rate;
     }
+}
+
+// Sets registers to values after running through boot up ROM
+void Memory::initGBPowerOn()
+{
+    setByte(0xFF05, 0x00); // TIMA
+    setByte(0xFF06, 0x00); // TMA
+    setByte(0xFF07, 0x00); // TAC
+    setByte(0xFF10, 0x80); // NR10
+    setByte(0xFF11, 0xBF); // NR11
+    setByte(0xFF12, 0xF3); // NR12
+    setByte(0xFF14, 0xBF); // NR14
+    setByte(0xFF16, 0x3F); // NR21
+    setByte(0xFF17, 0x00); // NR22
+    setByte(0xFF19, 0xBF); // NR24
+    setByte(0xFF1A, 0x7F); // NR30
+    setByte(0xFF1B, 0xFF); // NR31
+    setByte(0xFF1C, 0x9F); // NR32
+    setByte(0xFF1E, 0xBF); // NR33
+    setByte(0xFF20, 0xFF); // NR41
+    setByte(0xFF21, 0x00); // NR42
+    setByte(0xFF22, 0x00); // NR43
+    setByte(0xFF23, 0xBF); // NR44
+    setByte(0xFF24, 0x77); // NR50
+    setByte(0xFF25, 0xF3); // NR51
+    setByte(0xFF26, 0xF1); // NR52 // 0xF1 GB, 0xF0 SGB 
+    setByte(0xFF40, 0x91); // LCDC
+    setByte(0xFF42, 0x00); // SCY
+    setByte(0xFF43, 0x00); // SCX
+    setByte(0xFF45, 0x00); // LYC
+    setByte(0xFF47, 0xFC); // BGP
+    setByte(0xFF48, 0xFF); // OBP0
+    setByte(0xFF49, 0xFF); // OBP1
+    setByte(0xFF4A, 0x00); // WY
+    setByte(0xFF4B, 0x00); // WX
+    setByte(0xFFFF, 0x00); // IE
 }

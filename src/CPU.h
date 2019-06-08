@@ -46,7 +46,8 @@ public:
     };
 
     CPU(std::shared_ptr<spdlog::logger> logger,
-        std::shared_ptr<Memory> memory);
+        std::shared_ptr<Memory> memory,
+        bool provided_boot_rom = false);
     ~CPU();
     CPU& operator=(const CPU& rhs);
 
@@ -175,6 +176,8 @@ private:
     uint8_t BIT(std::uint8_t bit, CPU::REGISTERS reg);  // BIT [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
     uint8_t SET(std::uint8_t bit, CPU::REGISTERS reg);  // RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
     uint8_t RES(std::uint8_t bit, CPU::REGISTERS reg);  // RES [0, 1, 2, 3, 4, 5, 6, 7], [B, C, D, E, H, L, (HL), A]
+
+    void initGBPowerOn();
 
 
     // Variables
