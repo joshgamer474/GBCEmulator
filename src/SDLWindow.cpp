@@ -2,15 +2,10 @@
 #include <algorithm>
 #include <SDL_thread.h>
 
-<<<<<<< HEAD
 SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
     , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
-=======
-SDLWindow::SDLWindow()
-    : ScreenInterface()
     , keep_aspect_ratio(true)
->>>>>>> qt_gui
 {
     init();
 
@@ -29,13 +24,19 @@ SDLWindow::~SDLWindow()
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    logger->flush();
 }
 
 void SDLWindow::init()
 {
+    logger->set_level(spdlog::level::info);
+    logger->info("Started init()");
+
+    //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         logger->error("SDL_Init() failed: {}", SDL_GetError());
+        return;
     }
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -50,16 +51,12 @@ void SDLWindow::init()
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
         SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
-<<<<<<< HEAD
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
+        SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
     if (!window)
     {
         logger->error("SDL_CreateWindow() failed: {}", SDL_GetError());
     }
-=======
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
-        SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
->>>>>>> qt_gui
 
     glContext = SDL_GL_CreateContext(window);
     SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -95,12 +92,17 @@ void SDLWindow::init()
 
     //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
+    logger->info("init() complete");
 }
 
 void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 {
+    logger->info("Hooking up new emulatoro to SDLWindow");
+
     if (!emulator)
     {
+        logger->error("Refusing to hook to empty emulator");
         return;
     }
 
@@ -126,6 +128,7 @@ void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 
     if (!renderer)
     {
+        logger->error("Refusing to display() without renderer");
         return;
     }
 
@@ -152,6 +155,8 @@ int SDLWindow::run(bool start_emu)
 {
     SDL_Event event;
     bool run = true;
+
+    logger->info("run(), start_emu: {}", start_emu);
 
     if (start_emu)
     {   // Already hooked up emulator, start it on run()
@@ -257,6 +262,8 @@ int SDLWindow::run(bool start_emu)
         std::this_thread::sleep_for(std::chrono::microseconds(200));
     } // end while(run)
 
+    logger->info("Left while() loop in run()");
+
     if (emu)
     {   // Stop the emulator
         emu->stop();
@@ -275,6 +282,7 @@ void SDLWindow::startEmulator()
 {
     if (!emu)
     {
+        logger->error("Refusing to start non existant emulator");
         return;
     }
 
@@ -286,6 +294,7 @@ void SDLWindow::startEmulator()
     int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
 
     // Have emulator tick in its own thread
+    logger->info("Starting emulator thread");
     emu_thread = std::thread([&]()
     {
         int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
