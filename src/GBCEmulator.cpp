@@ -164,18 +164,8 @@ void GBCEmulator::runNextInstruction()
         ticksRan >>= 1;
     }
 
-#ifdef USE_AUDIO_TIMING
-    if (memory->cgb_speed_mode & BIT7)
-    {   // Fixes GBC double speed games to have 60FPS
-        apu->run(ticksRan >> 1);
-        gpu->run(ticksRan >> 1);
-    }
-    else
-#endif
-    {
-        apu->run(ticksRan);
-        gpu->run(ticksRan);
-    }
+    apu->run(ticksRan);
+    gpu->run(ticksRan);
 
 #ifdef USE_AUDIO_TIMING
     if (gpu->frame_is_ready)

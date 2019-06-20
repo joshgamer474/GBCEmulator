@@ -75,6 +75,7 @@ public:
     bool runWithoutSleep;
     std::chrono::microseconds frameProcessingTimeMicro;   // This is updated right before calling frameIsUpdatedFunction()
     std::chrono::microseconds frameShowTimeMicro;
+    std::shared_ptr<spdlog::logger> logger;
 
 private:
     void read_rom(std::string filename);
@@ -94,7 +95,6 @@ private:
     std::shared_ptr<Joypad> joypad;
 
     std::shared_ptr<spdlog::sinks::rotating_file_sink_st> loggerSink;
-    std::shared_ptr<spdlog::logger> logger;
     std::uint16_t logCounter;
 
     bool stopRunning;

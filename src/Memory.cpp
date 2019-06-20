@@ -715,19 +715,9 @@ void Memory::writeToTimerRegisters(std::uint16_t addr, std::uint8_t val)
 
 void Memory::updateTimerRates()
 {
-    // Update clock rate variables
-    if (cgb_speed_mode & BIT7)
-    {
-        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / TIMER_DIV_RATE);
-        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED_GBC_MAX * 1.0) / clock_frequency);
-    }
-    else
-    {
-        clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / TIMER_DIV_RATE);
-        clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / clock_frequency);
-    }
+    clock_div_rate  = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / TIMER_DIV_RATE);
+    clock_tima_rate = static_cast<uint32_t>((CLOCK_SPEED * 1.0) / clock_frequency);
 }
-
 
 void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 {
