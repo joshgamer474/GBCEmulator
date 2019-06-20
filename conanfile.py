@@ -13,11 +13,10 @@ class GBCEmulator(ConanFile):
                 "build_type": ["Debug", "Release"],
                 "cppstd": ["14", "17"]}
     options = {"shared": [True, False]}
-    generators = "cmake"
+    generators = "cmake", "cmake_find_package"
     requires = (
         "sdl2/2.0.9@bincrafters/stable",
         "spdlog/1.2.1@bincrafters/stable",
-        "gtest/1.8.1@bincrafters/stable",
         "libpng/1.6.34@bincrafters/stable",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
@@ -27,7 +26,7 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
         else:
-            self.build_require("gtest/1.8.1@bincrafters/stable")
+            self.build_requires("gtest/1.8.1@bincrafters/stable")
 
     def configure(self):
         self.options["sdl2"].shared = True
@@ -37,10 +36,13 @@ class GBCEmulator(ConanFile):
 
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
+        libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
+        libDest += os.sep + str(self.settings.arch)
         self.copy("*.dll", src="bin", dst=dest)
-        self.copy("*.a", src="lib", dst="lib")
-        self.copy("*.so*", src="lib", dst="lib")
-        #self.copy("*.lib", src="lib", dst="lib")
+        self.copy("*.a", src="lib", dst=libDest)
+        self.copy("*.so*", src="lib", dst=libDest)
+        if (self.settings.os == "Android"):
+            self.copy("*.h", src="include", dst="include")
         self.keep_imports = True
 
     def build(self):
@@ -58,11 +60,13 @@ class GBCEmulator(ConanFile):
         #cmake.test()
 
     def package(self):
+        libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
+        libDest += os.sep + str(self.settings.arch)
         self.copy("*", src="bin",   dst="bin",    keep_path=False)
         self.copy("*.h", src="src", dst="include")
-
-        if self.options.shared == False:
-            self.copy("*", src="lib", dst="lib", keep_path=True)
+        self.copy("*.h", src="include", dst="include")
+        self.copy("*.a", src="lib", dst=libDest, keep_path=False)
+        self.copy("*.so*", src="lib", dst=libDest, keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
@@ -70,3 +74,4 @@ class GBCEmulator(ConanFile):
     def deploy(self):
         self.copy("*", dst="bin", src="bin")
         self.copy("*", dst="lib", src="lib")
+        self.copy("*", dst="include", src="include")
