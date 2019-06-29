@@ -9,6 +9,10 @@
 APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger)
 {
     logger = _logger;
+    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
+    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, std::make_shared<spdlog::logger>("APU.Channel.2", logger_sink));
+    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink));
+    sound_channel_4 = std::make_unique<AudioNoise>(0xFF20,  std::make_shared<spdlog::logger>("APU.Channel.4", logger_sink));
     frame_sequence_step     = 0;
     channel_control         = 0;
     selection_of_sound_output = 0;
@@ -23,12 +27,13 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     right_out_enabled       = false;
     double_speed_mode       = false;
     send_samples_to_debugger = false;
-    double_speed_mode_modifier = 1;
+    initialized             = false;
+    curr_sample_buffer = 0;
 
-    sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
-    sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, std::make_shared<spdlog::logger>("APU.Channel.2", logger_sink));
-    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink));
-    sound_channel_4 = std::make_unique<AudioNoise>(0xFF20,  std::make_shared<spdlog::logger>("APU.Channel.4", logger_sink));
+    SAMPLE_BUFFER_SIZE = 1470;
+    SAMPLE_OUTPUT_CHANNEL_SIZE = 2;
+    SAMPLE_BUFFER_MEM_SIZE = SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE;
+    SAMPLE_BUFFER_MEM_SIZE_FLOAT = SAMPLE_BUFFER_MEM_SIZE * sizeof(float);
 
     sample_timer_val            = CLOCK_SPEED / SAMPLE_RATE;
     frame_sequence_timer_val    = CLOCK_SPEED / 512;
@@ -40,14 +45,16 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     audioFileOut = std::make_unique<std::ofstream>("audioOut.pcm", std::ios::binary);
 #endif // WRITE_AUDIO_OUT
 
-    sample_buffer.resize(SAMPLE_BUFFER_SIZE / double_speed_mode_modifier);
-
     if (SDL_Init(SDL_INIT_AUDIO) < 0)
     {
         logger->error("SDL_Init(SDL_INIT_AUDIO) failed: {0:s}", SDL_GetError());
     }
 
     initSDLAudio();
+
+    // Initialize double sample buffer
+    double_sample_buffer[0].resize(SAMPLE_BUFFER_SIZE);
+    double_sample_buffer[1].resize(SAMPLE_BUFFER_SIZE);
 }
 
 APU::~APU()
@@ -55,6 +62,11 @@ APU::~APU()
 #ifdef WRITE_AUDIO_OUT
     audioFileOut->close();
 #endif // WRITE_AUDIO_OUT
+
+    if (queue_audio_thread.joinable())
+    {
+        queue_audio_thread.join();
+    }
 
     SDL_CloseAudioDevice(audio_device_id);
 }
@@ -75,7 +87,6 @@ APU& APU::operator=(const APU& rhs)
     right_out_enabled           = rhs.right_out_enabled;
     double_speed_mode           = rhs.double_speed_mode;
     send_samples_to_debugger    = rhs.send_samples_to_debugger;
-    double_speed_mode_modifier  = rhs.double_speed_mode_modifier;
     audio_device_id             = rhs.audio_device_id;
 
     *sound_channel_1.get() = *rhs.sound_channel_1.get();
@@ -87,7 +98,15 @@ APU& APU::operator=(const APU& rhs)
     frame_sequence_timer_val = rhs.frame_sequence_timer_val;
     sample_timer            = rhs.sample_timer;
     frame_sequence_timer    = rhs.frame_sequence_timer;
-    sample_buffer           = rhs.sample_buffer;
+    
+    double_sample_buffer[0] = rhs.double_sample_buffer[0];
+    double_sample_buffer[1] = rhs.double_sample_buffer[1];
+    sample_buffer_counter   = rhs.sample_buffer_counter;
+
+    SAMPLE_BUFFER_MEM_SIZE      = rhs.SAMPLE_BUFFER_MEM_SIZE;
+    SAMPLE_BUFFER_MEM_SIZE_FLOAT = rhs.SAMPLE_BUFFER_MEM_SIZE_FLOAT;
+    SAMPLE_BUFFER_SIZE          = rhs.SAMPLE_BUFFER_SIZE;
+    SAMPLE_OUTPUT_CHANNEL_SIZE  = rhs.SAMPLE_OUTPUT_CHANNEL_SIZE;
 
     return *this;
 }
@@ -112,16 +131,19 @@ void APU::initSDLAudio()
         0,
         &desired_spec,
         &obtained_spec,
-        0);
+        SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     if (audio_device_id == 0)
     {
         logger->error("Failed to open audio: {0:s}", SDL_GetError());
+        return;
     }
     
     if (obtained_spec.format != desired_spec.format)
     {
-        logger->error("Failed to get audio format requested");
+        logger->error("Failed to get audio format requested, from: {} to: {}",
+            desired_spec.samples,
+            obtained_spec.samples);
     }
 
     // Get 'silence' value/byte
@@ -132,6 +154,8 @@ void APU::initSDLAudio()
 
     // Clear current audio queue
     SDL_ClearQueuedAudio(audio_device_id);
+
+    initialized = true;
 }
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
@@ -358,10 +382,10 @@ void APU::run(const uint8_t & cpuTickDiff)
                 uint8_t channel_3_sample = sound_channel_3->output_volume;
                 uint8_t channel_4_sample = sound_channel_4->output_volume;
 #else
-                float channel_1_sample = ((float)sound_channel_1->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_2_sample = ((float)sound_channel_2->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_3_sample = ((float)sound_channel_3->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
-                float channel_4_sample = ((float)sound_channel_4->output_volume) / 60.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_1_sample = (sound_channel_1->output_volume) ? ((float)sound_channel_1->output_volume) / 60.0f : 0.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_2_sample = (sound_channel_2->output_volume) ? ((float)sound_channel_2->output_volume) / 60.0f : 0.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_3_sample = (sound_channel_3->output_volume) ? ((float)sound_channel_3->output_volume) / 60.0f : 0.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
+                float channel_4_sample = (sound_channel_4->output_volume) ? ((float)sound_channel_4->output_volume) / 60.0f : 0.0f;   // 30.0f = 0x0F * 2.0f; 0x0F = MAX_CHANNEL_VOL 
 #endif
 
                 // Apply samples to left and/or right out channels
@@ -387,13 +411,14 @@ void APU::run(const uint8_t & cpuTickDiff)
             } // end if(sound_on)
 
             // Add current sample to sample buffer
+            std::vector<Sample>& sample_buffer = double_sample_buffer[curr_sample_buffer];
             sample_buffer[sample_buffer_counter++] = sample;
             samplesPerFrame++;
 
             // Check if sample buffer is full
             if (sample_buffer_counter >= SAMPLE_BUFFER_SIZE)
             {   // Force write out audio samples
-                writeSamplesOut(audio_device_id);
+                writeSamplesOutAsync(audio_device_id);
             }
 
             // Reset sample_timer
@@ -404,18 +429,23 @@ void APU::run(const uint8_t & cpuTickDiff)
     } // end while(diff > 0)
 }
 
-void APU::writeSamplesOut(const uint32_t & audio_device)
+void APU::writeSamplesOut(const uint32_t & audio_device, const std::vector<Sample>& samples, const uint16_t num_samples)
 {
-    logger->trace("Pushing sample of size: {}", sample_buffer.size());
+    if (!initialized)
+    {
+        return;
+    }
+
+    logger->trace("Pushing sample of size: {}", samples.size());
 
     // Push sample_buffer to SDL
 #ifndef USE_FLOAT
-    const uint32_t sampleSizeBytes = sample_buffer_counter * 2 * sizeof(uint8_t);
-    int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<uint8_t*>(sample_buffer.data()), sampleSizeBytes);
+    const uint32_t sampleSizeBytes = num_samples * 2 * sizeof(uint8_t);
+    const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const uint8_t*>(samples.data()), sampleSizeBytes);
 #else
-    const uint32_t sampleSizeBytes = sample_buffer_counter * 2 * sizeof(float);
-    int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<float*>(sample_buffer.data()), sampleSizeBytes);
-#endif
+    const uint32_t sampleSizeBytes = num_samples * 2 * sizeof(float);
+    const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const float*>(samples.data()), sampleSizeBytes);
+#endif // USE_FLOAT
 
     if (ret != 0)
     {
@@ -424,19 +454,47 @@ void APU::writeSamplesOut(const uint32_t & audio_device)
 
 #ifdef WRITE_AUDIO_OUT
 #ifndef USE_FLOAT
-    audioFileOut->write(reinterpret_cast<char*>(sample_buffer.data()), sampleSizeBytes);
+    audioFileOut->write(reinterpret_cast<char*>(samples.data()), sampleSizeBytes);
 #else
-    audioFileOut->write(reinterpret_cast<char*>(sample_buffer.data()), sampleSizeBytes);
+    audioFileOut->write(reinterpret_cast<char*>(samples.data()), sampleSizeBytes);
 #endif // USE_FLOAT
 #endif // WRITE_AUDIO_OUT
-
-    // Clear sample_buffer
-    sample_buffer_counter = 0;
-    sample_buffer.clear();
-    sample_buffer.resize(SAMPLE_BUFFER_SIZE);
 }
 
-bool APU::isSoundOutLeft(uint8_t sound_number)
+void APU::writeSamplesOutAsync(const uint32_t& audio_device)
+{
+    if (queue_audio_thread.joinable())
+    {
+        queue_audio_thread.join();
+    }
+
+    const std::vector<Sample>& sampleBuffer =
+        double_sample_buffer[curr_sample_buffer];
+
+    const uint16_t sampleBufferSize = sample_buffer_counter;
+
+    // Change active sample buffer
+    curr_sample_buffer = !curr_sample_buffer;
+
+    // Clear active sample_buffer for immediate use
+    clearCurrentAudioBuffer();
+
+    queue_audio_thread = std::thread(
+        [&](const std::vector<Sample>& sample_buffer, const uint16_t sample_buffer_size)
+    {
+        
+        logger->debug("Writing sample buffer out, size: {}",
+            sample_buffer_size);
+
+        writeSamplesOut(audio_device, sample_buffer, sample_buffer_size);
+    }
+    , sampleBuffer
+    , sampleBufferSize);
+
+    queue_audio_thread.detach();
+}
+
+bool APU::isSoundOutLeft(uint8_t sound_number) const
 {
     switch (sound_number)
     {
@@ -448,7 +506,7 @@ bool APU::isSoundOutLeft(uint8_t sound_number)
     }
 }
 
-bool APU::isSoundOutRight(uint8_t sound_number)
+bool APU::isSoundOutRight(uint8_t sound_number) const
 {
     switch (sound_number)
     {
@@ -461,7 +519,7 @@ bool APU::isSoundOutRight(uint8_t sound_number)
 }
 
 #ifndef USE_FLOAT
-void APU::sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum)
+void APU::sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum) const
 {
     if (isSoundOutLeft(channelNum))
     {
@@ -478,7 +536,7 @@ void APU::sendChannelOutputToSample(Sample & sample, const uint8_t & audio, cons
     }
 }
 #else
-void APU::sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum)
+void APU::sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum) const
 {
     if (isSoundOutLeft(channelNum))
     {
@@ -522,7 +580,7 @@ void APU::logSamples()
 {
     std::string stringToLog = "";
 
-    for (auto & sample : sample_buffer)
+    for (auto & sample : double_sample_buffer[curr_sample_buffer])
     {
         stringToLog += sample.getSampleStr();
     }
@@ -533,20 +591,29 @@ void APU::logSamples()
 void APU::initCGB()
 {
     double_speed_mode = true;
-    double_speed_mode_modifier = 2;
-
-    //sample_timer_val            = CLOCK_SPEED_GBC_MAX / SAMPLE_RATE;
-    //frame_sequence_timer_val    = CLOCK_SPEED_GBC_MAX / 512;
 
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
 
-    initSDLAudio();
-
     // Clear sample_buffer
+    clearCurrentAudioBuffer();
+}
+
+void APU::clearCurrentAudioBuffer()
+{
+    logger->info("Clearing sample buffer: {}", curr_sample_buffer);
+
+    // Get current sample buffer
+    std::vector<Sample>& sample_buffer =
+        double_sample_buffer[curr_sample_buffer];
+
+    // Clear it
     sample_buffer_counter = 0;
-    sample_buffer.clear();
-    sample_buffer.resize(SAMPLE_BUFFER_SIZE);
+    if (sample_buffer.size() != SAMPLE_BUFFER_SIZE)
+    {
+        sample_buffer.clear();
+        sample_buffer.resize(SAMPLE_BUFFER_SIZE);
+    }
 }
 
 void APU::setChannelLogLevel(spdlog::level::level_enum level)

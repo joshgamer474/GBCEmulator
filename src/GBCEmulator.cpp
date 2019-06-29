@@ -42,7 +42,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::warn);
+    apu->logger->set_level(spdlog::level::info);
     apu->setChannelLogLevel(spdlog::level::warn);
     joypad->logger->set_level(spdlog::level::warn);
     logger->set_level(spdlog::level::info);
@@ -180,7 +180,7 @@ void GBCEmulator::runNextInstruction()
         apu->logger->trace("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
 
         // Write out accumulated audio samples to audio device
-        apu->writeSamplesOut(apu->audio_device_id);
+        apu->writeSamplesOutAsync(apu->audio_device_id);
 
         // Calculate frame processing time for debug purposes
         auto currTime = getCurrentTime();
@@ -270,7 +270,7 @@ void GBCEmulator::setStopRunning(bool val)
 void GBCEmulator::init_logging(std::string logName)
 {
     // Create loggerSink
-    loggerSink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 20);
+    loggerSink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(logName, 1024 * 1024 * 500, 2);
 
     // Create logger for this class
     logger = std::make_shared<spdlog::logger>("GBCEmulator", loggerSink);

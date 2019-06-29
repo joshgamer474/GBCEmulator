@@ -1,10 +1,12 @@
 #ifndef APU_H
 #define APU_H
 
+#include <atomic>
 #include <array>
-#include <memory>
 #include <fstream>
 #include <functional>
+#include <memory>
+#include <thread>
 #include <AudioSquare.h>
 #include <AudioWave.h>
 #include <AudioNoise.h>
@@ -13,11 +15,6 @@
 #include <SDL_audio.h>
 
 #define SAMPLE_RATE 44100
-#define SAMPLE_BUFFER_SIZE 1470
-//#define SAMPLE_BUFFER_SIZE 735
-#define SAMPLE_OUTPUT_CHANNEL_SIZE 2
-#define SAMPLE_BUFFER_MEM_SIZE SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
-#define SAMPLE_BUFFER_MEM_SIZE_FLOAT SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
 #define MICROSEC_PER_FRAME (1.0 / 60.0) * 1000.0 * 1000.0
 
 
@@ -58,23 +55,29 @@ public:
     void setChannelLogLevel(spdlog::level::level_enum level);
     void setSampleUpdateMethod(std::function<void(float, int)> function);
     void sendSamplesToDebugger(bool b);
-    void writeSamplesOut(const uint32_t & audio_device);
+    void writeSamplesOutAsync(const uint32_t& audio_device);
     void sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time);
 
     std::shared_ptr<spdlog::logger> logger;
-    uint64_t samplesPerFrame;
+    uint32_t samplesPerFrame;
     uint8_t sdl_silence_val;
     uint32_t audio_device_id;
+    int SAMPLE_BUFFER_SIZE;             // 1470
+    int SAMPLE_OUTPUT_CHANNEL_SIZE;     // 2
+    int SAMPLE_BUFFER_MEM_SIZE;         // SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
+    int SAMPLE_BUFFER_MEM_SIZE_FLOAT;   // SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
 
 private:
     void initSDLAudio();
     void reset();
-    bool isSoundOutLeft(uint8_t sound_number);
-    bool isSoundOutRight(uint8_t sound_number);
-    void sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum);
-    void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum);
+    bool isSoundOutLeft(uint8_t sound_number) const;
+    bool isSoundOutRight(uint8_t sound_number) const;
+    void sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum) const;
+    void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum) const;
+    void writeSamplesOut(const uint32_t & audio_device, const std::vector<Sample>& samples, const uint16_t num_samples);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
+    void clearCurrentAudioBuffer();
 
     std::function<void(float, int)> sendSampleUpdate;
     std::unique_ptr<std::ofstream> audioFileOut;
@@ -82,7 +85,8 @@ private:
     std::unique_ptr<AudioSquare> sound_channel_2;
     std::unique_ptr<AudioWave>   sound_channel_3;
     std::unique_ptr<AudioNoise>  sound_channel_4;
-    std::vector<Sample> sample_buffer;
+    std::thread queue_audio_thread;
+    std::array<std::vector<Sample>, 2> double_sample_buffer;
     uint8_t frame_sequence_step;
     uint8_t left_volume;
     uint8_t right_volume;
@@ -93,9 +97,8 @@ private:
     uint16_t sample_buffer_counter;
     uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
-    uint64_t sample_timer;
-    uint64_t sample_timer_val;
-    uint64_t double_speed_mode_modifier;
+    uint32_t sample_timer;
+    uint32_t sample_timer_val;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
     bool sound_on;
@@ -103,6 +106,8 @@ private:
     bool right_out_enabled;
     bool double_speed_mode;
     bool send_samples_to_debugger;
+    bool initialized;
+    std::atomic_bool curr_sample_buffer;
 };
 
 #endif
