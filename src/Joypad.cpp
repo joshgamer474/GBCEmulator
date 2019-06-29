@@ -180,3 +180,24 @@ bool Joypad::buttonIsButtonKey(BUTTON b)
         return false;
     }
 }
+
+bool Joypad::buttonIsSet(const BUTTON& button) const
+{
+    switch (button)
+    {
+    case RIGHT:     return joypad_state & BIT0;
+    case LEFT:      return joypad_state & BIT1;
+    case UP:        return joypad_state & BIT2;
+    case DOWN:      return joypad_state & BIT3;
+    case A:         return joypad_state & BIT4;
+    case B:         return joypad_state & BIT5;
+    case SELECT:    return joypad_state & BIT6;
+    case START:     return joypad_state & BIT7;
+    default:        return false;
+    }
+}
+
+uint8_t Joypad::getJoypadState() const
+{
+    return joypad_state;
+}

@@ -49,6 +49,8 @@ public:
     bool bitIsUnset(uint8_t byte, uint8_t bitSet);
     bool buttonIsDirectionKey(BUTTON b);
     bool buttonIsButtonKey(BUTTON b);
+    bool buttonIsSet(const BUTTON& b) const;
+    uint8_t getJoypadState() const;
 
 	std::shared_ptr<spdlog::logger> logger;
     bool hasInterrupt;
