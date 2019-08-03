@@ -1,6 +1,7 @@
 #include <SDLWindow.h>
 #include <algorithm>
 #include <SDL_thread.h>
+#include <fmt/core.h>
 
 SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
@@ -98,7 +99,7 @@ void SDLWindow::init()
 
 void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 {
-    logger->info("Hooking up new emulatoro to SDLWindow");
+    logger->info("Hooking up new emulator to SDLWindow");
 
     if (!emulator)
     {
@@ -123,7 +124,7 @@ void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
     if (emu)
     {
-        updateWindowTitle(std::to_string(emu->frameShowTimeMicro.count()));    // Turn microseconds into milliseconds
+        updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
     }
 
     if (!renderer)
