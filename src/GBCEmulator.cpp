@@ -1,5 +1,6 @@
 #include "GBCEmulator.h"
 #include <libpng16/png.h>
+#include <thread>
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
     :   stopRunning(false),
@@ -26,12 +27,12 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
         memory,
         cartridgeReader->has_bios);
 
-    // Read in game save (.sav) and RTC clock (.rtc) if availabel
+    // Read in game save (.sav) and RTC clock (.rtc) if available
     filenameNoExtension = romName.substr(0, romName.find_last_of("."));
     mbc->loadSaveIntoRAM(filenameNoExtension + ".sav");
     mbc->loadRTCIntoRAM(filenameNoExtension + ".rtc");
 
-    // Calculate number of CPU cycles that can tick in one frame's time
+    // Calculate number of CPU cycles that can tick in one frame time
     ticksPerFrame = CLOCK_SPEED / SCREEN_FRAMERATE; // cycles per frame
     ticksAccumulated = 0;
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
@@ -63,6 +64,12 @@ GBCEmulator::~GBCEmulator()
     // Write out last frame hash
     uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);
     logger->info("Last frame hash: {}", lastFrameHash);
+
+    // Join threads
+    if (frameUpdateThread.joinable())
+    {
+        frameUpdateThread.join();
+    }
 
     cpu->memory->reset();
     cpu.reset();
@@ -168,12 +175,21 @@ void GBCEmulator::runNextInstruction()
     gpu->run(ticksRan);
 
 #ifdef USE_AUDIO_TIMING
+    // Sync video to audio
     if (gpu->frame_is_ready)
     {
-        // Push frame out to be displayed
+        // Display current frame
         if (frameIsUpdatedFunction)
         {
-            frameIsUpdatedFunction(gpu->getFrame());
+            if (frameUpdateThread.joinable())
+            {
+                frameUpdateThread.join();
+            }
+
+            frameUpdateThread = std::thread([&]()
+            {
+                frameIsUpdatedFunction(gpu->getFrame());
+            });
         }
         gpu->frame_is_ready = false;
 
@@ -202,7 +218,8 @@ void GBCEmulator::runNextInstruction()
         // Update frameTimeStart to current time
         frameTimeStart = getCurrentTime();
     }
-#else
+#else // use CPU tick timing
+    // Note: video will not be in-sync with audio
     ticksAccumulated += ticksRan;
     if (ticksAccumulated >= ticksPerFrame)
     {
@@ -215,7 +232,9 @@ void GBCEmulator::runNextInstruction()
         }
 
         apu->logger->info("Number of samples made during frame: {0:d}", apu->samplesPerFrame);
-        apu->samplesPerFrame = 0;
+
+        // Write out accumulated audio samples to audio device
+        apu->writeSamplesOutAsync(apu->audio_device_id);
 
         // Sleep until next burst of ticks_accumulated is ready to be ran
         waitToStartNextFrame();
@@ -239,7 +258,7 @@ void GBCEmulator::runNextInstruction()
         memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
 
-    if (logCounter % 100 == 0)
+    if (logCounter % 1000 == 0)
     {
         logCounter = 0;
         loggerSink->flush();
@@ -377,7 +396,7 @@ void GBCEmulator::waitToStartNextFrame() const
     auto timeElapsedMilli = currTimeDouble - frameTimeStart;
 
     // Calculate amount of time to sleep until next frame
-    auto timeToWaitMilli = timePerFrame - timeElapsedMilli;
+    auto timeToWaitMilli = timePerFrame - (timeElapsedMilli * 2);
     if (timeToWaitMilli.count() > 0)
     {   // Sleep until next frame needs to start rendering
         std::this_thread::sleep_for(timeToWaitMilli);
