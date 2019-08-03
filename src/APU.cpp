@@ -68,7 +68,10 @@ APU::~APU()
         queue_audio_thread.join();
     }
 
-    SDL_CloseAudioDevice(audio_device_id);
+    if (initialized)
+    {
+        SDL_CloseAudioDevice(audio_device_id);
+    }
 }
 
 APU& APU::operator=(const APU& rhs)

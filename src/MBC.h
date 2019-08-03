@@ -3,6 +3,7 @@
 #ifndef MBC_H
 #define MBC_H
 
+#include <string>
 #include <vector>
 #include <spdlog/spdlog.h>
 
@@ -65,6 +66,8 @@ private:
     void TAMA5_init();
 
     // Variables
+    std::string savFilename;
+    std::string rtcFilename;
     uint16_t curr_rom_bank;
     uint8_t curr_ram_bank;
     MBC_Type mbc_type;
@@ -76,6 +79,7 @@ private:
     bool external_ram_enabled;
     bool wroteToRAMBanks;
     bool wroteToRTC;
+    bool auto_save;
     uint8_t prev_mbc3_latch;
     uint8_t curr_mbc3_latch;
     From_To rom_from_to;

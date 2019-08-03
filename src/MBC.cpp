@@ -16,6 +16,7 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
     external_ram_enabled = false;
     wroteToRAMBanks  = false;
     wroteToRTC       = false;
+    auto_save        = false;
     curr_rom_bank = 1;
     curr_ram_bank = 1;
 
@@ -241,6 +242,31 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 
 void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 {
+    if (auto_save)
+    {
+        if (wroteToRAMBanks &&
+            (pos < 0xA000 ||
+            pos > 0xBFFF))
+        {   // Done writing to external RAM banks,
+            // auto-write out to .sav B)
+            logger->info("Auto saving external RAM to {}",
+                savFilename);
+            saveRAMToFile(savFilename);
+            wroteToRAMBanks = false;
+        }
+
+        if (wroteToRTC &&
+            (pos < 0xA000 ||
+            pos > 0xBFFF))
+        {   // Done writing to external RAM banks,
+            // auto-write out to .sav B)
+            logger->info("Auto saving RTC bytes to {}",
+                rtcFilename);
+            saveRAMToFile(rtcFilename);
+            wroteToRTC = false;
+        }
+    }
+
 	switch (pos & 0xF000)
 	{
 		// ROM 00
@@ -346,7 +372,7 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
             switch (curr_rom_bank)
             {
             case 0x20:
-            case 0x040:
+            case 0x40:
             case 0x60:
                 curr_rom_bank++;
                 break;
@@ -475,6 +501,8 @@ void MBC::setByte(std::uint16_t pos, std::uint8_t val)
 
 void MBC::loadSaveIntoRAM(const std::string & filename)
 {
+    savFilename = filename;
+
     // Open file
     std::ifstream file;
     file.open(filename, std::ios::binary);
@@ -516,6 +544,8 @@ void MBC::loadRTCIntoRAM(const std::string & filename)
             mbc_num);
         return;
     }
+
+    rtcFilename = filename;
 
     // Open file
     std::ifstream file;
