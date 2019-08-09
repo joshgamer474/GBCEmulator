@@ -86,7 +86,7 @@ uint8_t CPU::runNextInstruction()
 	PC    -    -    Program Counter/Pointer
 */
 
-std::uint8_t CPU::get_register_8(REGISTERS reg)
+uint8_t CPU::get_register_8(const REGISTERS reg) const
 {
 	if (reg < B)
 	{
@@ -97,17 +97,17 @@ std::uint8_t CPU::get_register_8(REGISTERS reg)
 	{
 		if (reg % 2 == 0)	// Return upper 8
 		{
-			return static_cast<std::uint8_t> ((get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0xFF00) >> 8);
+			return static_cast<uint8_t> ((get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0xFF00) >> 8);
 		}
 		else				// Return lower 8
 		{
-			return static_cast<std::uint8_t> (get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0x00FF);
+			return static_cast<uint8_t> (get_register_16((CPU::REGISTERS) ((reg - B) / 2)) & 0x00FF);
 		}
 	}
 }
 
 
-std::uint16_t CPU::get_register_16(REGISTERS reg) 
+uint16_t CPU::get_register_16(const REGISTERS reg) const
 { 
 	if (reg == CPU::REGISTERS::SP || reg == CPU::REGISTERS::PC)	// Return full 16 bits
 	{
@@ -115,10 +115,10 @@ std::uint16_t CPU::get_register_16(REGISTERS reg)
 	}
 	if (reg < B)			// Return little endian converted back to big endian
 	{
-		std::uint16_t littleEndian = registers[reg];
-		std::uint8_t lowerByte = static_cast<std::uint8_t> ((littleEndian >> 8) & 0xFF);
-		std::uint8_t upperByte = static_cast<std::uint8_t> (littleEndian & 0x00FF);
-		std::uint16_t bigEndian = 0x0000;
+		uint16_t littleEndian = registers[reg];
+		uint8_t lowerByte = static_cast<uint8_t> ((littleEndian >> 8) & 0xFF);
+		uint8_t upperByte = static_cast<uint8_t> (littleEndian & 0x00FF);
+		uint16_t bigEndian = 0x0000;
 		bigEndian |= (upperByte << 8);
 		bigEndian |= lowerByte;
 		return bigEndian;
@@ -140,7 +140,7 @@ std::uint16_t CPU::get_register_16(REGISTERS reg)
 /*
 	Register setters
 */
-void CPU::set_register(REGISTERS reg, std::uint16_t val)
+void CPU::set_register(const REGISTERS reg, const uint16_t val)
 {
 	if (reg == CPU::REGISTERS::SP || reg == CPU::REGISTERS::PC)	// Set full 16 bits
 	{
@@ -148,8 +148,8 @@ void CPU::set_register(REGISTERS reg, std::uint16_t val)
 	}
 	else if (reg < B)	// Set full 16 bits in little endian
 	{
-		std::uint8_t upperByte = static_cast<std::uint8_t> ((val >> 8) & 0xFF);
-		std::uint8_t lowerByte = static_cast<std::uint8_t> (val & 0x00FF);
+		std::uint8_t upperByte = static_cast<uint8_t> ((val >> 8) & 0xFF);
+		std::uint8_t lowerByte = static_cast<uint8_t> (val & 0x00FF);
 		std::uint16_t littleEndian = 0x0000;
 		littleEndian |= (lowerByte << 8);
 		littleEndian |= upperByte;
@@ -157,25 +157,25 @@ void CPU::set_register(REGISTERS reg, std::uint16_t val)
 	}
 	else			// Set only 8 bits
 	{
-		set_register(reg, (std::uint8_t) val);
+		set_register(reg, (uint8_t) val);
 	}
 }
 
-void CPU::set_register(REGISTERS reg, std::uint8_t val)
+void CPU::set_register(const REGISTERS reg, const uint8_t val)
 {
 	if (reg >= B)
 	{
-		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
+		uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
 		if (reg % 2 != 0)	// Is upper 8 bits
 		{
 			*reg_ptr &= 0x00FF;
-			*reg_ptr |= (((std::uint16_t) val) & 0x00FF) << 8;
+			*reg_ptr |= (((uint16_t) val) & 0x00FF) << 8;
 		}
 		else				// Is lower 8 bits
 		{
 			*reg_ptr &= 0xFF00;
-			*reg_ptr |= ((std::uint16_t) val) & 0x00FF;
+			*reg_ptr |= ((uint16_t) val) & 0x00FF;
 		}
 	}
 	else
@@ -184,11 +184,11 @@ void CPU::set_register(REGISTERS reg, std::uint8_t val)
 	}
 }
 
-void CPU::set_register(REGISTERS reg, std::int8_t val)
+void CPU::set_register(const REGISTERS reg, const int8_t val)
 {
 	if (reg >= B)
 	{
-		std::uint16_t *reg_ptr = &registers[(reg - B) / 2];
+		uint16_t *reg_ptr = &registers[(reg - B) / 2];
 
 		if (reg % 2 != 0)	// Is upper 8 bits
 		{
@@ -236,10 +236,10 @@ void CPU::set_register(REGISTERS reg, std::int8_t val)
 	0 - Not used, always zero
 */
 
-bool CPU::get_flag_zero()			{ return (get_register_8(F) >> 7) & 0x0001; }
-bool CPU::get_flag_subtract()		{ return (get_register_8(F) >> 6) & 0x0001; }
-bool CPU::get_flag_half_carry()		{ return (get_register_8(F) >> 5) & 0x0001; }
-bool CPU::get_flag_carry()			{ return (get_register_8(F) >> 4) & 0x0001; }
+bool CPU::get_flag_zero() const			{ return (get_register_8(F) >> 7) & 0x0001; }
+bool CPU::get_flag_subtract() const		{ return (get_register_8(F) >> 6) & 0x0001; }
+bool CPU::get_flag_half_carry() const	{ return (get_register_8(F) >> 5) & 0x0001; }
+bool CPU::get_flag_carry() const		{ return (get_register_8(F) >> 4) & 0x0001; }
 
 void CPU::set_flag_zero()			{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0080)); }
 void CPU::set_flag_subtract()		{ set_register((REGISTERS)AF, static_cast<std::uint16_t>(get_register_16((REGISTERS)AF) | 0x0040)); }
@@ -269,7 +269,7 @@ void CPU::printRegisters()
 }
 
 
-std::string CPU::getRegisterString(CPU::REGISTERS reg)
+std::string CPU::getRegisterString(const CPU::REGISTERS reg) const
 {
 	switch (reg)
 	{
@@ -279,7 +279,6 @@ std::string CPU::getRegisterString(CPU::REGISTERS reg)
 	case CPU::REGISTERS::AF: return "AF";
 	case CPU::REGISTERS::SP: return "SP";
 	case CPU::REGISTERS::PC: return "PC";
-
 	default: return "Unknown";
 	}
 }
@@ -1098,40 +1097,40 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 */
 
 // Perform (reg)
-uint8_t CPU::getByteFromMemory(CPU::REGISTERS reg)
+uint8_t CPU::getByteFromMemory(const CPU::REGISTERS reg) const
 {
 	return memory->readByte(get_register_16(reg));
 }
 
 // Perform (addr)
-uint8_t CPU::getByteFromMemory(std::uint16_t addr)
+uint8_t CPU::getByteFromMemory(const uint16_t addr) const
 {
 	return memory->readByte(addr);
 }
 
-void CPU::setByteToMemory(uint16_t addr, uint8_t val)
+void CPU::setByteToMemory(const uint16_t addr, const uint8_t val)
 {
 	memory->setByte(addr, val);
 }
 
 // Assumes that PC has not already been incremented
-uint8_t CPU::peekNextByte()
+uint8_t CPU::peekNextByte() const
 {
     return getByteFromMemory(get_register_16(PC) + 1);
 }
 
 // Assumes that PC has not already been incremented
-int8_t CPU::peekNextByteSigned()
+int8_t CPU::peekNextByteSigned() const
 {
     return static_cast<int8_t>(getByteFromMemory(get_register_16(PC) + 1));
 }
 
 // Assumes that PC has not already been incremented
-uint16_t CPU::peekNextTwoBytes()
+uint16_t CPU::peekNextTwoBytes() const
 {
     std::uint16_t d16 = 0x0000;
     d16 |= getByteFromMemory(get_register_16(PC) + 1);
-    d16 |= ((static_cast<std::uint16_t>(getByteFromMemory(get_register_16(PC) + 2)) << 8) & 0xFF00);
+    d16 |= ((static_cast<uint16_t>(getByteFromMemory(get_register_16(PC) + 2)) << 8) & 0xFF00);
     return d16;
 }
 
@@ -3072,7 +3071,7 @@ void CPU::checkJoypadForInterrupt()
     }
 }
 
-std::string CPU::getOpcodeString(uint8_t opcode)
+std::string CPU::getOpcodeString(const uint8_t opcode) const
 {
     std::string ret = "";
     std::string temp = "";
@@ -3314,7 +3313,7 @@ std::string CPU::getOpcodeString(uint8_t opcode)
     }
 }
 
-std::string CPU::getOpcodeStringCB(uint8_t opcode)
+std::string CPU::getOpcodeStringCB(const uint8_t opcode) const
 {
     std::string ret = "";
     std::string temp = "";
@@ -3410,7 +3409,7 @@ std::string CPU::getOpcodeStringCB(uint8_t opcode)
     return ret;
 }
 
-uint8_t CPU::getInstructionSize(uint8_t opcode)
+uint8_t CPU::getInstructionSize(const uint8_t opcode) const
 {
     uint8_t instructionLength = 0;
 
@@ -3447,7 +3446,7 @@ uint8_t CPU::getInstructionSize(uint8_t opcode)
 }
 
 template <typename T>
-std::string CPU::numToHex(T number)
+std::string CPU::numToHex(const T number) const
 {
     std::stringstream stream;
     stream << "0x"

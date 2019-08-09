@@ -482,6 +482,7 @@ void APU::writeSamplesOutAsync(const uint32_t& audio_device)
     // Clear active sample_buffer for immediate use
     clearCurrentAudioBuffer();
 
+    // Start async audio write out thread
     queue_audio_thread = std::thread(
         [&](const std::vector<Sample>& sample_buffer, const uint16_t sample_buffer_size)
     {
@@ -494,7 +495,7 @@ void APU::writeSamplesOutAsync(const uint32_t& audio_device)
     , sampleBuffer
     , sampleBufferSize);
 
-    queue_audio_thread.detach();
+    //queue_audio_thread.detach();
 }
 
 bool APU::isSoundOutLeft(uint8_t sound_number) const
@@ -604,7 +605,7 @@ void APU::initCGB()
 
 void APU::clearCurrentAudioBuffer()
 {
-    logger->info("Clearing sample buffer: {}", curr_sample_buffer);
+    logger->trace("Clearing sample buffer: {}", curr_sample_buffer);
 
     // Get current sample buffer
     std::vector<Sample>& sample_buffer =

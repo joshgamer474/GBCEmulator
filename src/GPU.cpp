@@ -155,7 +155,7 @@ void GPU::init_color_gb()
     }
 }
 
-std::uint8_t GPU::readByte(std::uint16_t pos, bool limit_access)
+std::uint8_t GPU::readByte(const uint16_t pos, bool limit_access)
 {
 	switch (pos & 0xF000)
 	{
@@ -255,7 +255,7 @@ std::uint8_t GPU::readByte(std::uint16_t pos, bool limit_access)
 }
 
 
-void GPU::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
+void GPU::setByte(const uint16_t pos, const uint8_t val, bool limit_access)
 {
 	uint8_t tile_block_num = 3;
     uint16_t source_address;
@@ -1300,7 +1300,7 @@ uint16_t GPU::getTileMapNumber(uint8_t pixel_x, uint8_t pixel_y)
     return tile_num;
 }
 
-uint8_t GPU::getTileBlockNum(int use_tile_num)
+uint8_t GPU::getTileBlockNum(const int& use_tile_num) const
 {
     uint8_t tile_block_num = 0;
 
@@ -1329,24 +1329,21 @@ uint8_t GPU::getTileBlockNum(int use_tile_num)
     return tile_block_num;
 }
 
-uint8_t GPU::getSpriteTileBlockNum(int use_tile_num)
+uint8_t GPU::getSpriteTileBlockNum(const int& use_tile_num) const
 {
     return use_tile_num / 128;
 }
 
-Tile * GPU::getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num)
+Tile * GPU::getTileFromBGTiles(const uint8_t& use_vram_bank, const uint8_t& tile_block_num, const int& use_tile_num)
 {
-    Tile * tile;
-
     if (use_tile_num < 128)
     {
-        tile = &bg_tiles[use_vram_bank][tile_block_num][use_tile_num];
+        return &bg_tiles[use_vram_bank][tile_block_num][use_tile_num];
     }
     else
     {
-        tile = &bg_tiles[use_vram_bank][tile_block_num][use_tile_num - 128];
+        return &bg_tiles[use_vram_bank][tile_block_num][use_tile_num - 128];
     }
-    return tile;
 }
 
 void GPU::run(const uint8_t & cpuTickDiff)

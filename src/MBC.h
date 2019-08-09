@@ -34,8 +34,8 @@ public:
     MBC& operator=(const MBC& rhs);
 
     // Reading and writing methods
-    uint8_t readByte(std::uint16_t pos);
-    void setByte(std::uint16_t pos, std::uint8_t val);
+    uint8_t readByte(const uint16_t pos);
+    void setByte(const uint16_t pos, uint8_t val);
     void setFromTo(From_To *, int start, int end);
     void latchCurrTimeToRTC();
     void loadSaveIntoRAM(const std::string & filename);

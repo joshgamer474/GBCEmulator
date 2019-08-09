@@ -58,8 +58,8 @@ public:
     void init_color_gb();
     void run(const uint8_t & cpuTicks);
     std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
-    uint8_t readByte(uint16_t pos, bool limit_access = true);
-    void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
+    uint8_t readByte(const uint16_t pos, bool limit_access = true);
+    void setByte(const uint16_t pos, const uint8_t val, bool limit_access = true);
     std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
     const std::vector<int>& getUpdatedBGTileIndexes();
 
@@ -99,9 +99,9 @@ private:
     void update_lcd_status_coincidence_flag();
     void printFrame();
 
-    uint8_t getTileBlockNum(int use_tile_num);
-    uint8_t getSpriteTileBlockNum(int use_tile_num);
-    Tile * getTileFromBGTiles(uint8_t use_vram_bank, uint8_t tile_block_num, int use_tile_num);
+    uint8_t getTileBlockNum(const int& use_tile_num) const;
+    uint8_t getSpriteTileBlockNum(const int& use_tile_num) const;
+    Tile * getTileFromBGTiles(const uint8_t& use_vram_bank, const uint8_t& tile_block_num, const int& use_tile_num);
 
     // Palette methods
     void updateBackgroundPalette(uint8_t val);

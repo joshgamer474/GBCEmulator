@@ -52,22 +52,22 @@ public:
     CPU& operator=(const CPU& rhs);
 
     uint8_t runNextInstruction();
-    uint8_t peekNextByte();
-    int8_t peekNextByteSigned();
+    uint8_t peekNextByte() const;
+    int8_t peekNextByteSigned() const;
     uint16_t getNextTwoBytes();
-    uint16_t peekNextTwoBytes();
-    uint8_t getByteFromMemory(CPU::REGISTERS reg);
-    uint8_t getByteFromMemory(uint16_t addr);
-    uint8_t get_register_8(REGISTERS reg);
-    uint16_t get_register_16(REGISTERS reg);
+    uint16_t peekNextTwoBytes() const;
+    uint8_t getByteFromMemory(const CPU::REGISTERS reg) const;
+    uint8_t getByteFromMemory(const uint16_t addr) const;
+    uint8_t get_register_8(const REGISTERS reg) const;
+    uint16_t get_register_16(const REGISTERS reg) const;
 
     // String helpers
-    std::string getOpcodeString(uint8_t opcode);
-    std::string getOpcodeStringCB(uint8_t opcode);
-    uint8_t getInstructionSize(uint8_t opcode);
+    std::string getOpcodeString(const uint8_t opcode) const;
+    std::string getOpcodeStringCB(const uint8_t opcode) const;
+    uint8_t getInstructionSize(const uint8_t opcode) const;
     template <typename T>
-    std::string numToHex(T number);
-    std::string getRegisterString(REGISTERS);
+    std::string numToHex(const T number) const;
+    std::string getRegisterString(const REGISTERS reg) const;
 
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
@@ -79,10 +79,10 @@ private:
     uint8_t runInstruction(uint8_t);
     uint8_t handleInterrupt();
 
-    void set_register(REGISTERS reg, uint16_t);
-    void set_register(REGISTERS reg, uint8_t);
-    void set_register(REGISTERS reg, int8_t);
-    void setByteToMemory(uint16_t addr, uint8_t val);
+    void set_register(const REGISTERS reg, const uint16_t);
+    void set_register(const REGISTERS reg, const uint8_t);
+    void set_register(const REGISTERS reg, const int8_t);
+    void setByteToMemory(const uint16_t addr, const uint8_t val);
 
     /*
     Flag methods
@@ -100,10 +100,10 @@ private:
     C - Carry Flag
     0 - Not used, always zero
     */
-    bool get_flag_zero();
-    bool get_flag_subtract();
-    bool get_flag_half_carry();
-    bool get_flag_carry();
+    bool get_flag_zero() const;
+    bool get_flag_subtract() const;
+    bool get_flag_half_carry() const;
+    bool get_flag_carry() const;
     void set_flag_zero();
     void set_flag_subtract();
     void set_flag_half_carry();

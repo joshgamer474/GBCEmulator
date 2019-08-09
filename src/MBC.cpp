@@ -160,7 +160,7 @@ void MBC::setFromTo(From_To *ft, int start, int end)
 }
 
 
-std::uint8_t MBC::readByte(std::uint16_t pos)
+std::uint8_t MBC::readByte(const uint16_t pos)
 {
 	switch (pos & 0xF000)
 	{
@@ -240,7 +240,7 @@ std::uint8_t MBC::readByte(std::uint16_t pos)
 }
 
 
-void MBC::setByte(std::uint16_t pos, std::uint8_t val)
+void MBC::setByte(const uint16_t pos, uint8_t val)
 {
     if (auto_save)
     {
