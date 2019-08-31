@@ -33,7 +33,7 @@ private:
 
     uint16_t reg_offset;
     std::array<uint8_t, 8> divisors;
-    uint8_t timer;
+    uint16_t timer;
     uint8_t initial_volume_of_envelope;
     uint8_t envelope_period;
     uint8_t envelope_period_load;

@@ -186,26 +186,30 @@ void AudioNoise::tick()
     {   // Reload timer
         timer = divisors[dividing_ratio_of_frequencies] << shift_clock_frequency;
 
-        uint8_t xor_result = (lfsr & 0x01) ^ ((lfsr >> 1) & 0x01);
-        lfsr = lfsr >> 1;
+        // "the low two bits (0 and 1) are XORed"
+        const uint16_t xor_result = (lfsr & 0x01) ^ ((lfsr >> 1) & 0x01);
+        // "all bits are shifted right by one"
+        lfsr >>= 1;
+        // "and the result of the XOR is put into the now-empty high bit."
+        lfsr &= 0x3FFF;
         lfsr |= (xor_result << 14);
 
         if (half_counter_step)
         {
-            lfsr &= 0xFFBF;             // Mask off bit 6
+            lfsr &= 0xFF3F;             // Treat lfsr as 1 byte, mask off bit 7-6
             lfsr |= (xor_result << 6);  // Put XOR result into bit 6
         }
+    }
 
-        if (is_enabled &&
-            dac_enabled &&
-            (lfsr & 0x01) == 0)
-        {
-            output_volume = volume;
-        }
-        else
-        {
-            output_volume = 0;
-        }
+    if (is_enabled &&
+        dac_enabled &&
+        (lfsr & 0x01) == 0)
+    {
+        output_volume = volume;
+    }
+    else
+    {
+        output_volume = 0;
     }
 }
 
