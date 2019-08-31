@@ -60,8 +60,7 @@ target_include_directories(GBCEmulator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator
-    ${CONAN_TARGETS}
-    ${CONAN_LIB})
+    ${CONAN_TARGETS})
 
 # Add std::experimental::filesystem
 if(UNIX AND BUILD_UNIT_TEST)
