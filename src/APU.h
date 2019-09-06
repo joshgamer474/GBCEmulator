@@ -59,13 +59,13 @@ public:
     void sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time);
 
     std::shared_ptr<spdlog::logger> logger;
-    uint32_t samplesPerFrame;
+    uint16_t samplesPerFrame;
     uint8_t sdl_silence_val;
     uint32_t audio_device_id;
-    int SAMPLE_BUFFER_SIZE;             // 1470
-    int SAMPLE_OUTPUT_CHANNEL_SIZE;     // 2
-    int SAMPLE_BUFFER_MEM_SIZE;         // SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
-    int SAMPLE_BUFFER_MEM_SIZE_FLOAT;   // SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
+    const int SAMPLE_BUFFER_SIZE;             // 1470
+    const int SAMPLE_OUTPUT_CHANNEL_SIZE;     // 2
+    const int SAMPLE_BUFFER_MEM_SIZE;         // SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE
+    const int SAMPLE_BUFFER_MEM_SIZE_FLOAT;   // SAMPLE_BUFFER_MEM_SIZE * sizeof(float)
 
 private:
     void initSDLAudio();
@@ -95,10 +95,11 @@ private:
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
     uint16_t sample_buffer_counter;
-    uint16_t frame_sequence_timer_val;
+    const uint16_t frame_sequence_timer_val;
     uint16_t frame_sequence_timer;
     uint32_t sample_timer;
-    uint32_t sample_timer_val;
+    uint32_t prev_sample_size;
+    const uint32_t sample_timer_val;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
     bool sound_on;
