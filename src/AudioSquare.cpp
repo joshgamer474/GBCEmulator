@@ -207,13 +207,9 @@ void AudioSquare::reset()
     // Reload Sweep period
     reloadPeriod(sweep_period, sweep_period_load);
 
-    if (sweep_period == 0)
-    {   // Some behavior on gbdev.gg8.se/wiki
-        sweep_period = 8;
-    }
-
     // Check if Sweep is enabled
     if (sweep_period != 0 || sweep_shift != 0)
+    //if (sweep_period_load != 0 || sweep_shift != 0)
     {
         sweep_running = true;
     }
