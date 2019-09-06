@@ -43,8 +43,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
-    apu->logger->set_level(spdlog::level::info);
-    apu->setChannelLogLevel(spdlog::level::warn);
+    apu->logger->set_level(spdlog::level::trace);
+    apu->setChannelLogLevel(spdlog::level::debug);
     joypad->logger->set_level(spdlog::level::warn);
     logger->set_level(spdlog::level::info);
     logCounter = 0;
@@ -174,6 +174,16 @@ void GBCEmulator::runNextInstruction()
     apu->run(ticksRan);
     gpu->run(ticksRan);
 
+	// Update timer
+	//if (memory->cgb_speed_mode & BIT7)
+	//{
+	//	memory->updateTimer(ticksRan, CLOCK_SPEED_GBC_MAX);
+	//}
+	//else
+	{
+		memory->updateTimer(ticksRan<<1, CLOCK_SPEED);
+	}
+
 #ifdef USE_AUDIO_TIMING
     // Sync video to audio
     if (gpu->frame_is_ready)
@@ -216,16 +226,17 @@ void GBCEmulator::runNextInstruction()
             std::to_string(frameProcessingTimeMicro.count() / 1000.0));
 
         // Update frameTimeStart to current time
-        frameTimeStart = getCurrentTime();
+        frameTimeStart = currTime;
     }
 #else // use CPU tick timing
     // Note: video will not be in-sync with audio
     ticksAccumulated += ticksRan;
-    if (ticksAccumulated >= ticksPerFrame)
+    if (ticksAccumulated >= ticksPerFrame
+        && gpu->frame_is_ready)
     {
         ticksAccumulated -= ticksPerFrame;
 
-        if (gpu->frame_is_ready)
+        //if (gpu->frame_is_ready)
         {
             frameIsUpdatedFunction(gpu->getFrame());
             gpu->frame_is_ready = false;
@@ -396,7 +407,7 @@ void GBCEmulator::waitToStartNextFrame() const
     auto timeElapsedMilli = currTimeDouble - frameTimeStart;
 
     // Calculate amount of time to sleep until next frame
-    auto timeToWaitMilli = timePerFrame - (timeElapsedMilli * 2);
+    auto timeToWaitMilli = timePerFrame - timeElapsedMilli;
     if (timeToWaitMilli.count() > 0)
     {   // Sleep until next frame needs to start rendering
         std::this_thread::sleep_for(timeToWaitMilli);

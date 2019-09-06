@@ -55,16 +55,6 @@ uint8_t CPU::runNextInstruction()
     uint8_t ticksRanInstr = 0;
     const uint8_t ticksRan = runInstruction(getInstruction(ticksRanInstr)) + ticksRanInstr;
 
-    // Update timer
-    if (memory->cgb_speed_mode & BIT7)
-    {
-        memory->updateTimer(ticksRan, CLOCK_SPEED_GBC_MAX);
-    }
-    else
-    {
-        memory->updateTimer(ticksRan, CLOCK_SPEED);
-    }
-
 #ifdef ENABLE_DEBUG_PRINT
     printRegisters();
 #endif
