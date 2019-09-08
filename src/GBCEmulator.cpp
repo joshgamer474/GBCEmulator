@@ -175,13 +175,13 @@ void GBCEmulator::runNextInstruction()
     gpu->run(ticksRan);
 
 	// Update timer
-	//if (memory->cgb_speed_mode & BIT7)
-	//{
-	//	memory->updateTimer(ticksRan, CLOCK_SPEED_GBC_MAX);
-	//}
-	//else
+	if (memory->cgb_speed_mode & BIT7)
 	{
-		memory->updateTimer(ticksRan<<1, CLOCK_SPEED);
+		memory->updateTimer(ticksRan<<1, CLOCK_SPEED_GBC_MAX);
+	}
+	else
+	{
+		memory->updateTimer(ticksRan, CLOCK_SPEED);
 	}
 
 #ifdef USE_AUDIO_TIMING
