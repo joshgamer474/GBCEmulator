@@ -108,7 +108,6 @@ private:
     std::chrono::duration<double> timePerFrame;
 
     std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> frameIsUpdatedFunction;
-    std::thread frameUpdateThread;
 };
 
 #endif // GBCEMULATOR_H

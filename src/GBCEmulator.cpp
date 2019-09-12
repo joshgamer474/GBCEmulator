@@ -65,12 +65,6 @@ GBCEmulator::~GBCEmulator()
     uint64_t lastFrameHash = calculateFrameHash(gpu->curr_frame);
     logger->info("Last frame hash: {}", lastFrameHash);
 
-    // Join threads
-    if (frameUpdateThread.joinable())
-    {
-        frameUpdateThread.join();
-    }
-
     cpu->memory->reset();
     cpu.reset();
     cartridgeReader.reset();
@@ -191,15 +185,7 @@ void GBCEmulator::runNextInstruction()
         // Display current frame
         if (frameIsUpdatedFunction)
         {
-            if (frameUpdateThread.joinable())
-            {
-                frameUpdateThread.join();
-            }
-
-            frameUpdateThread = std::thread([&]()
-            {
-                frameIsUpdatedFunction(gpu->getFrame());
-            });
+            frameIsUpdatedFunction(gpu->getFrame());
         }
         gpu->frame_is_ready = false;
 
