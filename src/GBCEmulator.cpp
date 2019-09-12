@@ -38,15 +38,15 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     setTimePerFrame(1.0 / SCREEN_FRAMERATE);
 
     // Set log levels
-    set_logging_level(spdlog::level::info);
-
+    set_logging_level(spdlog::level::err);
+/*
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
     memory->logger->set_level(spdlog::level::info);
     apu->logger->set_level(spdlog::level::trace);
     apu->setChannelLogLevel(spdlog::level::debug);
     joypad->logger->set_level(spdlog::level::warn);
-    logger->set_level(spdlog::level::info);
+    logger->set_level(spdlog::level::info);*/
     logCounter = 0;
 }
 
