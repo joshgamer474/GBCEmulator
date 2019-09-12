@@ -4,6 +4,8 @@
 #include <ScreenInterface.h>
 #include <GBCEmulator.h>
 #include <JoypadXInput.h>
+#include <atomic>
+#include <array>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -44,6 +46,7 @@ private:
     std::shared_ptr<Joypad> joypad;
     std::shared_ptr<JoypadXInput> joypadx;
     std::shared_ptr<spdlog::logger> logger;
+    std::array<SDL_Color, SCREEN_PIXEL_TOTAL> curr_frame;
     std::thread emu_thread;
     std::mutex renderer_mutex;
     SDL_GLContext glContext;
@@ -54,6 +57,7 @@ private:
     SDL_Rect screen_texture_rect;
     uint64_t framerate;
     bool keep_aspect_ratio;
+    std::atomic_bool have_new_frame;
 };
 
 #endif // SDL_WINDOW_H

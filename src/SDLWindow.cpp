@@ -7,6 +7,7 @@ SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
     , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
     , keep_aspect_ratio(true)
+    , have_new_frame(false)
 {
     init();
 
@@ -134,10 +135,8 @@ void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
     }
 
     std::lock_guard<std::mutex> lg(renderer_mutex);
-    SDL_UpdateTexture(screen_texture, NULL, frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
-    //SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+    curr_frame = frame;
+    have_new_frame = true;
 }
 
 void SDLWindow::updateWindowTitle(const std::string & framerate)
@@ -258,6 +257,16 @@ int SDLWindow::run(bool start_emu)
         if (joypadx)
         {
             //joypadx->refreshButtonStates(joypadx->findControllers());
+        }
+
+        if (have_new_frame)
+        {
+            std::lock_guard<std::mutex> lg(renderer_mutex);
+            SDL_UpdateTexture(screen_texture, NULL, curr_frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
+            //SDL_RenderClear(renderer);
+            SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
+            have_new_frame = false;
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));
