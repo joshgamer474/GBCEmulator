@@ -340,11 +340,11 @@ void AudioSquare::tickSweep()
 
     if (sweep_period == 0)
     {   // Reload period
-        if (sweep_period_load == 0)
-        {   // Some behavior from gbdev.gg8.se/wiki
-            sweep_period = 8;
-        }
-        else
+        // if (sweep_period_load == 0)
+        // {   // Some behavior from gbdev.gg8.se/wiki
+        //     sweep_period = 8;
+        // }
+        // else
         {
             reloadPeriod(sweep_period, sweep_period_load);
         }
@@ -354,14 +354,14 @@ void AudioSquare::tickSweep()
 
 
         // Check if sweep is running
-        //if (sweep_period != 0 || sweep_shift != 0)
-        //{
-        //    sweep_running = true;
-        //}
-        //else
-        //{
-        //    sweep_running = false;
-        //}
+        if (sweep_period != 0 || sweep_shift != 0)
+        {
+           sweep_running = true;
+        }
+        else
+        {
+           sweep_running = false;
+        }
 
         if (sweep_running && sweep_period_load > 0)
         {   // Calculate a new frequency post-sweep
