@@ -17,7 +17,7 @@ class GBCEmulator(ConanFile):
     requires = (
         "sdl2/2.0.9@bincrafters/stable",
         "spdlog/1.2.1@bincrafters/stable",
-        "libpng/1.6.34@bincrafters/stable",
+        "libpng/1.6.37@bincrafters/stable",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False"
