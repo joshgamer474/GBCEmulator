@@ -425,7 +425,7 @@ void APU::run(const uint8_t & cpuTickDiff)
     } // end while(diff > 0)
 }
 
-void APU::writeSamplesOut(const uint32_t & audio_device, const std::vector<Sample>& samples, const uint16_t num_samples)
+void APU::writeSamplesOut(const uint32_t& audio_device, const std::vector<Sample>& samples, const uint16_t num_samples)
 {
     if (!initialized)
     {
@@ -442,6 +442,8 @@ void APU::writeSamplesOut(const uint32_t & audio_device, const std::vector<Sampl
     prev_sample_size = num_samples * 2 * sizeof(float);
     const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
 #endif // USE_FLOAT
+
+    rolling_avg_sample_size.Push(prev_sample_size);
 
     if (ret != 0)
     {
@@ -630,7 +632,7 @@ void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_sta
     uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
     const uint32_t queuedAudioSizeOrig = queuedAudioSize;
     const uint32_t singleFrameAudioBufferSize = samplesPerFrame * 2 * sizeof(float);
-    const uint32_t prevSampleSizeTotal = prev_sample_size * 2 * sizeof(float);
+    const size_t rollingAvgSampleSize = rolling_avg_sample_size.GetRollingAvg() * 2 * sizeof(float);
 
 #ifndef USE_FLOAT
     while (queuedAudioSize > SAMPLE_BUFFER_MEM_SIZE)
@@ -638,10 +640,12 @@ void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_sta
     //while (queuedAudioSize >= SAMPLE_BUFFER_MEM_SIZE_FLOAT)
     //while (queuedAudioSize >= singleFrameAudioBufferSize)
     //while (queuedAudioSize >= obtained_spec.size)
-    while (queuedAudioSize > prevSampleSizeTotal)
+    while (queuedAudioSize > rollingAvgSampleSize)
 #endif
     {
-        logger->trace("queuedAudioSize: {}", queuedAudioSize);
+        logger->trace("queuedAudioSize: {}, rollingAvgSampleSize: {}",
+            queuedAudioSize,
+            rollingAvgSampleSize);
 
         // Check if time spent sleeping is greater than 1 frame time (16.667 ms)
         //const auto currTime = std::chrono::system_clock::now().time_since_epoch();
