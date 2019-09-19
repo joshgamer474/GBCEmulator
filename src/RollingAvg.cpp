@@ -24,5 +24,12 @@ void RollingAvg::Push(const size_t& sample)
 
 size_t RollingAvg::GetRollingAvg()
 {
-    return sum / data.size();
+    if (data.empty())
+    {
+        return 0;
+    }
+    else
+    {
+        return sum / data.size();
+    }
 }
