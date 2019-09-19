@@ -13,6 +13,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <SDL_audio.h>
+#include <RollingAvg.h>
 
 #define SAMPLE_RATE 44100
 #define MICROSEC_PER_FRAME (1.0 / 60.0) * 1000.0 * 1000.0
@@ -99,6 +100,7 @@ private:
     uint16_t frame_sequence_timer;
     uint32_t sample_timer;
     uint32_t prev_sample_size;
+    RollingAvg rolling_avg_sample_size;
     const uint32_t sample_timer_val;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
