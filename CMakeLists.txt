@@ -70,6 +70,10 @@ if(UNIX AND BUILD_UNIT_TEST)
         stdc++fs)
 endif(UNIX)
 
+include_directories(${CONAN_INCLUDE_DIRS}
+    "src/")
+
+if(NOT BUILD_LIB_ONLY)
 # Create GBCEmulator executable
 add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
@@ -83,11 +87,9 @@ target_link_libraries(GBCEmulator_bin
     XInput)
 endif(WIN32)
 
-include_directories(${CONAN_INCLUDE_DIRS}
-    "src/")
-
 # Rename GBCEmulator_bin to GBCEmulator
 SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
+endif(NOT BUILD_LIB_ONLY)
 
 # Enable unit testing
 enable_testing()
