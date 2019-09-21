@@ -3,8 +3,7 @@ os_build=Linux
 arch_build=x86_64
 
 os=Android
-os.api_level=21
-arch=x86_64
+os.api_level=28
 compiler=clang
 compiler.version=8
 compiler.libcxx=libc++
