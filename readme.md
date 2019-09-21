@@ -10,22 +10,23 @@ The emulator currently passes all of blargg's cpu instruction tests and runs a d
 
 ![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
 
+The Qt wrap includes hand-rolled GUI debug tools to aid in debugging CPU instructions, 
 
 ## Issues
 
 * Some GBC games do not boot up
 * Qt wrap needs some improvement
 
-## How to build
+# How to build
 
-### Prerequisites
+## Prerequisites
 
-* CMake 3.x
-* Python 3.x
+* [CMake 3.x](https://cmake.org/download/)
+* [Python 3.x](https://www.python.org/downloads/)
 * pip3
 * Conan.io via pip
 * Conan package SDL/2.0.8@josh/stable
-##### Prerequisite Commands
+## Prerequisite Commands
 
 ```pip3 install conan --user```
 
@@ -37,7 +38,7 @@ The emulator currently passes all of blargg's cpu instruction tests and runs a d
 
 ```cd GBCEmulator```
 
-```conan install . -if=build --build=outdated```
+```conan install . -if=build --build=outdated -s cppstd=17```
 
 ```conan build . -bf=build```
 
@@ -51,12 +52,12 @@ The emulator currently passes all of blargg's cpu instruction tests and runs a d
 
 ```cd qt_wrap```
 
-```conan install . -if=build --build=outdated```
+```conan install . -if=build --build=outdated -s cppstd=17```
 
 ```conan build . -bf=build```
 
-### How to use
-Drag and drop your favorite rom into the built GBCEmulator.exe or into GBCEmulator_qt.exe.
+## How to use
+Open the built GBCEmulator.exe or GBCEmulator_qt.exe and drag and drop your favorite rom in.
 
 
 # TODO
@@ -69,6 +70,7 @@ Drag and drop your favorite rom into the built GBCEmulator.exe or into GBCEmulat
 - [x] Controls
 - [x] Create a GUI (maybe Qt?)
 - [x] Linux build support
+- [x] Android build support
 
 ## Organization
 - [x] Implement Conan.io packaging for libraries
@@ -82,14 +84,14 @@ Drag and drop your favorite rom into the built GBCEmulator.exe or into GBCEmulat
 - [ ] Memory Bank Controllers
 - [ ] Interrupt handling correctness
 - [ ] GPU background rollover testing
-- [ ] Get a game to actually boot
+- [x] Get a game to actually boot
 
-### Create unit tests using Boost
+### Create automated unit testing using GTest
 - [x] Implement for blargg's cpu_instrs
-- [ ] Implement for blargg's dmg_sound
-- [ ] Implement for blargg's instr_timing
-- [ ] Implement for blargg's interrupt_time
-- [ ] Implement for blargg's oam_bug
-- [ ] Implement for blargg's mem_timing
-- [ ] Implement for blargg's mem_timing-2
-- [ ] Implement for blargg's cgb_sound
+- [x] Implement for blargg's dmg_sound
+- [x] Implement for blargg's instr_timing
+- [x] Implement for blargg's interrupt_time
+- [x] Implement for blargg's oam_bug
+- [x] Implement for blargg's mem_timing
+- [x] Implement for blargg's mem_timing-2
+- [x] Implement for blargg's cgb_sound
