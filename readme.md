@@ -8,9 +8,16 @@ A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
 The emulator currently passes all of blargg's cpu instruction tests and runs a decent amount of GB/GBC games.
 
-![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
+![](res/blargg_cpu_intrs.gif)
 
-The Qt wrap includes hand-rolled GUI debug tools to aid in debugging CPU instructions, 
+The Qt wrap includes variety of interactive GUI debug tools:
+* A fully-featured CPU debugger with step in, step over, step out, etc.
+* A real-time video RAM (VRAM) viewer
+* A real-time audio channel viewer
+
+![](res/debugger.PNG)
+![](res/vramviewer.PNG)
+![](res/audiodebugger.PNG)
 
 ## Issues
 
