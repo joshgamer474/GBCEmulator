@@ -10,13 +10,16 @@ The emulator currently passes all of blargg's cpu instruction tests and runs a d
 
 ![](res/blargg_cpu_intrs.gif)
 
+![](res/bombermanquest.gif) ![](res/pokemonyellow.gif)
+![](res/wariolandii.gif) ![](res/zeldaoracleofages.gif)
+
 The Qt wrap includes variety of interactive GUI debug tools:
 * A fully-featured CPU debugger with step in, step over, step out, etc.
 * A real-time video RAM (VRAM) viewer
 * A real-time audio channel viewer
 
 ![](res/debugger.PNG)
-![](res/vramviewer.PNG)
+![](res/zeldaoracleofagesdebugger.gif)
 ![](res/audiodebugger.PNG)
 
 ## Issues
