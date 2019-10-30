@@ -24,6 +24,7 @@ set(GBC_HEADERS
     src/Memory.h
     src/ScreenInterface.h
     src/SDLWindow.h
+    src/SerialTransfer.h
     src/Tile.h
 	src/RollingAvg.h)
 
@@ -42,6 +43,7 @@ set(GBC_SOURCE
     src/MBC.cpp
     src/Memory.cpp
     src/SDLWindow.cpp
+    src/SerialTransfer.cpp
     src/Tile.cpp
 	src/RollingAvg.cpp)
 

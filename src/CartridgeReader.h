@@ -14,7 +14,9 @@ public:
 	virtual ~CartridgeReader();
     CartridgeReader& operator=(const CartridgeReader& rhs);
 
-	void setRomDestination(std::string filename);
+	void setRomDestination(const std::string& filename);
+    void setBiosDestination(const std::string& bios_filename);
+    bool readBios();
 	bool readRom();
     void freeRom();
 	void getCartridgeInformation();
@@ -27,6 +29,7 @@ public:
     std::shared_ptr<spdlog::logger> logger;
     std::vector<unsigned char> romBuffer;
     std::string cartridgeFilename;
+    std::string biosFilename;
     std::string game_title_str;
     int num_ROM_banks;
     int num_RAM_banks;
@@ -39,7 +42,7 @@ private:
         int mbc;
         bool rom, ram, battery, timer, rumble, sensor, mmm01;
     };
-
+    std::vector<unsigned char> readFile(const std::string& filename) const;
     int getNumOfRomBanks(unsigned char rom_size);
     int getNumOfRamBanks(unsigned char ram_size);
     void parseCartridgeType(unsigned char cartridge_type);

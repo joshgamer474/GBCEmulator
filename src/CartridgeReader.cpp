@@ -39,55 +39,78 @@ CartridgeReader& CartridgeReader::operator=(const CartridgeReader& rhs)
     return *this;
 }
 
-void CartridgeReader::setRomDestination(std::string filename)
+void CartridgeReader::setRomDestination(const std::string& filename)
 {
 	cartridgeFilename = filename;
+}
 
+void CartridgeReader::setBiosDestination(const std::string& bios_filename)
+{
+    biosFilename = bios_filename;
+}
+
+bool CartridgeReader::readBios()
+{
+    bios = readFile(biosFilename);
+    has_bios = is_in_bios = !bios.empty();
+    logger->info("Read in BIOS {}, has_bios: {}",
+        biosFilename, has_bios);
+    return !bios.empty();
 }
 
 bool CartridgeReader::readRom()
 {
-	std::ifstream rom;
-	rom.open(cartridgeFilename, std::ios::binary);
-
-    rom.unsetf(std::ios::skipws);   // Don't skip newlines when reading as binary
-
-    if (rom.is_open())
+    romBuffer = readFile(cartridgeFilename);
+    if (romBuffer.size())
     {
-        logger->info("Reading in ROM");
-
-        // Get size of ROM
-        std::streampos fileSize;
-        rom.seekg(0, std::ios::end);
-        fileSize = rom.tellg();
-
-        logger->info("ROM size is {0:d} bytes", fileSize);
-
-        // Seek back to the beginning of the ROM
-        rom.seekg(0, std::ios::beg);
-
-        // Reserve space in romBuffer
-        romBuffer.reserve(fileSize);
-
-        // Read ROM into vector
-        romBuffer.insert(romBuffer.begin(),
-            std::istream_iterator<unsigned char>(rom),
-            std::istream_iterator<unsigned char>());
-
         // Read information from cartridge
         getCartridgeInformation();
         logger->info("Finished reading in {}", game_title);
-
-        rom.close();
         return true;
-	}
-	else
-	{
-        logger->critical("Could not read rom {}", cartridgeFilename);
-		return false;
-	}
+    }
+    return false;
 }
 
+std::vector<unsigned char> CartridgeReader::readFile(const std::string& filename) const
+{
+    std::ifstream in;
+    std::vector<unsigned char> out;
+
+    logger->info("Reading in file {}", filename);
+    in.open(filename, std::ios::binary);
+    in.unsetf(std::ios::skipws);   // Don't skip newlines when reading as binary
+
+    if (in.is_open())
+    {
+        // Get size of ROM
+        std::streampos fileSize;
+        in.seekg(0, std::ios::end);
+        fileSize = in.tellg();
+
+        logger->info("File size is {0:d} bytes", fileSize);
+
+        // Seek back to the beginning of the ROM
+        in.seekg(0, std::ios::beg);
+
+        // Reserve space in romBuffer
+        out.reserve(fileSize);
+
+        // Read ROM into vector
+        out.insert(out.begin(),
+            std::istream_iterator<unsigned char>(in),
+            std::istream_iterator<unsigned char>());
+
+        logger->info("Finished reading in {}", filename);
+
+        in.close();
+    }
+    else
+    {
+        logger->critical("Could not read in file {}", filename);
+    }
+
+    return out;
+}
 
 // Information about the cartridge
 void CartridgeReader::getCartridgeInformation()

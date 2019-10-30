@@ -9,6 +9,7 @@
 #include <GPU.h>
 #include <Joypad.h>
 #include <APU.h>
+#include <SerialTransfer.h>
 #include "Debug.h"
 #include <string>
 
@@ -17,14 +18,16 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     std::shared_ptr<MBC> _mbc,
     std::shared_ptr<GPU> _gpu,
     std::shared_ptr<Joypad> _joypad,
-    std::shared_ptr<APU> _apu)
-    :
-    logger(_logger),
-    cartridgeReader(_cartidgeReader),
-    mbc(_mbc),
-    gpu(_gpu),
-    joypad(_joypad),
-    apu(_apu)
+    std::shared_ptr<APU> _apu,
+    std::shared_ptr<SerialTransfer> _serial_transfer,
+    const bool force_cgb_mode)
+    : logger(_logger)
+    , cartridgeReader(_cartidgeReader)
+    , mbc(_mbc)
+    , gpu(_gpu)
+    , joypad(_joypad)
+    , apu(_apu)
+    , serial_transfer(_serial_transfer)
 {
 	timer_enabled   = false;
 	clock_frequency = 4096;
@@ -39,7 +42,7 @@ Memory::Memory(std::shared_ptr<spdlog::logger> _logger,
     cgb_undoc_reg_ff6c  = 0;
     cgb_perform_speed_switch = false;
 
-	initWorkRAM(cartridgeReader->isColorGB());
+	initWorkRAM(cartridgeReader->isColorGB() || force_cgb_mode);
     initROMBanks();
 }
 
@@ -110,9 +113,16 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 {
 	if (cartridgeReader->has_bios &&
         cartridgeReader->is_in_bios &&
-        pos < 256)
+        pos < 0x00FF)
 	{
-		return cartridgeReader->bios[pos];
+        if (pos < cartridgeReader->bios.size())
+        {
+		    return cartridgeReader->bios[pos];
+        }
+        else
+        {
+            return 0xFF;
+        }
 	}
 
 	switch (pos & 0xF000)
@@ -218,7 +228,8 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 				// 0xFF01 - 0xFF03 : Serial Data and Not referenced
 				//logger->warn("Memory::readByte() doesn't handle address: 0x{0:x}", pos);
 				//return 0xFF;
-				return linkport[pos - 0xFF03];
+				//return linkport[pos - 0xFF03];
+                return serial_transfer->readByte(pos);
 			}
 			else if (pos < 0xFF08)
 			{
@@ -425,6 +436,11 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 					//logger->info("{}", std::to_string(linkport[0]));
 					blargg += linkport[0];
 				}
+
+                if (pos == 0xFF01 || pos == 0xFF02)
+                {
+                    serial_transfer->setByte(pos, val, is_color_gb);
+                }
 				
 				linkport[pos - 0xFF01] = val;
 			}
@@ -721,6 +737,13 @@ void Memory::updateTimerRates()
 
 void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 {
+    // Tick Serial Transfer
+    if (serial_transfer &&
+        serial_transfer->tick(ticks))
+    {   // Signal Serial data interrupt
+        interrupt_flag |= INTERRUPT_SERIAL;
+    }
+
 	uint8_t & divider_reg       = timer[DIV];
 	uint8_t & timer_counter     = timer[TIMA];
 

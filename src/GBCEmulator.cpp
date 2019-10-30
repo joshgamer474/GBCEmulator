@@ -2,7 +2,8 @@
 #include <libpng16/png.h>
 #include <thread>
 
-GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, bool debugMode)
+GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
+    const std::string biosPath, bool debugMode, const bool force_cgb_mode)
     :   stopRunning(false),
         debugMode(false),
         ranInstruction(false),
@@ -15,12 +16,19 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName, b
     cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink));
     apu     = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", loggerSink));
+    serial_transfer = std::make_shared<SerialTransfer>(std::make_shared<spdlog::logger>("SerialTransfer", loggerSink));
+    
+    if (!biosPath.empty())
+    {   // Read BIOS if supplied
+        cartridgeReader->setBiosDestination(biosPath);
+        cartridgeReader->readBios();
+    }
 
     read_rom(romName);
 
     // Initialize GPU and memory objects, link GB components together
-    init_gpu();
-    init_memory();
+    init_gpu(force_cgb_mode);
+    init_memory(force_cgb_mode);
 
     // Initialize CPU
     cpu = std::make_shared<CPU>(std::make_shared<spdlog::logger>("CPU", loggerSink),
@@ -111,7 +119,7 @@ void GBCEmulator::read_rom(std::string filename)
     }
 }
 
-void GBCEmulator::init_memory()
+void GBCEmulator::init_memory(const bool force_cgb_mode)
 {
     // Setup Memory Bank Controller
     mbc = std::make_shared<MBC>(cartridgeReader->getMBCNum(),
@@ -120,21 +128,24 @@ void GBCEmulator::init_memory()
         std::make_shared<spdlog::logger>("MBC", loggerSink));
 
     // Setup Memory
-    memory = std::make_shared<Memory>(std::make_shared<spdlog::logger>("Memory", loggerSink),
+    memory = std::make_shared<Memory>(
+        std::make_shared<spdlog::logger>("Memory", loggerSink),
         cartridgeReader,
         mbc,
         gpu,
         joypad,
-        apu);
+        apu,
+        serial_transfer,
+        force_cgb_mode);
 
     gpu->memory = memory;
 }
 
-void GBCEmulator::init_gpu()
+void GBCEmulator::init_gpu(const bool force_cgb_mode)
 {
     gpu = std::make_shared<GPU>(std::make_shared<spdlog::logger>("GPU", loggerSink));
 
-    if (cartridgeReader->isColorGB())
+    if (cartridgeReader->isColorGB() || force_cgb_mode)
     {
         gpu->init_color_gb();
     }

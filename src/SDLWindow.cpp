@@ -177,6 +177,10 @@ int SDLWindow::run(bool start_emu)
         {
             char* romName = event.drop.file;
             const std::string romNameStr(romName);
+            const std::string biosPath = 
+                //"/home/childers/Downloads/bios.gbc";
+                //"/home/childers/Downloads/bios.gb";
+                "";
 
             // Check file extension for valid game type
             if (romIsValid(romNameStr))
@@ -186,7 +190,11 @@ int SDLWindow::run(bool start_emu)
                     emu->stop();
                 }
 
-                emu = std::make_shared<GBCEmulator>(romNameStr, romNameStr + ".log");
+                emu = std::make_shared<GBCEmulator>(romNameStr,
+                    romNameStr + ".log",
+                    biosPath,
+                    false,      // Debug mode
+                    false);     // Force CGB mode
                 hookToEmulator(emu);
                 startEmulator();
             }
@@ -235,6 +243,51 @@ int SDLWindow::run(bool start_emu)
             }
             break;
         } // end case SDL_KEYUP
+
+        case SDL_JOYBUTTONDOWN:
+        {
+            SDL_Log("JOYBUTTONDOWN %d", event.jbutton.button);
+
+            switch (event.jbutton.button)
+            {
+                case SDL_CONTROLLER_BUTTON_A:           emu->set_joypad_button(Joypad::BUTTON::A); break;
+                case SDL_CONTROLLER_BUTTON_B:           emu->set_joypad_button(Joypad::BUTTON::B); break;
+                case SDL_CONTROLLER_BUTTON_START:       emu->set_joypad_button(Joypad::BUTTON::START); break;
+                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:emu->set_joypad_button(Joypad::BUTTON::SELECT); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_UP:     emu->set_joypad_button(Joypad::BUTTON::UP); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:   emu->set_joypad_button(Joypad::BUTTON::DOWN); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:   emu->set_joypad_button(Joypad::BUTTON::LEFT); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:  emu->set_joypad_button(Joypad::BUTTON::RIGHT); break;
+                case SDL_CONTROLLER_BUTTON_BACK:
+                {
+                    //quit = true;
+                    break;
+                }
+            }
+            break;
+        }
+
+        case SDL_JOYBUTTONUP:
+        {
+            SDL_Log("JOYBUTTONUP %d", event.jbutton.button);
+
+            switch (event.jbutton.button)
+            {
+                case SDL_CONTROLLER_BUTTON_A:           emu->release_joypad_button(Joypad::BUTTON::A); break;
+                case SDL_CONTROLLER_BUTTON_B:           emu->release_joypad_button(Joypad::BUTTON::B); break;
+                case SDL_CONTROLLER_BUTTON_START:       emu->release_joypad_button(Joypad::BUTTON::START); break;
+                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:emu->release_joypad_button(Joypad::BUTTON::SELECT); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_UP:     emu->release_joypad_button(Joypad::BUTTON::UP); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:   emu->release_joypad_button(Joypad::BUTTON::DOWN); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:   emu->release_joypad_button(Joypad::BUTTON::LEFT); break;
+                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:  emu->release_joypad_button(Joypad::BUTTON::RIGHT); break;
+                case SDL_CONTROLLER_BUTTON_BACK:
+                {
+
+                }
+            }
+            break;
+        }
 
         case SDL_WINDOWEVENT:
         {

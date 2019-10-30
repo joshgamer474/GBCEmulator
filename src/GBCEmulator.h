@@ -25,6 +25,7 @@
 #include "MBC.h"
 #include "GPU.h"
 #include "CartridgeReader.h"
+#include "SerialTransfer.h"
 #include "Debug.h"
 
 #include <spdlog/spdlog.h>
@@ -39,7 +40,8 @@ extern "C" {
 class GBCEmulator
 {
 public:
-    GBCEmulator(const std::string romName, const std::string logName = "log.txt", bool debugMode = false);
+    GBCEmulator(const std::string romName, const std::string logName = "log.txt",
+        const std::string biosPath = "", bool debugMode = false, const bool force_cgb_mode = false);
     virtual ~GBCEmulator();
     GBCEmulator& operator=(const GBCEmulator& rhs);
 
@@ -80,8 +82,8 @@ public:
 
 private:
     void read_rom(std::string filename);
-    void init_memory();
-    void init_gpu();
+    void init_memory(const bool force_cgb_mode);
+    void init_gpu(const bool force_cgb_mode);
     void init_logging(std::string logName);
     void waitToStartNextFrame() const;
     std::chrono::duration<double> getCurrentTime() const;
@@ -94,6 +96,7 @@ private:
     std::shared_ptr<GPU> gpu;
     std::shared_ptr<Memory> memory;
     std::shared_ptr<Joypad> joypad;
+    std::shared_ptr<SerialTransfer> serial_transfer;
 
     std::shared_ptr<spdlog::sinks::rotating_file_sink_st> loggerSink;
     std::uint16_t logCounter;

@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef MEMORY_H
 #define MEMORY_H
 
@@ -23,11 +21,12 @@ enum TIMER_REG {
     TAC     // 0xFF07
 };
 
+class APU;
 class CartridgeReader;
-class MBC;
 class GPU;
 class Joypad;
-class APU;
+class MBC;
+class SerialTransfer;
 
 class Memory
 {
@@ -37,7 +36,9 @@ public:
         std::shared_ptr<MBC> mbc,
         std::shared_ptr<GPU> gpu,
         std::shared_ptr<Joypad> joypad,
-        std::shared_ptr<APU> apu);
+        std::shared_ptr<APU> apu,
+        std::shared_ptr<SerialTransfer> serial_transfer,
+        const bool force_cgb_mode);
     virtual ~Memory();
     Memory& operator=(const Memory& rhs);
 
@@ -59,6 +60,7 @@ public:
     std::shared_ptr<GPU> gpu;
     std::shared_ptr<Joypad> joypad;
     std::shared_ptr<APU> apu;
+    std::shared_ptr<SerialTransfer> serial_transfer;
 
     bool cgb_perform_speed_switch;
     unsigned char cgb_speed_mode;

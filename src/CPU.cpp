@@ -26,6 +26,7 @@ CPU::CPU(std::shared_ptr<spdlog::logger> _logger,
 
     if (!provided_boot_rom)
     {
+        logger->info("Did not provide BIOS, initializing registers post-BIOS");
         initGBPowerOn();
     }
 }
@@ -370,7 +371,10 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 	// Check if bios is done running
 	if (memory->cartridgeReader->has_bios &&
         memory->cartridgeReader->is_in_bios &&
-        registers[PC] >= 0x100)
+        //((!memory->is_color_gb && registers[PC] >= 0x100)
+        //|| (memory->is_color_gb && registers[PC] >= 0x8FF))
+		registers[PC] >= 0x100
+        )
 	{
 		memory->cartridgeReader->is_in_bios = false;
 
@@ -389,7 +393,6 @@ uint8_t CPU::runInstruction(uint8_t instruc)
     {
         start_logging = true;
     }
-
 
 	if (start_logging)
 	{
@@ -3481,6 +3484,7 @@ void CPU::initGBPowerOn()
     {   // Let games know that the emulator is a GB
         set_register(REGISTERS::AF, static_cast<uint16_t>(0x01B0));
     }
+
     set_register(REGISTERS::BC, static_cast<uint16_t>(0x0013));
     set_register(REGISTERS::DE, static_cast<uint16_t>(0x00D8));
     set_register(REGISTERS::HL, static_cast<uint16_t>(0x014D));
