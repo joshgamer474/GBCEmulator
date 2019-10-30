@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef JOYPAD_H
 #define JOYPAD_H
 
@@ -42,13 +40,13 @@ public:
 
 	void set_joypad_button(BUTTON button);
     void release_joypad_button(BUTTON button);
-	void set_joypad_byte(std::uint8_t val);
-	std::uint8_t get_joypad_byte();
+	void set_joypad_byte(uint8_t val);
+	uint8_t get_joypad_byte();
 	void check_keyboard_input(SDL_Event *e);
-    uint8_t unsetBit(uint8_t byte, uint8_t bitToUnset);
-    bool bitIsUnset(uint8_t byte, uint8_t bitSet);
-    bool buttonIsDirectionKey(BUTTON b);
-    bool buttonIsButtonKey(BUTTON b);
+    uint8_t unsetBit(const uint8_t byte, const uint8_t bitToUnset) const;
+    bool bitIsUnset(const uint8_t byte, const uint8_t bitSet) const;
+    bool buttonIsDirectionKey(const BUTTON b) const;
+    bool buttonIsButtonKey(const BUTTON b) const;
     bool buttonIsSet(const BUTTON& b) const;
     uint8_t getJoypadState() const;
 
@@ -59,4 +57,5 @@ private:
 	uint8_t joypad_byte;
     uint8_t joypad_state;
 };
+
 #endif

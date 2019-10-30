@@ -138,47 +138,26 @@ void Joypad::check_keyboard_input(SDL_Event *e)
 		set_joypad_button(b);
 }
 
-uint8_t Joypad::unsetBit(uint8_t byte, uint8_t bitToUnset)
+uint8_t Joypad::unsetBit(const uint8_t byte, const uint8_t bitToUnset) const
 {
     uint8_t bit_flipped = bitToUnset ^ 0xFF;
     return byte & bit_flipped;
 }
 
-bool Joypad::bitIsUnset(uint8_t byte, uint8_t bitSet)
+bool Joypad::bitIsUnset(const uint8_t byte, const uint8_t bitSet) const
 {
-    uint8_t byte_flipped = byte ^ 0xFF;
-    if (byte_flipped & bitSet)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    const uint8_t byte_flipped = byte ^ 0xFF;
+    return byte_flipped & bitSet;
 }
 
-bool Joypad::buttonIsDirectionKey(BUTTON b)
+bool Joypad::buttonIsDirectionKey(const BUTTON b) const
 {
-    if (b <= DOWN)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return b <= DOWN;
 }
 
-bool Joypad::buttonIsButtonKey(BUTTON b)
+bool Joypad::buttonIsButtonKey(const BUTTON b) const
 {
-    if (b >= A)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return b >= A;
 }
 
 bool Joypad::buttonIsSet(const BUTTON& button) const
