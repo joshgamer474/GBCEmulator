@@ -4,7 +4,7 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.0.3"
+    version = "0.1.0"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux", "Android"], 
@@ -12,7 +12,8 @@ class GBCEmulator(ConanFile):
                 "compiler": ["Visual Studio", "gcc", "clang"],
                 "build_type": ["Debug", "Release"],
                 "cppstd": ["14", "17"]}
-    options = {"shared": [True, False]}
+    options = {"shared": [True, False],
+                "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
         "sdl2/2.0.9@bincrafters/stable",
@@ -20,7 +21,7 @@ class GBCEmulator(ConanFile):
         "libpng/1.6.37@bincrafters/stable",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
-    default_options = "shared=False"
+    default_options = "shared=False", "lib_only=False"
 
     def build_requirements(self):
         if self.settings.os == "Android":
@@ -55,13 +56,24 @@ class GBCEmulator(ConanFile):
             cmake.definitions["BUILD_UNIT_TEST"] = False
         else:
             cmake.definitions["BUILD_UNIT_TEST"] = True
+
+        if self.options.lib_only == True:
+            cmake.definitions["BUILD_LIB_ONLY"] = True
+        else:
+            cmake.definitions["BUILD_LIB_ONLY"] = False
+
         cmake.configure()
         cmake.build()
         #cmake.test()
 
     def package(self):
         libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
-        libDest += os.sep + str(self.settings.arch)
+        if (self.settings.arch == "armv7"):
+            libDest += os.sep + "armeabi-v7a"
+        elif (self.settings.arch == "armv8"):
+            libDest += os.sep + "arm64-v8a"
+        else:
+            libDest += os.sep + str(self.settings.arch)
         self.copy("*", src="bin",   dst="bin",    keep_path=False)
         self.copy("*.h", src="src", dst="include")
         self.copy("*.h", src="include", dst="include")
