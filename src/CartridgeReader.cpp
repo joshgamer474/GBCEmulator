@@ -2,11 +2,16 @@
 #include "Debug.h"
 #include "MBC.h"
 
-CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger)
+CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger, const bool _force_cgb)
     : has_bios(false)
+    , is_in_bios(false)
+    , bios_is_cgb(false)
+    , game_title_hash(0)
+    , game_title_hash_16(0)
+    , force_cgb(_force_cgb)
     , logger(_logger)
 {
-    is_in_bios = has_bios;
+
 }
 
 CartridgeReader::~CartridgeReader()
@@ -20,13 +25,18 @@ CartridgeReader& CartridgeReader::operator=(const CartridgeReader& rhs)
     num_RAM_banks       = rhs.num_RAM_banks;
     is_in_bios          = rhs.is_in_bios;
     has_bios            = rhs.has_bios;
+    bios_is_cgb         = rhs.bios_is_cgb;
     romBuffer           = rhs.romBuffer;
     cartridgeFilename   = rhs.cartridgeFilename;
     game_title_str      = rhs.game_title_str;
+    game_title_hash     = rhs.game_title_hash;
+    game_title_hash_16  = rhs.game_title_hash_16;
 
     // Information about the cartridge
     memcpy(game_title, rhs.game_title, 16);
     memcpy(manufacturer_code, rhs.manufacturer_code, 4);
+    memcpy(new_licensee_code, rhs.new_licensee_code, 2);
+    old_licensee_code   = rhs.old_licensee_code;
     cgb_flag            = rhs.cgb_flag;
     sgb_flag            = rhs.sgb_flag;
     cartridge_type      = rhs.cartridge_type;
@@ -55,6 +65,12 @@ bool CartridgeReader::readBios()
     has_bios = is_in_bios = !bios.empty();
     logger->info("Read in BIOS {}, has_bios: {}",
         biosFilename, has_bios);
+
+    // Check if read in BIOS is GB or CGB
+    if (bios.size() > 0xFF)
+    {
+        bios_is_cgb = true;
+    }
     return !bios.empty();
 }
 
@@ -115,15 +131,24 @@ std::vector<unsigned char> CartridgeReader::readFile(const std::string& filename
 // Information about the cartridge
 void CartridgeReader::getCartridgeInformation()
 {
-	// Read game title
+    // Read game title
+    game_title_hash = 0;
+    game_title_hash_16 = 0;
     for (int i = 0; i < 16; i++)
     {
-        game_title[i] = romBuffer[i + 0x0134];
+        const uint8_t& c = romBuffer[i + 0x0134];
+        if (c == 0x00)
+        {
+            break;
+        }
+        game_title[i]    = c;
+        game_title_hash += c;
+        game_title_hash_16 += c;
     }
     game_title[15] = '\0';
     game_title_str = std::string(reinterpret_cast<char*>(game_title));
 
-	// Read in Manufacturer code
+    // Read in Manufacturer code
     for (int i = 0; i < 4; i++)
     {
         manufacturer_code[i] = romBuffer[i + 0x013F];
@@ -146,8 +171,22 @@ void CartridgeReader::getCartridgeInformation()
 	num_RAM_banks = getNumOfRamBanks(ram_size);
 	
 	destination_code    = romBuffer[0x014A];
+    old_licensee_code   = romBuffer[0x014B];
+    if (old_licensee_code == 0x33)
+    {
+        new_licensee_code[0] = romBuffer[0x0144];
+        new_licensee_code[0] = romBuffer[0x0145];
+    }
 	game_version        = romBuffer[0x014C];
  	header_checksum     = romBuffer[0x014D];
+
+    logger->info("Parsed cartridge, game_title: {}, game_title_hash: {}, game_title_hash_16: {}, "
+        "old_licensee_code: {}, header_checksum: {}",
+        game_title,
+        game_title_hash,
+        game_title_hash_16,
+        old_licensee_code,
+        header_checksum);
 }
 
 bool CartridgeReader::getColorGBFlag() const
@@ -157,7 +196,13 @@ bool CartridgeReader::getColorGBFlag() const
 
 bool CartridgeReader::isColorGB() const
 {
-    return cgb_flag & 0x80;
+    if (has_bios)
+    {
+        return bios_is_cgb
+            || (cgb_flag & 0x80)
+            || force_cgb;
+    }
+    return (cgb_flag & 0x80) || force_cgb;
 }
 
 

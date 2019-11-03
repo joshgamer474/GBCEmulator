@@ -10,7 +10,7 @@
 class CartridgeReader
 {
 public:
-	CartridgeReader(std::shared_ptr<spdlog::logger> logger);
+	CartridgeReader(std::shared_ptr<spdlog::logger> logger, const bool force_cgb);
 	virtual ~CartridgeReader();
     CartridgeReader& operator=(const CartridgeReader& rhs);
 
@@ -35,6 +35,9 @@ public:
     int num_RAM_banks;
     bool is_in_bios;
     bool has_bios;
+    bool bios_is_cgb;
+    unsigned char game_title_hash;
+    uint16_t game_title_hash_16;
 
 private:
     struct CartridgeType
@@ -59,6 +62,8 @@ private:
     // Information about the cartridge
     unsigned char game_title[16];
     unsigned char manufacturer_code[4];
+    unsigned char new_licensee_code[2];
+    unsigned char old_licensee_code;
     unsigned char cgb_flag;
     unsigned char sgb_flag;
     unsigned char cartridge_type;
@@ -67,6 +72,7 @@ private:
     unsigned char destination_code;	// 0x00 = Japanese, 0x01 = non-Japanese
     unsigned char game_version;
     unsigned char header_checksum;	// Checks if cartridge is valid
+    const bool force_cgb;
 };
 
 #endif

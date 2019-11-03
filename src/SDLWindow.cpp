@@ -224,7 +224,12 @@ int SDLWindow::run(bool start_emu)
                 takeSaveState();
                 break;
             }
+            case SDLK_o:
+            {
+                emu->changeCGBPalette();
+                break;
             }
+            } // end switch()
             break;
         } // end case SDL_KEYDOWN
 

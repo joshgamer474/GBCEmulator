@@ -2,10 +2,12 @@
 #define GPU_H
 
 #include <array>
+#include <unordered_map>
 #include <mutex>
 #include <vector>
 #include <SDL.h>
 #include "ColorPalette.h"
+#include <GetUniqueColorPalette.h>
 #include <spdlog/spdlog.h>
 
 #define VRAM_SIZE 0x2000
@@ -28,16 +30,31 @@
 class Memory;
 class Tile;
 
-struct TILE
-{
+struct TILE {
     unsigned char b0, b1;
 };
 
-struct LCDSelect
-{
-    std::uint16_t start, end;
+struct LCDSelect {
+    uint16_t start, end;
 };
 
+enum CGBPaletteCombo {
+    NONE,
+    UP,
+    UP_A,
+    UP_B,
+    LEFT,
+    LEFT_A,
+    LEFT_B,
+    DOWN,
+    DOWN_A,
+    DOWN_B,
+    RIGHT,
+    RIGHT_A,
+    RIGHT_B,
+    CUSTOM,
+    LAST,
+};
 
 class GPU
 {
@@ -62,6 +79,7 @@ public:
     void setByte(const uint16_t pos, const uint8_t val, bool limit_access = true);
     std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
     const std::vector<int>& getUpdatedBGTileIndexes();
+    void changeCGBPalette();
 
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
@@ -83,7 +101,9 @@ public:
     bool is_color_gb;
 
 private:
-    void set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_transparent = false);
+    void set_color_palette(SDL_Color* palette, const uint8_t val, bool zero_is_transparent = false);
+    void use_color_palette(const CGBROMPalette wanted_palette);
+    SDL_Color get_sdl_color(const uint32_t& color) const;
     void renderLine();
     void drawBackgroundLine();
     void drawWindowLine();
@@ -98,6 +118,8 @@ private:
     std::string getGPUModeStr(GPU_MODE mode) const;
     void update_lcd_status_coincidence_flag();
     void printFrame();
+    CGBROMPalette get_cgb_rom_palette(const uint8_t& ref) const;
+    uint8_t get_cgb_rom_palette_ref(const CGBPaletteCombo& ref) const;
 
     uint8_t getTileBlockNum(const int& use_tile_num) const;
     uint8_t getSpriteTileBlockNum(const int& use_tile_num) const;
@@ -166,5 +188,7 @@ private:
     std::vector<unsigned char> object_attribute_memory;
     std::vector<std::vector<std::vector<Tile>>> bg_tiles;
     std::vector<uint8_t> objects_pos_to_use;
+
+    CGBPaletteCombo curr_opt_gb_palette;
 };
 #endif

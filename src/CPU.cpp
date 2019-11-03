@@ -360,33 +360,37 @@ std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
 uint8_t CPU::runInstruction(uint8_t instruc)
 {
     uint8_t ret = 0;
-	uint8_t a8, d8, parenA8, flagType;
-	int8_t r8;
-	uint16_t a16, d16, addr, hlVal;
+    uint8_t a8, d8, parenA8, flagType;
+    int8_t r8;
+    uint16_t a16, d16, addr, hlVal;
     int regPattern1, regPattern2;
 
-	regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
-	regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
+    regPattern1 = (instruc / 0x08) - 0x08;	// B, B, B, B, B, B, B, B, C, C, C, C, C, C, C, C, D, D, etc.
+    regPattern2 = (instruc & 0x0F) % 0x08;	// B, C, D, E, H, L, HL, A, B, C, D, etc.
 
-	// Check if bios is done running
-	if (memory->cartridgeReader->has_bios &&
+    // Check if bios is done running
+    if (memory->cartridgeReader->has_bios &&
         memory->cartridgeReader->is_in_bios &&
-        //((!memory->is_color_gb && registers[PC] >= 0x100)
-        //|| (memory->is_color_gb && registers[PC] >= 0x8FF))
-		registers[PC] >= 0x100
+        ((!memory->is_color_gb && registers[PC] >= 0x0100)
+        || (memory->is_color_gb && registers[PC] >= 0x08FF))
+        //registers[PC] >= 0x100
         )
-	{
-		memory->cartridgeReader->is_in_bios = false;
+    {   // GB BIOS should be over when PC reaches 0x0100
+        //if (!memory->is_color_gb ||
+        //    (memory->is_color_gb && registers[PC] >= 0x08FF))
+        {
+            memory->cartridgeReader->is_in_bios = false;
+        }
 
         if (memory->is_color_gb)
         {   // Let games know that the emulator is a CGB
             set_register(REGISTERS::A, static_cast<uint8_t>(0x11));
         }
 
-		//printRegisters();
-		logger->info("Done running bootstrap, moving on to cartridge");
-		start_logging = true;
-	}
+        //printRegisters();
+        logger->info("Done running bootstrap, moving on to cartridge");
+        start_logging = true;
+    }
 
     if (start_logging == false &&
         logger->level() == spdlog::level::trace)

@@ -92,7 +92,7 @@ void Memory::reset()
 
 void Memory::initWorkRAM(bool isColorGB)
 {
-	is_color_gb = isColorGB;
+    is_color_gb = isColorGB;
 
     if (is_color_gb)
     {
@@ -103,9 +103,13 @@ void Memory::initWorkRAM(bool isColorGB)
         num_working_ram_banks = 2;
     }
 
-	curr_working_ram_bank = 1;
+    curr_working_ram_bank = 1;
 
-	working_ram_banks.resize(num_working_ram_banks, std::vector<unsigned char>(WORK_RAM_SIZE, 0));
+    working_ram_banks.resize(num_working_ram_banks, std::vector<unsigned char>(WORK_RAM_SIZE, 0));
+
+    logger->info("Initializing memory, is_color_gb: {}, num_working_ram_banks: {}",
+        is_color_gb,
+        num_working_ram_banks);
 }
 
 

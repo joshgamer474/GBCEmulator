@@ -72,6 +72,8 @@ public:
     static uint64_t calculateFrameHash(SDL_Color* frame);
     static uint64_t calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXEL_TOTAL>& frame);
 
+    void changeCGBPalette();
+
     // Variables
     bool ranInstruction;
     bool debugMode;

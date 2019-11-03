@@ -13,11 +13,11 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
 {
     init_logging(logName);
 
-    cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink));
+    cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink), force_cgb_mode);
     apu     = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", loggerSink));
     serial_transfer = std::make_shared<SerialTransfer>(std::make_shared<spdlog::logger>("SerialTransfer", loggerSink));
-    
+
     if (!biosPath.empty())
     {   // Read BIOS if supplied
         cartridgeReader->setBiosDestination(biosPath);
@@ -47,6 +47,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
 
     // Set log levels
     set_logging_level(spdlog::level::err);
+    //cpu->logger->set_level(spdlog::level::trace);
 /*
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
@@ -559,4 +560,12 @@ std::string GBCEmulator::getGameTitle() const
         return cartridgeReader->getGameTitle();
     }
     return "";
+}
+
+void GBCEmulator::changeCGBPalette()
+{
+    if (gpu)
+    {
+        gpu->changeCGBPalette();
+    }
 }

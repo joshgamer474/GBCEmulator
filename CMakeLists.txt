@@ -16,6 +16,7 @@ set(GBC_HEADERS
     src/ColorPalette.h
     src/CPU.h
     src/GBCEmulator.h
+    src/GetUniqueColorPalette.h
     src/GPU.h
     src/Joypad.h
     src/JoypadInputInterface.h
@@ -36,8 +37,9 @@ set(GBC_SOURCE
     src/CartridgeReader.cpp
     src/ColorPalette.cpp
     src/CPU.cpp
-    src/GPU.cpp
     src/GBCEmulator.cpp
+    src/GetUniqueColorPalette.cpp
+    src/GPU.cpp
     src/Joypad.cpp
     src/JoypadXInput.cpp
     src/MBC.cpp

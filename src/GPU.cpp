@@ -7,10 +7,11 @@
 #include "Memory.h"
 #include "Debug.h"
 #include "Tile.h"
+#include "CartridgeReader.h"
 
 GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
-    :
-    logger(_logger)
+    : logger(_logger)
+    , curr_opt_gb_palette(CGBPaletteCombo::CUSTOM)  // Default to DMG-custom palette
 {
 	is_color_gb = false;
 	num_vram_banks = 1;
@@ -153,6 +154,9 @@ void GPU::init_color_gb()
     {
         objects_pos_to_use[i] = (OAM_NUM_SPRITES - i - 1) * 4;
     }
+
+    // Reset DMG-only variable
+    curr_opt_gb_palette = CGBPaletteCombo::NONE;
 }
 
 std::uint8_t GPU::readByte(const uint16_t pos, bool limit_access)
@@ -445,15 +449,35 @@ void GPU::setByte(const uint16_t pos, const uint8_t val, bool limit_access)
 }
 
 
-void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_transparant)
+void GPU::set_color_palette(SDL_Color* palette, const uint8_t val, bool zero_is_transparant)
 {
-	unsigned char color_val = 0;
+    unsigned char color_val = 0;
     unsigned char alpha = 255;
+
+    const Palette* tmp = nullptr;
+    const CGBROMPalette cgb_rom_palette = get_cgb_rom_palette(
+            get_cgb_rom_palette_ref(curr_opt_gb_palette));
+    if (curr_opt_gb_palette != CGBPaletteCombo::NONE)
+    {
+        // Select correct palette to use
+        if (palette == bg_palette_color)
+        {
+            tmp = &cgb_rom_palette.bg;
+        }
+        else if (palette == object_palette0_color)
+        {
+            tmp = &cgb_rom_palette.obj0;
+        }
+        else if (palette == object_palette1_color)
+        {
+            tmp = &cgb_rom_palette.obj1;
+        }
+    }
 
     is_tile_palette_updated = true;
 
-	for (int i = 0; i < 4; i++)
-	{
+    for (int i = 0; i < 4; i++)
+    {
         if (i == 0 && zero_is_transparant)
         {   // First two bits (i == 0) for object_palettes are transparent, e.g. alpha = max
             alpha = 0;
@@ -463,17 +487,55 @@ void GPU::set_color_palette(SDL_Color *palette, std::uint8_t val, bool zero_is_t
             alpha = 255;
         }
 
-		switch ((val >> (i * 2)) & 3)
-		{
-		case 0: color_val = 255; break;
-		case 1: color_val = 192; break;
-		case 2: color_val = 96; break;
-		case 3: color_val = 0; break;
-		}
-		palette[i] = { color_val, color_val, color_val, alpha };
-	}
+        if (tmp == nullptr)
+        {   // Update using default gray values
+            switch ((val >> (i * 2)) & 3)
+            {
+            case 0: color_val = 255; break;
+            case 1: color_val = 192; break;
+            case 2: color_val = 96; break;
+            case 3: color_val = 0; break;
+            }
+            palette[i] = { color_val, color_val, color_val, alpha };
+        }
+        else
+        {   // Update using CGB ROM palette
+            const uint32_t& use_color = tmp->colors[(val >> (i * 2)) & 3];
+            // Get SDL_Color, update alpha
+            SDL_Color sdl_color = get_sdl_color(use_color);
+            sdl_color.a = alpha;
+            palette[i] = sdl_color;
+        }
+    }
 }
 
+void GPU::use_color_palette(const CGBROMPalette wanted_palette)
+{
+    object_palette0_color[0] = get_sdl_color(wanted_palette.obj0.colors[0]);
+    object_palette0_color[1] = get_sdl_color(wanted_palette.obj0.colors[1]);
+    object_palette0_color[2] = get_sdl_color(wanted_palette.obj0.colors[2]);
+    object_palette0_color[3] = get_sdl_color(wanted_palette.obj0.colors[3]);
+
+    object_palette1_color[0] = get_sdl_color(wanted_palette.obj1.colors[0]);
+    object_palette1_color[1] = get_sdl_color(wanted_palette.obj1.colors[1]);
+    object_palette1_color[2] = get_sdl_color(wanted_palette.obj1.colors[2]);
+    object_palette1_color[3] = get_sdl_color(wanted_palette.obj1.colors[3]);
+
+    bg_palette_color[0] = get_sdl_color(wanted_palette.bg.colors[0]);
+    bg_palette_color[1] = get_sdl_color(wanted_palette.bg.colors[1]);
+    bg_palette_color[2] = get_sdl_color(wanted_palette.bg.colors[2]);
+    bg_palette_color[3] = get_sdl_color(wanted_palette.bg.colors[3]);
+}
+
+SDL_Color GPU::get_sdl_color(const uint32_t& color) const
+{
+    return SDL_Color {
+        static_cast<uint8_t>((color >> 24) & 0xFF),
+        static_cast<uint8_t>((color >> 16) & 0xFF),
+        static_cast<uint8_t>((color >> 8) & 0xFF),
+        static_cast<uint8_t>(color & 0xFF)
+    };
+}
 
 void GPU::set_lcd_control(unsigned char lcdControl)
 {
@@ -1496,7 +1558,17 @@ Tile * GPU::updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t ti
 		byte_pos = pos - offset;
 		tile_num = std::floor(byte_pos / NUM_BYTES_PER_TILE);
 		tile = &bg_tiles[use_vram_bank][tile_block_num][tile_num];
-		tile->updateRawData(byte_pos % 16, val);
+        /*if (tile_num == 2)
+        {
+            // Update byte_pos with correct offset
+            offset = 0x9000;
+            byte_pos = pos - offset;
+            tile->updateRawData(byte_pos % 16, val);
+        }
+        else*/
+        {
+            tile->updateRawData(byte_pos % 16, val);
+        }
         bg_tiles_updated = true;
 	}
     return tile;
@@ -1597,5 +1669,149 @@ std::string GPU::getGPUModeStr(GPU_MODE mode) const
     case GPU_MODE::GPU_MODE_VRAM:   return "VRAM";
     case GPU_MODE::GPU_MODE_NONE:   return "NONE";
     default: return "Unknown";
+    }
+}
+
+CGBROMPalette GPU::get_cgb_rom_palette(const uint8_t& ref) const
+{
+    Palette bg, obj0, obj1;
+    switch (ref)
+    {   // UP
+        case 0x12:
+            obj0 =  { WHTCLR_U32, 0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            bg =    { WHITE_U32,  0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            break;
+
+        // UP + A
+        case 0xB0:
+            obj0 =  { WHTCLR_U32, 0x7BFF31FF, 0x008400FF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0x63A5FFFF, 0x0000FFFF, BLACK_U32 };
+            bg =    { WHITE_U32,  0xFF8484FF, 0x943A3AFF, BLACK_U32 };
+            break;
+
+        // UP + B
+        case 0x79:
+            obj0 =  { WHTCLR_U32, 0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            bg =    { 0xFFE6C5FF, 0xCE9C84FF, 0x846B29FF, 0x5A3108FF };
+            break;
+
+        // LEFT
+        case 0xB8:
+            obj0 =  { WHTCLR_U32, 0xFF8484FF, 0x943A3AFF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0x7BFF31FF, 0x008400FF, BLACK_U32 };
+            bg =    { WHITE_U32,  0x63A5FFFF, 0x0000FFFF, BLACK_U32 };
+            break;
+
+        // LEFT + A
+        case 0xAD:
+            obj0 =  { WHTCLR_U32, 0xFF8484FF, 0x943A3AFF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0xFFAD63FF, 0x843100FF, BLACK_U32 };
+            bg =    { WHITE_U32,  0x8C8CDEFF, 0x52528CFF, BLACK_U32 };
+            break;
+
+        // LEFT + B
+        case 0x16:  // Gray
+            obj0 =  { WHTCLR_U32, 0xA5A5A5FF, 0x525252FF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0xA5A5A5FF, 0x525252FF, BLACK_U32 };
+            bg =    { WHITE_U32,  0xA5A5A5FF, 0x525252FF, BLACK_U32 };
+            break;
+
+        // DOWN
+        case 0x17:
+            obj0 =  { 0xFFFFA500, 0xFF9494FF, 0x9494FFFF, BLACK_U32 };
+            obj1 =  { 0xFFFFA500, 0xFF9494FF, 0x9494FFFF, BLACK_U32 };
+            bg =    { 0xFFFFA5FF, 0xFF9494FF, 0x9494FFFF, BLACK_U32 };
+            break;
+
+        // DOWN + A
+        case 0x07:
+            obj0 =  { WHTCLR_U32, YELLOW_U32, RED_U32, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, YELLOW_U32, RED_U32, BLACK_U32 };
+            bg =    { WHITE_U32,  YELLOW_U32, RED_U32, BLACK_U32 };
+            break;
+
+        // DOWN + B
+        case 0xBA:
+            obj0 =  { WHTCLR_U32, 0x63A5FFFF, 0x0000FFFF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0x7BFF31FF, 0x008400FF, BLACK_U32 };
+            bg =    { WHITE_U32,  YELLOW_U32, 0x7B4A00FF, BLACK_U32 };
+            break;
+
+        // RIGHT
+        case 0x05:
+            obj0 =  { WHTCLR_U32, 0x52FF00FF, 0xFF4200FF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0x52FF00FF, 0xFF4200FF, BLACK_U32 };
+            bg =    { WHITE_U32,  0x52FF00FF, 0xFF4200FF, BLACK_U32 };
+            break;
+
+        // RIGHT + A
+        case 0x7C:
+            obj0 =  { WHTCLR_U32, 0xFF8484FF, 0x943A3AFF, BLACK_U32 };
+            obj1 =  { WHTCLR_U32, 0xFF8484FF, 0x943A3AFF, BLACK_U32 };
+            bg =    { WHITE_U32,  0x7BFF31FF, 0x0063C5FF, BLACK_U32 };
+            break;
+
+        // RIGHT + B
+        case 0x13:
+            obj0 =  { BLKCLR_U32, 0x008484FF, 0xFFDE00FF, WHITE_U32 };
+            obj1 =  { BLKCLR_U32, 0x008484FF, 0xFFDE00FF, WHITE_U32 };
+            bg =    { BLKCLR_U32, 0x008484FF, 0xFFDE00FF, WHITE_U32 };
+            break;
+
+        // DMG Green (LAST)
+        case 0xFE:
+            obj0 =  { 0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF };
+            obj1 =  { 0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF };
+            bg =    { 0x9BBC0FFF, 0x8BAC0FFF, 0x306230FF, 0x0F380FFF };
+            break;
+
+        default:
+            return GetUniqueGBPalette(ref);
+    }
+
+    return CGBROMPalette { obj0, obj1, bg };
+}
+
+void GPU::changeCGBPalette()
+{
+    // Loop color palettes when changed
+    if (curr_opt_gb_palette == CGBPaletteCombo::LAST)
+    {
+        curr_opt_gb_palette = CGBPaletteCombo::NONE;
+    }
+    else
+    {   // Increment CGB ROM palette
+        curr_opt_gb_palette = (CGBPaletteCombo)((int)curr_opt_gb_palette + 1);
+    }
+
+    // Update BG, OBJ0, and OBJ1 palettes with new color scheme
+    set_color_palette(bg_palette_color, bg_palette);
+    set_color_palette(object_palette0_color, object_pallete0, true);
+    set_color_palette(object_palette1_color, object_pallete1, true);
+}
+
+uint8_t GPU::get_cgb_rom_palette_ref(const CGBPaletteCombo& ref) const
+{
+    switch (curr_opt_gb_palette)
+    {
+        case CGBPaletteCombo::NONE:     return 0;
+        case CGBPaletteCombo::UP:       return 0x12;
+        case CGBPaletteCombo::UP_A:     return 0xB0;
+        case CGBPaletteCombo::UP_B:     return 0x79;
+        case CGBPaletteCombo::LEFT:     return 0xB8;
+        case CGBPaletteCombo::LEFT_A:   return 0xAD;
+        case CGBPaletteCombo::LEFT_B:   return 0x16;
+        case CGBPaletteCombo::DOWN:     return 0x17;
+        case CGBPaletteCombo::DOWN_A:   return 0x07;
+        case CGBPaletteCombo::DOWN_B:   return 0xBA;
+        case CGBPaletteCombo::RIGHT:    return 0x05;
+        case CGBPaletteCombo::RIGHT_A:  return 0x7C;
+        case CGBPaletteCombo::RIGHT_B:  return 0x13;
+        case CGBPaletteCombo::CUSTOM:   return memory->cartridgeReader->game_title_hash;
+        case CGBPaletteCombo::LAST:     return 0xFE;
+        default:
+            return 0xFF;
     }
 }
