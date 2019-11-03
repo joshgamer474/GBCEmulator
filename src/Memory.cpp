@@ -742,11 +742,11 @@ void Memory::updateTimerRates()
 void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
 {
     // Tick Serial Transfer
-    if (serial_transfer &&
-        serial_transfer->tick(ticks))
-    {   // Signal Serial data interrupt
-        interrupt_flag |= INTERRUPT_SERIAL;
-    }
+    // if (serial_transfer &&
+    //     serial_transfer->tick(ticks))
+    // {   // Signal Serial data interrupt
+    //     interrupt_flag |= INTERRUPT_SERIAL;
+    // }
 
 	uint8_t & divider_reg       = timer[DIV];
 	uint8_t & timer_counter     = timer[TIMA];
