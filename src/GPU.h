@@ -38,7 +38,7 @@ struct LCDSelect {
     uint16_t start, end;
 };
 
-enum CGBPaletteCombo {
+enum class CGBPaletteCombo : int {
     NONE,
     UP,
     UP_A,
