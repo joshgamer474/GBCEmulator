@@ -569,3 +569,12 @@ void GBCEmulator::changeCGBPalette()
         gpu->changeCGBPalette();
     }
 }
+
+bool GBCEmulator::isColorGB() const
+{
+    if (cartridgeReader)
+    {
+        return cartridgeReader->isColorGB();
+    }
+    return false;
+}
