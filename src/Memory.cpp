@@ -117,7 +117,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 {
 	if (cartridgeReader->has_bios &&
         cartridgeReader->is_in_bios &&
-        pos < 0x00FF)
+        pos < 0x0100)
 	{
         if (pos < cartridgeReader->bios.size())
         {
