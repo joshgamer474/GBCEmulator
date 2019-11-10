@@ -391,7 +391,8 @@ bool SDLWindow::romIsValid(const std::string& filepath)
     std::transform(fileExtension.begin(), fileExtension.end(), fileExtension.begin(), ::tolower);
 
     if (fileExtension.rfind(".gb") ||
-        fileExtension.rfind(".gbc"))
+        fileExtension.rfind(".gbc") ||
+        fileExtension.rfind(".zip"))
     {
         ret = true;
     }

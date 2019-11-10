@@ -1,6 +1,7 @@
 #include "CartridgeReader.h"
 #include "Debug.h"
 #include "MBC.h"
+#include <zip.h>
 
 CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger, const bool _force_cgb)
     : has_bios(false)
@@ -76,12 +77,25 @@ bool CartridgeReader::readBios()
 
 bool CartridgeReader::readRom()
 {
-    romBuffer = readFile(cartridgeFilename);
+    logger->info("Is file .zip: {}", endsWith(cartridgeFilename, ".zip"));
+    if (endsWith(cartridgeFilename, ".zip"))
+    {
+        logger->info("Attempting to open .zip..");
+        const auto compressed_data = romBuffer;
+        const int ret = uncompressZip(cartridgeFilename, romBuffer);
+    }
+    else
+    {
+        romBuffer = readFile(cartridgeFilename);
+    }
+
     if (romBuffer.size())
     {
         // Read information from cartridge
         getCartridgeInformation();
-        logger->info("Finished reading in {}", game_title);
+        logger->info("Finished reading in {}, file size: {}",
+            game_title,
+            romBuffer.size());
         return true;
     }
     return false;
@@ -126,6 +140,66 @@ std::vector<unsigned char> CartridgeReader::readFile(const std::string& filename
     }
 
     return out;
+}
+
+int CartridgeReader::uncompressZip(const std::string& filename, std::vector<unsigned char>& uncompressed_out) const
+{
+    logger->info("Attempting to open .zip {}", filename);
+
+    int ret = 0;
+    zip_t* zip = zip_open(filename.c_str(), ZIP_RDONLY, &ret);
+
+    if (zip == NULL)
+    {
+        logger->error("Failed to open .zip {}", filename);
+        return -1;
+    }
+
+    logger->info("Number of entries in .zip: {}, parsing entries..",
+        zip_get_num_entries(zip, ZIP_RDONLY));
+
+    // Find ROM in .zip
+    struct zip_stat st;
+
+    for (int i = 0; i < zip_get_num_entries(zip, ZIP_RDONLY); i++)
+    {
+        if (zip_stat_index(zip, i, ZIP_RDONLY, &st) == 0)
+        {
+            logger->info("Entry {}, name: {}, size: {}, valid: {}, mtime: {}",
+                i,
+                st.name,
+                st.size,
+                st.valid,
+                st.mtime);
+
+            // Check if internal file is .gb or .gbc
+            if (!romIsValid(st.name))
+            {
+                logger->info("Entry {} is not a valid .gb or .gbc ROM", i);
+                continue;
+            }
+
+            // Read in zipped file
+            zip_file* zf = zip_fopen_index(zip, i, ZIP_RDONLY);
+            if (!zf)
+            {   // Failed ot open entry in zip, close zip
+                zip_close(zip);
+            }
+
+            uncompressed_out.resize(st.size);
+            const int len = zip_fread(zf, uncompressed_out.data(), st.size);
+            zip_fclose(zf);
+
+            // Done reading entry, close opened zip entry
+            logger->info("Done reading .zip entry {}, read {} bytes, uncompressed_out.size(): {}",
+                st.name,
+                len,
+                uncompressed_out.size());
+            break;
+        }
+    }
+
+    return ret;
 }
 
 // Information about the cartridge
@@ -410,4 +484,41 @@ void CartridgeReader::freeRom()
 std::string CartridgeReader::getGameTitle() const
 {
     return game_title_str;
+}
+
+bool CartridgeReader::endsWith(const std::string& str, const std::string& suffix) const
+{
+    return str.size() >= suffix.size() &&
+        0 == str.compare(str.size() - suffix.size(),
+                suffix.size(),
+                suffix);
+}
+
+std::string CartridgeReader::getFileExtension(const std::string& filepath) const
+{
+    std::string ret = "";
+    size_t index = filepath.find_last_of(".");
+    if (index != std::string::npos)
+    {   // Found at least one "."
+        ret = filepath.substr(index + 1);
+    }
+
+    return ret;
+}
+
+bool CartridgeReader::romIsValid(const std::string& filepath) const
+{
+    bool ret = false;
+    std::string fileExtension = getFileExtension(filepath);
+
+    // Make file extension lowercase
+    std::transform(fileExtension.begin(), fileExtension.end(), fileExtension.begin(), ::tolower);
+
+    if (fileExtension.rfind(".gb") ||
+        fileExtension.rfind(".gbc"))
+    {
+        ret = true;
+    }
+
+    return ret;
 }

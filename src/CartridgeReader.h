@@ -46,6 +46,7 @@ private:
         bool rom, ram, battery, timer, rumble, sensor, mmm01;
     };
     std::vector<unsigned char> readFile(const std::string& filename) const;
+    int uncompressZip(const std::string& filename, std::vector<unsigned char>& uncompressed_out) const;
     int getNumOfRomBanks(unsigned char rom_size);
     int getNumOfRamBanks(unsigned char ram_size);
     void parseCartridgeType(unsigned char cartridge_type);
@@ -56,6 +57,9 @@ private:
     void setTimer(unsigned char cartridge_type);
     void setMMM01(unsigned char cartridge_type);
     void setRumble(unsigned char cartridge_type);
+    bool endsWith(const std::string& str, const std::string& suffix) const;
+    std::string getFileExtension(const std::string& filepath) const;
+    bool romIsValid(const std::string& filepath) const;
 
 	CartridgeType cartridgeType;
 
