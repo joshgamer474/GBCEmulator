@@ -19,7 +19,6 @@ class GBCEmulator(ConanFile):
         "sdl2/2.0.9@bincrafters/stable",
         "spdlog/1.2.1@bincrafters/stable",
         "libpng/1.6.37@bincrafters/stable",
-        "libzip/1.5.1@bincrafters/stable"
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False", "lib_only=False"
@@ -30,15 +29,16 @@ class GBCEmulator(ConanFile):
         else:
             self.build_requires("gtest/1.8.1@bincrafters/stable")
 
+        self.build_requires("libzip/1.4.0@bincrafters/stable");
+
     def configure(self):
         self.options["sdl2"].shared = True
         self.options["gtest"].shared = True
         if self.settings.os == "Linux":
             self.options["sdl2"].nas = False
 
-        self.options["libzip"].shared = True
-        self.options["libzip"].with_bzip2 = False
-        self.options["libzip"].with_openssl = False
+        self.options["libzip"].shared = False
+        self.options["libzip"].with_bzip2 = True
 
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
@@ -89,6 +89,10 @@ class GBCEmulator(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
 
     def deploy(self):
-        self.copy("*", dst="bin", src="bin")
-        self.copy("*", dst="lib", src="lib")
+        if self.options.lib_only == True:
+            self.copy("*GBCEmulator*", dst="lib", src="lib")
+        else:
+            self.copy("*", dst="bin", src="bin")
+            self.copy("*", dst="lib", src="lib")
+
         self.copy("*", dst="include", src="include")
