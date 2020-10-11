@@ -1,59 +1,86 @@
 # GBCEmulator
+
+[![Build Status](https://travis-ci.org/joshgamer474/GBCEmulator.svg?branch=qt_gui)](https://travis-ci.org/joshgamer474/GBCEmulator)
+
 A WIP Gameboy (Color) emulator written in C++ and packaged in Conan
 
 ## Progress
 
-The emulator currently passes all of blargg's cpu instruction tests.
+The emulator currently passes all of blargg's cpu instruction tests and runs a decent amount of GB/GBC games.
 
-![](https://github.com/joshgamer474/GBCEmulator/raw/master/res/blargg_cpu_intrs.gif)
+![](res/blargg_cpu_intrs.gif)
 
-## How to build
+![](res/bombermanquest.gif) ![](res/pokemonyellow.gif)
+![](res/wariolandii.gif) ![](res/zeldaoracleofages.gif)
 
-### Prerequisites
+The Qt wrap includes variety of interactive GUI debug tools:
+* A fully-featured CPU debugger with step in, step over, step out, etc.
+* A real-time video RAM (VRAM) viewer
+* A real-time audio channel viewer
 
-* CMake
-* Python 3.x
-* pip
+![](res/debugger.PNG)
+![](res/zeldaoracleofagesdebugger.gif)
+![](res/audiodebugger.PNG)
+
+## Issues
+
+* Some GBC games do not boot up
+* Qt wrap needs some improvement
+
+# How to build
+
+## Prerequisites
+
+* [CMake 3.x](https://cmake.org/download/)
+* [Python 3.x](https://www.python.org/downloads/)
+* pip3
 * Conan.io via pip
 * Conan package SDL/2.0.8@josh/stable
+## Prerequisite Commands
 
-```pip install conan```
+```pip3 install conan --user```
 
-```git clone https://github.com/joshgamer474/conan-SDL```
+```conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan```
 
-```cd conan-SDL```
-
-```conan export conanfile.py josh/stable```
-
-### Building
+## Building
 
 ```git clone https://github.com/joshgamer474/GBCEmulator.git```
 
 ```cd GBCEmulator```
 
-```conan install . --install-folder build```
+```conan install . -if=build --build=outdated -s cppstd=17```
 
-```conan build . --build-folder build```
+```conan build . -bf=build```
 
-### How to use
-Drag and drop your favorite rom into the built GBCEmulator.exe
+## Building Qt wrapped GBCEmulator
 
+```git clone https://github.com/joshgamer474/GBCEmulator.git```
 
-## Issues
+```cd GBCEmulator```
 
-Games currently do not boot as they get stuck in an infinite instruction loop.
+```conan export conanfile.py josh/testing```
+
+```cd qt_wrap```
+
+```conan install . -if=build --build=outdated -s cppstd=17```
+
+```conan build . -bf=build```
+
+## How to use
+Open the built GBCEmulator.exe or GBCEmulator_qt.exe and drag and drop your favorite rom in.
 
 
 # TODO
 
 ## Implement some Core features
-- [ ] GPU Sprite Rendering
-- [ ] Input handling using SDL
-- [ ] Add timing and sleeping to core while() loop so the emulator runs at its proper speed
-- [ ] Sound
-- [ ] Controls
-- [ ] Create a GUI (maybe Qt?)
-- [ ] Linux build support
+- [x] GPU Sprite Rendering
+- [x] Input handling using SDL
+- [x] Add timing and sleeping to core while() loop so the emulator runs at its proper speed
+- [x] Sound
+- [x] Controls
+- [x] Create a GUI (maybe Qt?)
+- [x] Linux build support
+- [x] Android build support
 
 ## Organization
 - [x] Implement Conan.io packaging for libraries
@@ -67,14 +94,14 @@ Games currently do not boot as they get stuck in an infinite instruction loop.
 - [ ] Memory Bank Controllers
 - [ ] Interrupt handling correctness
 - [ ] GPU background rollover testing
-- [ ] Get a game to actually boot
+- [x] Get a game to actually boot
 
-### Create unit tests using Boost
+### Create automated unit testing using GTest
 - [x] Implement for blargg's cpu_instrs
-- [ ] Implement for blargg's dmg_sound
-- [ ] Implement for blargg's instr_timing
-- [ ] Implement for blargg's interrupt_time
-- [ ] Implement for blargg's oam_bug
-- [ ] Implement for blargg's mem_timing
-- [ ] Implement for blargg's mem_timing-2
-- [ ] Implement for blargg's cgb_sound
+- [x] Implement for blargg's dmg_sound
+- [x] Implement for blargg's instr_timing
+- [x] Implement for blargg's interrupt_time
+- [x] Implement for blargg's oam_bug
+- [x] Implement for blargg's mem_timing
+- [x] Implement for blargg's mem_timing-2
+- [x] Implement for blargg's cgb_sound

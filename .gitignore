@@ -52,8 +52,12 @@ Temporary Items
 
 # Code ignores
 .vs/
-roms/*.gb
-roms/*.gbc
+.vscode/
+roms/
 build/*
+build_release/*
+qt_wrap/*/
 CMakeFiles/*
 test_package/blarggtests/*/source/
+*.log
+*.sav
