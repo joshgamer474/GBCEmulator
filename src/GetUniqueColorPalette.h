@@ -2,6 +2,7 @@
 #define SRC_GET_UNIQUE_COLOR_PALETTE_H
 
 #include <array>
+#include <stdint.h>
 
 #define WHTCLR_U32  (uint32_t) 0xFFFFFF00   // White with clear alpha
 #define BLKCLR_U32  (uint32_t) 0x00000000   // Black with clear alpha
