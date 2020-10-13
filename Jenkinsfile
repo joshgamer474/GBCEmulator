@@ -12,6 +12,12 @@ pipeline {
             }
         }
 
+        stage('Initialize conan') {
+            steps {
+                sh 'conan'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh 'conan install . -if=build --build=outdated -s cppstd=17'
