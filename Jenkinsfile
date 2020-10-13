@@ -3,15 +3,6 @@ pipeline {
         docker { image 'josh/docker-linux-agent:latest' }
     }
     stages {
-        stage('Initialize') {
-            steps {
-                script {
-                    def dockerHome = tool 'mydocker'
-                    env.PATH = "${dockerHome}/bin:${env.PATH}"
-                }
-            }
-        }
-
         stage('Clone repository') {
             steps {
                 checkout scm
