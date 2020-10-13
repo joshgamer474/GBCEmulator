@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'josh/docker-linux-agent:latest'
-            args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
     stages {
