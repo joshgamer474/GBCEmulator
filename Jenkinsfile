@@ -1,6 +1,5 @@
 pipeline {
     agent {
-        label 'docker'
         docker {
             image 'josh/docker-linux-agent:latest'
             args '-v /var/run/docker.sock:/var/run/docker.sock'
