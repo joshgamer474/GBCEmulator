@@ -12,9 +12,8 @@ pipeline {
             }
         }
 
-        stage('Initialize conan') {
+        stage('Test conan') {
             steps {
-                sh 'mkdir /.conan'
                 sh 'conan'
             }
         }
