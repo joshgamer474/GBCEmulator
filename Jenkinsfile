@@ -32,7 +32,7 @@ pipeline {
 
         stage('Package') {
             steps {
-                sh 'conan package -bf=build -pf=package'
+                sh 'conan package . -bf=build -pf=package'
             }
         }
 
