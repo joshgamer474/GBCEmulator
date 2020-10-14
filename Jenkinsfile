@@ -7,6 +7,7 @@ pipeline {
                     agent {
                         docker {
                             image 'josh/docker-linux-agent:latest'
+                            label 'linux'
                             args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
                     }
@@ -53,7 +54,6 @@ pipeline {
                         docker {
                             image 'josh/docker-windows-agent:latest'
                             label 'windows'
-                            args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
                     }
                     stages {
