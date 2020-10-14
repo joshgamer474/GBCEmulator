@@ -1,13 +1,13 @@
 pipeline {
     agent none
     stages {
-        stage('Parallel build steps') {
-            stage('Clone respository') {
-                agent any
-                steps {
-                    checkout scm
-                }
+        stage('Clone respository') {
+            agent any
+            steps {
+                checkout scm
             }
+        }
+        stage('Parallel build steps') {
             parallel {
                 stage('Build on Linux') {
                     agent {
