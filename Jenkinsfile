@@ -51,10 +51,7 @@ pipeline {
                 }
                 stage('Build on Windows') {
                     agent {
-                        docker {
-                            image 'josh/docker-windows-agent:latest'
-                            label 'windows'
-                        }
+                        label 'windows'
                     }
                     stages {
                         stage('Clone repository') {
