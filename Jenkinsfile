@@ -2,6 +2,12 @@ pipeline {
     agent none
     stages {
         stage('Parallel build steps') {
+            stage('Clone respository') {
+                agent any
+                steps {
+                    checkout scm
+                }
+            }
             parallel {
                 stage('Build on Linux') {
                     agent {
@@ -12,12 +18,6 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Clone repository') {
-                            steps {
-                                checkout scm
-                            }
-                        }
-
                         stage('Test conan') {
                             steps {
                                 sh 'conan'
@@ -54,33 +54,27 @@ pipeline {
                         label 'windows'
                     }
                     stages {
-                        stage('Clone repository') {
-                            steps {
-                                checkout scm
-                            }
-                        }
-
                         stage('Test conan') {
                             steps {
-                                sh 'conan'
+                                bat 'conan'
                             }
                         }
 
                         stage('Install Dependencies') {
                             steps {
-                                sh 'conan install . -if=build --build=outdated -s cppstd=17'
+                                bat 'conan install . -if=build --build=outdated -s cppstd=17'
                             }
                         }
 
                         stage('Build') {
                             steps {
-                                sh 'conan build . -bf=build'
+                                bat 'conan build . -bf=build'
                             }
                         }
 
                         stage('Package') {
                             steps {
-                                sh 'conan package . -bf=build -pf=GBCEmulator'
+                                bat 'conan package . -bf=build -pf=GBCEmulator'
                             }
                         }
 
