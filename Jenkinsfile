@@ -18,7 +18,7 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Test conan') {
+                        stage('Verify conan') {
                             steps {
                                 sh 'conan'
                             }
@@ -54,7 +54,7 @@ pipeline {
                         label 'windows'
                     }
                     stages {
-                        stage('Test conan') {
+                        stage('Verify conan') {
                             steps {
                                 bat 'conan'
                             }
