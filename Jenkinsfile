@@ -108,7 +108,12 @@ pipeline {
 
                         stage('Upload') {
                             steps {
-                                bat 'conan upload "*" -r omv --confirm --parallel'
+                                script {
+                                    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                                        bat 'conan user -p -r=omv'
+                                        bat 'conan upload "*" -r omv --confirm --parallel'
+                                    }
+                                }
                             }
                         }
                     }
