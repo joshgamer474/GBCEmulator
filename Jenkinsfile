@@ -60,7 +60,7 @@ pipeline {
 
                         stage('Upload') {
                             steps {
-                                sh 'conan upload "*" -r omv --confirm --parallel --all --force'
+                                sh 'conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10'
                             }
                         }
                     }
@@ -111,7 +111,7 @@ pipeline {
                                 script {
                                     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                                         bat 'conan user -p -r=omv'
-                                        bat 'conan upload "*" -r omv --confirm --parallel --all --force'
+                                        bat 'conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10'
                                     }
                                 }
                             }
