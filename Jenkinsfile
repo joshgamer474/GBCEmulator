@@ -8,6 +8,9 @@ pipeline {
             }
         }
         stage('Parallel build steps') {
+            environment {
+                CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
+            }
             parallel {
                 stage('Build on Linux') {
                     agent {
@@ -38,13 +41,25 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                sh 'conan package . -bf=build -pf=GBCEmulator'
+                                sh 'conan package . -bf=build -pf=$JOB_NAME'
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: 'GBCEmulator/**', fingerprint: true
+                                archiveArtifacts artifacts: '$JOB_NAME/**', fingerprint: true
+                            }
+                        }
+
+                        stage("Export") {
+                            steps {
+                                sh 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                            }
+                        }
+
+                        stage('Upload') {
+                            steps {
+                                sh 'conan upload "*" -r omv --confirm --parallel'
                             }
                         }
                     }
@@ -74,18 +89,38 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                bat 'conan package . -bf=build -pf=GBCEmulator'
+                                bat 'conan package . -bf=build -pf=$JOB_NAME'
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: 'GBCEmulator/**', fingerprint: true
+                                archiveArtifacts artifacts: '$JOB_NAME/**', fingerprint: true
+                            }
+                        }
+
+                        stage("Export") {
+                            steps {
+                                bat 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                            }
+                        }
+
+                        stage('Upload') {
+                            steps {
+                                bat 'conan upload "*" -r omv --confirm --parallel'
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+def getConanChannel(branchName) {
+    if ("master".equals(branchName)) {
+        return "stable"
+    } else {
+        return branchName
     }
 }
