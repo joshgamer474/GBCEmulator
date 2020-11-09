@@ -79,11 +79,12 @@ class GBCEmulator(ConanFile):
             libDest += os.sep + "arm64-v8a"
         else:
             libDest += os.sep + str(self.settings.arch)
-        self.copy("*", src="bin",   dst="bin",    keep_path=False)
+        self.copy("GBCEmulator*", src="bin", dst="bin", keep_path=False, excludes="GBCEmulatorTest*")
+        self.copy("*.dll", src="bin", dst="bin", excludes="g*.dll")
         self.copy("*.h", src="src", dst="include")
         self.copy("*.h", src="include", dst="include")
         self.copy("*.a", src="lib", dst=libDest, keep_path=False)
-        self.copy("*.so*", src="lib", dst=libDest, keep_path=False)
+        self.copy("*.so", src="lib", dst=libDest, keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
