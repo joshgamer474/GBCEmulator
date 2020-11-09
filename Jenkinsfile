@@ -41,19 +41,19 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                sh 'conan package . -bf=build -pf=$JOB_NAME'
+                                sh 'conan package . -bf=build -pf=${env.JOB_NAME}'
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: '$JOB_NAME/**', fingerprint: true
+                                archiveArtifacts artifacts: '${env.JOB_NAME}/**', fingerprint: true
                             }
                         }
 
                         stage("Export") {
                             steps {
-                                sh 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                                sh 'conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=${env.JOB_NAME}'
                             }
                         }
 
@@ -89,19 +89,19 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                bat 'conan package . -bf=build -pf=$JOB_NAME'
+                                bat 'conan package . -bf=build -pf=${env.JOB_NAME}'
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: '$JOB_NAME/**', fingerprint: true
+                                archiveArtifacts artifacts: '${env.JOB_NAME}/**', fingerprint: true
                             }
                         }
 
                         stage("Export") {
                             steps {
-                                bat 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                                bat 'conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=${env.JOB_NAME}'
                             }
                         }
 
