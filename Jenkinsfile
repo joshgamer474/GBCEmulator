@@ -2,6 +2,7 @@ pipeline {
     agent none
     environment {
         CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
+        USE_JOB_NAME = getRootJobName(env.JOB_NAME)
     }
     stages {
         stage('Clone respository') {
@@ -41,19 +42,19 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                sh "conan package . -bf=build -pf=${env.JOB_BASE_NAME}"
+                                sh "conan package . -bf=build -pf=${env.USE_JOB_NAME}"
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: "${env.JOB_BASE_NAME}/**", fingerprint: true
+                                archiveArtifacts artifacts: "${env.USE_JOB_NAME}/**", fingerprint: true
                             }
                         }
 
                         stage("Export") {
                             steps {
-                                sh "conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=${env.JOB_BASE_NAME}"
+                                sh "conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build"
                             }
                         }
 
@@ -89,19 +90,19 @@ pipeline {
 
                         stage('Package') {
                             steps {
-                                bat "conan package . -bf=build -pf=${env.JOB_BASE_NAME}"
+                                bat "conan package . -bf=build -pf=${env.USE_JOB_NAME}"
                             }
                         }
 
                         stage('Artifact') {
                             steps {
-                                archiveArtifacts artifacts: "${env.JOB_BASE_NAME}/**", fingerprint: true
+                                archiveArtifacts artifacts: "${env.USE_JOB_NAME}/**", fingerprint: true
                             }
                         }
 
                         stage("Export") {
                             steps {
-                                bat "conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=${env.JOB_BASE_NAME}"
+                                bat "conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build"
                             }
                         }
 
@@ -123,4 +124,9 @@ def getConanChannel(branchName) {
     } else {
         return branchName
     }
+}
+
+def getRootJobName(jobName) {
+    String[] splt = jobName.split('/')
+    return splt[0]
 }
