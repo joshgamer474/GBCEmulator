@@ -60,7 +60,7 @@ pipeline {
 
                         stage('Upload') {
                             steps {
-                                sh 'conan upload "*" -r omv --confirm --parallel --all'
+                                sh 'conan upload "*" -r omv --confirm --parallel --all --no-overwrite recipe'
                             }
                         }
                     }
@@ -111,7 +111,7 @@ pipeline {
                                 script {
                                     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
                                         bat 'conan user -p -r=omv'
-                                        bat 'conan upload "*" -r omv --confirm --parallel --all'
+                                        bat 'conan upload "*" -r omv --confirm --parallel --all --no-overwrite recipe'
                                     }
                                 }
                             }
