@@ -1,5 +1,8 @@
 pipeline {
     agent none
+    environment {
+        CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
+    }
     stages {
         stage('Clone respository') {
             agent any
@@ -8,9 +11,6 @@ pipeline {
             }
         }
         stage('Parallel build steps') {
-            environment {
-                CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
-            }
             parallel {
                 stage('Build on Linux') {
                     agent {
