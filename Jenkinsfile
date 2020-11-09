@@ -53,7 +53,7 @@ pipeline {
 
                         stage("Export") {
                             steps {
-                                sh 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                                sh 'conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=$JOB_NAME'
                             }
                         }
 
@@ -101,7 +101,7 @@ pipeline {
 
                         stage("Export") {
                             steps {
-                                bat 'conan export-pkg . josh/$CONAN_USE_CHANNEL -bf=build -pf=$JOB_NAME'
+                                bat 'conan export-pkg . josh/${env.CONAN_USE_CHANNEL} -bf=build -pf=$JOB_NAME'
                             }
                         }
 
