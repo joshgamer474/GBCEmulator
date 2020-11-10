@@ -97,6 +97,7 @@ pipeline {
                             steps {
                                 script {
                                     env.PKG_VER = getConanfileVersion()
+                                    sh "echo PKG_VER=${env.PKG_VER}"
                                 }
                             }
                         }
@@ -208,16 +209,11 @@ def getRootJobName(jobName) {
 }
 
 def getConanfileVersion() {
-    def ver_header = "version: "
-    def ret = "python conan inspect .".execute()
-    ret.in.eachLine { line ->
-        println(line)
-        if (line.contains(ver_header)) {
-            return line.minus(ver_header)
-        }
-    }
+    def sout = new StringBuilder(), serr = new StringBuilder()
+    def ret = "python conan inspect . --raw=version".execute()
+    ret.consumeProcessOutput(sout, serr)
     ret.waitFor()
-    return "0.0.0"
+    return sout
 }
 
 def runCmd(cmd) {
