@@ -209,11 +209,11 @@ def getRootJobName(jobName) {
 }
 
 def getConanfileVersion() {
-    def sout = new StringBuilder(), serr = new StringBuilder()
+    def sout = new StringBuilder()
     def ret = "python conan inspect . --raw=version".execute()
-    ret.consumeProcessOutput(sout, serr)
+    ret.consumeProcessErrorStream(sout)
     ret.waitFor()
-    return sout
+    return sout.toString()
 }
 
 def runCmd(cmd) {
