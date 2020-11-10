@@ -40,7 +40,7 @@ pipeline {
         }
         stage('Artifact') {
             steps {
-                artifact()
+                archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
             }
         }
         stage("Export") {
@@ -140,6 +140,14 @@ def getConanfileVersion() {
     return "0.0.0"
 }
 
+def runPythonCmd(cmd) {
+    def py_cmd = "python " + cmd
+    def ret = py_cmd.execute()
+    ret.in.eachLine { line ->
+        println(line)
+    }
+}
+
 def runCmd(cmd) {
     if (System.properties['os.name'].toLowerCase().contains('windows')) {
         bat cmd
@@ -149,19 +157,19 @@ def runCmd(cmd) {
 }
 
 def conan_verify() {
-    runCmd("conan")
+    runPythonCmd("conan")
 }
 
 def conan_export_recipe() {
-    runCmd("conan export . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL}")
+    runPythonCmd("conan export . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL}")
 }
 
 def conan_export_pkg() {
-    runCmd("conan export-pkg . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL} -bf=build --force")
+    runPythonCmd("conan export-pkg . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL} -bf=build --force")
 }
 
 def conan_install_() {
-    runCmd('conan install . -if=build --build=outdated -s cppstd=17')
+    runPythonCmd('conan install . -if=build --build=outdated -s cppstd=17')
 }
 
 def get_conan_android_install(add_args) {
@@ -169,20 +177,16 @@ def get_conan_android_install(add_args) {
 }
 
 def conan_build() {
-    runCmd('conan build . -bf=build')
+    runPythonCmd('conan build . -bf=build')
 }
 
 def conan_package() {
-    runCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
+    runPythonCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
 }
 
 def conan_upload() {
     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-        runCmd('conan user -p -r=omv')
-        runCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+        runPythonCmd('conan user -p -r=omv')
+        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
     }
-}
-
-def artifact() {
-    archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
 }
