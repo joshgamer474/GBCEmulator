@@ -211,8 +211,7 @@ def getRootJobName(jobName) {
 def getConanfileVersion() {
     def sout = new StringBuilder()
     def ret = "python conan inspect . --raw=version".execute()
-    ret.consumeProcessErrorStream(sout)
-    ret.waitFor()
+    ret.waitForProcessOutput(sout, System.err)
     return sout.toString()
 }
 
