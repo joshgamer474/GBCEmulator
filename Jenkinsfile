@@ -70,10 +70,10 @@ pipeline {
                             args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
                     }
+                    environment {
+                        PKG_VER = getConanfileVersion()
+                    }
                     stages {
-                        environment {
-                            PKG_VER = getConanfileVersion()
-                        }
                         stage('Build x86') {
                             steps {
                                 conan_android_install("-s arch=x86")
