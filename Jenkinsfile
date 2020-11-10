@@ -209,7 +209,7 @@ def getRootJobName(jobName) {
 }
 
 def getConanfileVersion() {
-    def ret = "python conan inspect . --raw=version".execute()
+    def ret = "conan inspect . --raw=version".execute()
     ret.waitFor()
     return ret.text
 }
