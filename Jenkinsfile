@@ -109,7 +109,10 @@ pipeline {
         stage('Upload') {
             steps {
                 script {
-                    conan_upload()
+                    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+                        runPythonCmd('conan user -p -r=omv')
+                        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+                    }
                 }
             }
         }
@@ -148,14 +151,6 @@ def runPythonCmd(cmd) {
     }
 }
 
-def runCmd(cmd) {
-    if (System.properties['os.name'].toLowerCase().contains('windows')) {
-        bat cmd
-    } else {
-        sh cmd
-    }
-}
-
 def conan_verify() {
     runPythonCmd("conan")
 }
@@ -182,11 +177,4 @@ def conan_build() {
 
 def conan_package() {
     runPythonCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
-}
-
-def conan_upload() {
-    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-        runPythonCmd('conan user -p -r=omv')
-        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
-    }
 }
