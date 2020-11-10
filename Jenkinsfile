@@ -281,6 +281,6 @@ def conan_upload_all() {
 def conan_upload_pkg_only() {
     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
         runCmd('conan user -p -r=omv')
-        runCmd('conan upload "${env.PKG_NAME}*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+        runCmd("conan upload \"${env.PKG_NAME}*\" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10")
     }
 }
