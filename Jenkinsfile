@@ -200,6 +200,14 @@ def getConanfileVersion() {
     return "0.0.0"
 }
 
+def runCmd(cmd) {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        bat cmd
+    } else {
+        sh cmd
+    }
+}
+
 def runPythonCmd(cmd) {
     def py_cmd = "python " + cmd
     def ret = py_cmd.execute()
@@ -209,19 +217,19 @@ def runPythonCmd(cmd) {
 }
 
 def conan_verify() {
-    runPythonCmd("conan")
+    runCmd("conan")
 }
 
 def conan_export_recipe() {
-    runPythonCmd("conan export . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL}")
+    runCmd("conan export . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL}")
 }
 
 def conan_export_pkg() {
-    runPythonCmd("conan export-pkg . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL} -bf=build --force")
+    runCmd("conan export-pkg . ${env.CONAN_USE_USER}/${env.CONAN_USE_CHANNEL} -bf=build --force")
 }
 
 def conan_install_() {
-    runPythonCmd('conan install . -if=build --build=outdated -s cppstd=17')
+    runCmd('conan install . -if=build --build=outdated -s cppstd=17')
 }
 
 def get_conan_android_install(add_args) {
@@ -229,16 +237,16 @@ def get_conan_android_install(add_args) {
 }
 
 def conan_build() {
-    runPythonCmd('conan build . -bf=build')
+    runCmd('conan build . -bf=build')
 }
 
 def conan_package() {
-    runPythonCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
+    runCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
 }
 
 def conan_upload() {
     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-        runPythonCmd('conan user -p -r=omv')
-        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+        runCmd('conan user -p -r=omv')
+        runCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
     }
 }
