@@ -71,31 +71,27 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Build libs for Android') {
-                            environment {
-                                PKG_VER = getConanfileVersion()
-                            }
+                        environment {
+                            PKG_VER = getConanfileVersion()
+                        }
+                        stage('Build x86') {
                             steps {
-                                stage('Build x86') {
-                                    steps {
-                                        conan_android_install("-s arch=x86")
-                                    }
-                                }
-                                stage('Build x86_64') {
-                                    steps {
-                                        conan_android_install("-s arch=x86_64")
-                                    }
-                                }
-                                stage('Build armv7') {
-                                    steps {
-                                        conan_android_install("-s arch=armv7")
-                                    }
-                                }
-                                stage('Build armv8') {
-                                    steps {
-                                        conan_android_install("-s arch=armv8")
-                                    }
-                                }
+                                conan_android_install("-s arch=x86")
+                            }
+                        }
+                        stage('Build x86_64') {
+                            steps {
+                                conan_android_install("-s arch=x86_64")
+                            }
+                        }
+                        stage('Build armv7') {
+                            steps {
+                                conan_android_install("-s arch=armv7")
+                            }
+                        }
+                        stage('Build armv8') {
+                            steps {
+                                conan_android_install("-s arch=armv8")
                             }
                         }
                     }
