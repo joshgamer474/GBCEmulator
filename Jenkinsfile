@@ -48,14 +48,7 @@ pipeline {
                 conan_export_pkg()
             }
         }
-        stage('Upload') {
-            steps {
-                script {
-                    conan_upload()
-                }
-            }
-        }
-        stage('Parallel build steps') {
+        stage('Parallel post-build steps') {
             parallel {
                 stage('Linux') {
                     agent {
@@ -64,6 +57,9 @@ pipeline {
                             label 'linux'
                             args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
+                    }
+                    steps {
+                        echo('Run unit tests here')
                     }
                 }
                 stage('Linux (Android)') {
@@ -76,10 +72,10 @@ pipeline {
                     }
                     stages {
                         stage('Build libs for Android') {
+                            environment {
+                                PKG_VER = getConanfileVersion()
+                            }
                             steps {
-                                script {
-                                    env.PKG_VER = getConanfileVersion()
-                                }
                                 stage('Build x86') {
                                     steps {
                                         conan_android_install("-s arch=x86")
@@ -108,6 +104,16 @@ pipeline {
                     agent {
                         label 'windows'
                     }
+                    steps {
+                        echo('Run unit tests here')
+                    }
+                }
+            }
+        }
+        stage('Upload') {
+            steps {
+                script {
+                    conan_upload()
                 }
             }
         }
@@ -183,4 +189,8 @@ def conan_upload() {
 
 def artifact() {
     archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
+}
+
+def echo(words) {
+    runCmd("echo " + words)
 }
