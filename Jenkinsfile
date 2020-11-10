@@ -59,7 +59,7 @@ pipeline {
                         }
                     }
                     steps {
-                        echo('Run unit tests here')
+                        sh 'Run unit tests here'
                     }
                 }
                 stage('Linux (Android)') {
@@ -76,22 +76,22 @@ pipeline {
                     stages {
                         stage('Build x86') {
                             steps {
-                                conan_android_install("-s arch=x86")
+                                sh get_conan_android_install("-s arch=x86")
                             }
                         }
                         stage('Build x86_64') {
                             steps {
-                                conan_android_install("-s arch=x86_64")
+                                sh get_conan_android_install("-s arch=x86_64")
                             }
                         }
                         stage('Build armv7') {
                             steps {
-                                conan_android_install("-s arch=armv7")
+                                sh get_conan_android_install("-s arch=armv7")
                             }
                         }
                         stage('Build armv8') {
                             steps {
-                                conan_android_install("-s arch=armv8")
+                                sh get_conan_android_install("-s arch=armv8")
                             }
                         }
                     }
@@ -101,7 +101,7 @@ pipeline {
                         label 'windows'
                     }
                     steps {
-                        echo('Run unit tests here')
+                        bat 'Run unit tests here'
                     }
                 }
             }
@@ -164,8 +164,8 @@ def conan_install_() {
     runCmd('conan install . -if=build --build=outdated -s cppstd=17')
 }
 
-def conan_android_install(add_args) {
-    runCmd("conan install ${env.PKG_NAME}/${env.PKG_VER} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args)
+def get_conan_android_install(add_args) {
+    return "conan install ${env.PKG_NAME}/${env.PKG_VER} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args
 }
 
 def conan_build() {
@@ -185,8 +185,4 @@ def conan_upload() {
 
 def artifact() {
     archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
-}
-
-def echo(words) {
-    runCmd("echo " + words)
 }
