@@ -28,6 +28,11 @@ pipeline {
                                 conan_verify()
                             }
                         }
+                        stage('Verify conan login') {
+                            steps {
+                                conan_login()
+                            }
+                        }
                         stage('Export recipe') {
                             steps {
                                 conan_export_recipe()
@@ -87,6 +92,11 @@ pipeline {
                                 conan_verify()
                             }
                         }
+                        stage('Verify conan login') {
+                            steps {
+                                conan_login()
+                            }
+                        }
                         stage('Export recipe') {
                             steps {
                                 conan_export_recipe()
@@ -94,22 +104,22 @@ pipeline {
                         }
                         stage('Build x86') {
                             steps {
-                                sh get_conan_android_install("-s arch=x86")
+                                conan_android_install("-s arch=x86")
                             }
                         }
                         stage('Build x86_64') {
                             steps {
-                                sh get_conan_android_install("-s arch=x86_64")
+                                conan_android_install("-s arch=x86_64")
                             }
                         }
                         stage('Build armv7') {
                             steps {
-                                sh get_conan_android_install("-s arch=armv7")
+                                conan_android_install("-s arch=armv7")
                             }
                         }
                         stage('Build armv8') {
                             steps {
-                                sh get_conan_android_install("-s arch=armv8")
+                                conan_android_install("-s arch=armv8")
                             }
                         }
                         stage('Upload') {
@@ -132,6 +142,11 @@ pipeline {
                         stage('Verify conan') {
                             steps {
                                 conan_verify()
+                            }
+                        }
+                        stage('Verify conan login') {
+                            steps {
+                                conan_login()
                             }
                         }
                         stage('Export recipe') {
@@ -233,8 +248,8 @@ def conan_install_() {
     runCmd('conan install . -if=build --build=outdated -s cppstd=17')
 }
 
-def get_conan_android_install(add_args) {
-    return "conan install ${env.PKG_NAME}/${env.PKG_VER} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args
+def conan_android_install(add_args) {
+    runCmd("conan install ${env.PKG_NAME}/${env.PKG_VER} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args)
 }
 
 def conan_build() {
@@ -243,6 +258,12 @@ def conan_build() {
 
 def conan_package() {
     runCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
+}
+
+def conan_login() {
+    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+        runCmd('conan user -p -r=omv')
+    }
 }
 
 def conan_upload() {
