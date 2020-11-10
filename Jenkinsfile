@@ -7,48 +7,7 @@ pipeline {
         PKG_NAME = getRootJobName(env.JOB_NAME)
     }
     stages {
-        stage('Clone respository') {
-            agent any
-            steps {
-                checkout scm
-            }
-        }
-        stage('Verify conan') {
-            steps {
-                conan_verify()
-            }
-        }
-        stage('Export recipe') {
-            steps {
-                conan_export_recipe()
-            }
-        }
-        stage('Install Dependencies') {
-            steps {
-                conan_install_()
-            }
-        }
-        stage('Build') {
-            steps {
-                conan_build()
-            }
-        }
-        stage('Package') {
-            steps {
-                conan_package()
-            }
-        }
-        stage('Artifact') {
-            steps {
-                archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
-            }
-        }
-        stage("Export") {
-            steps {
-                conan_export_pkg()
-            }
-        }
-        stage('Parallel post-build steps') {
+        stage('Parallel Build steps') {
             parallel {
                 stage('Linux') {
                     agent {
@@ -59,7 +18,51 @@ pipeline {
                         }
                     }
                     steps {
-                        sh 'Run unit tests here'
+                        stage('Clone respository') {
+                            steps {
+                                checkout scm
+                            }
+                        }
+                        stage('Verify conan') {
+                            steps {
+                                conan_verify()
+                            }
+                        }
+                        stage('Export recipe') {
+                            steps {
+                                conan_export_recipe()
+                            }
+                        }
+                        stage('Install Dependencies') {
+                            steps {
+                                conan_install_()
+                            }
+                        }
+                        stage('Build') {
+                            steps {
+                                conan_build()
+                            }
+                        }
+                        stage('Package') {
+                            steps {
+                                conan_package()
+                            }
+                        }
+                        stage('Artifact') {
+                            steps {
+                                archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
+                            }
+                        }
+                        stage("Export") {
+                            steps {
+                                conan_export_pkg()
+                            }
+                        }
+                        stage("Upload") {
+                            steps {
+                                conan_upload()
+                            }
+                        }
                     }
                 }
                 stage('Linux (Android)') {
@@ -101,17 +104,51 @@ pipeline {
                         label 'windows'
                     }
                     steps {
-                        bat 'Run unit tests here'
-                    }
-                }
-            }
-        }
-        stage('Upload') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
-                        runPythonCmd('conan user -p -r=omv')
-                        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+                        stage('Clone respository') {
+                            steps {
+                                checkout scm
+                            }
+                        }
+                        stage('Verify conan') {
+                            steps {
+                                conan_verify()
+                            }
+                        }
+                        stage('Export recipe') {
+                            steps {
+                                conan_export_recipe()
+                            }
+                        }
+                        stage('Install Dependencies') {
+                            steps {
+                                conan_install_()
+                            }
+                        }
+                        stage('Build') {
+                            steps {
+                                conan_build()
+                            }
+                        }
+                        stage('Package') {
+                            steps {
+                                conan_package()
+                            }
+                        }
+                        stage('Artifact') {
+                            steps {
+                                archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
+                            }
+                        }
+                        stage("Export") {
+                            steps {
+                                conan_export_pkg()
+                            }
+                        }
+                        stage("Upload") {
+                            steps {
+                                conan_upload()
+                            }
+                        }
                     }
                 }
             }
@@ -177,4 +214,11 @@ def conan_build() {
 
 def conan_package() {
     runPythonCmd("conan package . -bf=build -pf=${env.PKG_NAME}")
+}
+
+def conan_upload() {
+    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+        runPythonCmd('conan user -p -r=omv')
+        runPythonCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+    }
 }
