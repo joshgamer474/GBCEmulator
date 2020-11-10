@@ -17,7 +17,7 @@ pipeline {
                             args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
                     }
-                    steps {
+                    stages {
                         stage('Clone respository') {
                             steps {
                                 checkout scm
@@ -103,7 +103,7 @@ pipeline {
                     agent {
                         label 'windows'
                     }
-                    steps {
+                    stages {
                         stage('Clone respository') {
                             steps {
                                 checkout scm
