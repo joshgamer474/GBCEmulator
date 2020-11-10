@@ -215,6 +215,7 @@ def getConanfileVersion() {
             return line.minus(ver_header)
         }
     }
+    ret.waitFor()
     return "0.0.0"
 }
 
