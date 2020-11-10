@@ -64,7 +64,7 @@ pipeline {
                         }
                         stage('Upload') {
                             steps {
-                                conan_upload()
+                                conan_upload_all()
                             }
                         }
                     }
@@ -127,7 +127,7 @@ pipeline {
                         }
                         stage('Upload') {
                             steps {
-                                conan_upload()
+                                conan_upload_all()
                             }
                         }
                     }
@@ -184,7 +184,7 @@ pipeline {
                         }
                         stage('Upload') {
                             steps {
-                                conan_upload()
+                                conan_upload_pkg_only()
                             }
                         }
                     }
@@ -270,9 +270,16 @@ def conan_login() {
     }
 }
 
-def conan_upload() {
+def conan_upload_all() {
     withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
         runCmd('conan user -p -r=omv')
         runCmd('conan upload "*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
+    }
+}
+
+def conan_upload_pkg_only() {
+    withCredentials([usernamePassword(credentialsId: 'jenkins_conan', usernameVariable: 'CONAN_LOGIN_USERNAME', passwordVariable: 'CONAN_PASSWORD')]) {
+        runCmd('conan user -p -r=omv')
+        runCmd('conan upload "${env.PKG_NAME}*" -r omv --confirm --parallel --all --force --retry 6 --retry-wait 10')
     }
 }
