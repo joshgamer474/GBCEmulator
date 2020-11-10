@@ -77,9 +77,6 @@ pipeline {
                             args '-u 0 -v /var/run/docker.sock:/var/run/docker.sock'
                         }
                     }
-                    environment {
-                        env.PKG_VER = getConanfileVersion()
-                    }
                     stages {
                         stage('Clone respository') {
                             steps {
@@ -94,6 +91,13 @@ pipeline {
                         stage('Verify conan login') {
                             steps {
                                 conan_login()
+                            }
+                        }
+                        stage('Get package version') {
+                            steps {
+                                script {
+                                    env.PKG_VER = getConanfileVersion()
+                                }
                             }
                         }
                         stage('Export recipe') {
