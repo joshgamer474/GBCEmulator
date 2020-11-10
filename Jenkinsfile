@@ -3,7 +3,6 @@ pipeline {
     environment {
         CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
         CONAN_USE_USER = "josh"
-        PKG_VER = "0.0.0"
         PKG_NAME = getRootJobName(env.JOB_NAME)
     }
     stages {
@@ -79,7 +78,7 @@ pipeline {
                         }
                     }
                     environment {
-                        PKG_VER = getConanfileVersion()
+                        env.PKG_VER = getConanfileVersion()
                     }
                     stages {
                         stage('Clone respository') {
