@@ -201,10 +201,10 @@ def getConanfileVersion() {
 }
 
 def runCmd(cmd) {
-    if (System.properties['os.name'].toLowerCase().contains('windows')) {
-        bat cmd
-    } else {
+    if (isUnix()) {
         sh cmd
+    } else {
+        bat cmd
     }
 }
 
