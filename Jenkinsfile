@@ -53,12 +53,12 @@ pipeline {
                                 archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
                             }
                         }
-                        stage("Export") {
+                        stage('Export Package') {
                             steps {
                                 conan_export_pkg()
                             }
                         }
-                        stage("Upload") {
+                        stage('Upload') {
                             steps {
                                 conan_upload()
                             }
@@ -77,6 +77,21 @@ pipeline {
                         PKG_VER = getConanfileVersion()
                     }
                     stages {
+                        stage('Clone respository') {
+                            steps {
+                                checkout scm
+                            }
+                        }
+                        stage('Verify conan') {
+                            steps {
+                                conan_verify()
+                            }
+                        }
+                        stage('Export recipe') {
+                            steps {
+                                conan_export_recipe()
+                            }
+                        }
                         stage('Build x86') {
                             steps {
                                 sh get_conan_android_install("-s arch=x86")
@@ -95,6 +110,11 @@ pipeline {
                         stage('Build armv8') {
                             steps {
                                 sh get_conan_android_install("-s arch=armv8")
+                            }
+                        }
+                        stage('Upload') {
+                            steps {
+                                conan_upload()
                             }
                         }
                     }
@@ -139,12 +159,12 @@ pipeline {
                                 archiveArtifacts artifacts: "${env.PKG_NAME}/**", fingerprint: true
                             }
                         }
-                        stage("Export") {
+                        stage('Export Package') {
                             steps {
                                 conan_export_pkg()
                             }
                         }
-                        stage("Upload") {
+                        stage('Upload') {
                             steps {
                                 conan_upload()
                             }
