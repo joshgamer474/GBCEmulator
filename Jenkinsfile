@@ -211,6 +211,7 @@ def getConanfileVersion() {
     def ver_header = "version: "
     def ret = "python conan inspect .".execute()
     ret.in.eachLine { line ->
+        println(line)
         if (line.contains(ver_header)) {
             return line.minus(ver_header)
         }
