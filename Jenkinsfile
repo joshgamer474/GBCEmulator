@@ -95,8 +95,10 @@ pipeline {
                         }
                         stage('Get package version') {
                             steps {
-                                env.PKG_VER = getConanfileVersion()
-                                sh "echo PKG_VER=${env.PKG_VER}"
+                                script {
+                                    env.PKG_VER = getConanfileVersion()
+                                }
+                                echo "PKG_VER=${env.PKG_VER}"
                             }
                         }
                         stage('Export recipe') {
