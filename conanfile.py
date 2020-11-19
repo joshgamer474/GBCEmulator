@@ -4,7 +4,7 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.1.1"
+    version = "0.1.2"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux", "Android"], 
@@ -29,6 +29,8 @@ class GBCEmulator(ConanFile):
             self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
         else:
             self.build_requires("gtest/1.8.1@bincrafters/stable")
+
+        self.build_requires("libzip/1.4.0@bincrafters/stable");
 
     def configure(self):
         self.options["sdl2"].shared = True
@@ -92,6 +94,10 @@ class GBCEmulator(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
 
     def deploy(self):
-        self.copy("*", dst="bin", src="bin")
-        self.copy("*", dst="lib", src="lib")
+        if self.options.lib_only == True:
+            self.copy("*GBCEmulator*", dst="lib", src="lib")
+        else:
+            self.copy("*", dst="bin", src="bin")
+            self.copy("*", dst="lib", src="lib")
+
         self.copy("*", dst="include", src="include")
