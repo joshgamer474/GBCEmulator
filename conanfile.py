@@ -33,10 +33,10 @@ class GBCEmulator(ConanFile):
     def configure(self):
         self.options["sdl2"].shared = True
         self.options["sdl2"].iconv = False
-        self.options["sdl2"].pulse = False
         self.options["gtest"].shared = True
         if self.settings.os == "Linux":
             self.options["sdl2"].nas = False
+            self.options["sdl2"].pulse = False
 
         self.options["libzip"].shared = True
         self.options["libzip"].with_bzip2 = False
