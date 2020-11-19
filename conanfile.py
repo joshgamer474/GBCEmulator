@@ -30,8 +30,6 @@ class GBCEmulator(ConanFile):
         else:
             self.build_requires("gtest/1.8.1@bincrafters/stable")
 
-        self.build_requires("libzip/1.4.0@bincrafters/stable");
-
     def configure(self):
         self.options["sdl2"].shared = True
         self.options["gtest"].shared = True
