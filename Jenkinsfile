@@ -3,7 +3,6 @@ pipeline {
     environment {
         CONAN_USE_CHANNEL = getConanChannel(env.BRANCH_NAME)
         CONAN_USE_USER = "josh"
-        PKG_NAME = getRootJobName(env.JOB_NAME)
     }
     stages {
         stage('Parallel Build steps') {
@@ -30,6 +29,16 @@ pipeline {
                         stage('Verify conan login') {
                             steps {
                                 conan_login()
+                            }
+                        }
+                        stage('Get conan information') {
+                            steps {
+                                script {
+                                    env.PKG_NAME = getConanfilePkgName()
+                                    env.PKG_VER = getConanfileVersion()
+                                }
+                                echo "PKG_NAME=${env.PKG_NAME}"
+                                echo "PKG_VER=${env.PKG_VER}"
                             }
                         }
                         stage('Export recipe') {
@@ -93,11 +102,13 @@ pipeline {
                                 conan_login()
                             }
                         }
-                        stage('Get package version') {
+                        stage('Get conan information') {
                             steps {
                                 script {
+                                    env.PKG_NAME = getConanfilePkgName()
                                     env.PKG_VER = getConanfileVersion()
                                 }
+                                echo "PKG_NAME=${env.PKG_NAME}"
                                 echo "PKG_VER=${env.PKG_VER}"
                             }
                         }
@@ -153,6 +164,16 @@ pipeline {
                                 conan_login()
                             }
                         }
+                        stage('Get conan information') {
+                            steps {
+                                script {
+                                    env.PKG_NAME = getConanfilePkgName()
+                                    env.PKG_VER = getConanfileVersion()
+                                }
+                                echo "PKG_NAME=${env.PKG_NAME}"
+                                echo "PKG_VER=${env.PKG_VER}"
+                            }
+                        }
                         stage('Export recipe') {
                             steps {
                                 conan_export_recipe()
@@ -203,9 +224,9 @@ def getConanChannel(branchName) {
     }
 }
 
-def getRootJobName(jobName) {
-    String[] splt = jobName.split('/')
-    return splt[0]
+def getConanfilePkgName() {
+    def conan_name = runCmdWReturn("conan inspect . --raw=name")
+    return conan_name
 }
 
 def getConanfileVersion() {
@@ -225,7 +246,7 @@ def runCmdWReturn(cmd) {
     if (isUnix()) {
         return sh(script: cmd, returnStdout: true).trim()
     } else {
-        return bat(script: cmd, returnStdout: true).trim()
+        return bat(script: '@echo off && ' + cmd, returnStdout: true).trim()
     }
 }
 
@@ -255,7 +276,7 @@ def conan_install_() {
 }
 
 def conan_android_install(add_args) {
-    runCmd("conan install ${env.PKG_NAME}/${env.PKG_VER} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args)
+    runCmd("conan install ${env.PKG_NAME}/${env.PKG_VER}@${CONAN_USE_USER}/${CONAN_USE_CHANNEL} --profile=profiles/android --build=outdated -o shared=True -s cppstd=17 -o lib_only=True " + add_args)
 }
 
 def conan_build() {
