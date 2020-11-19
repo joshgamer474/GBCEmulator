@@ -225,13 +225,11 @@ def getConanChannel(branchName) {
 }
 
 def getConanfilePkgName() {
-    def conan_name = runCmdWReturn("conan inspect . --raw=name")
-    return conan_name
+    return runCmdWReturn("conan inspect . --raw=name")
 }
 
 def getConanfileVersion() {
-    def conan_ver = runCmdWReturn("conan inspect . --raw=version")
-    return ret.text
+    return runCmdWReturn("conan inspect . --raw=version")
 }
 
 def runCmd(cmd) {
