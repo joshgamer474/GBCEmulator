@@ -4,7 +4,7 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.1.2"
+    version = "0.1.3"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux", "Android"], 
@@ -16,7 +16,7 @@ class GBCEmulator(ConanFile):
                 "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl2/2.0.9@bincrafters/stable",
+        "sdl2/2.0.12@bincrafters/stable",
         "spdlog/1.8.1",
         "libpng/1.6.37",
         "libzip/1.7.3"
