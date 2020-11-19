@@ -209,8 +209,7 @@ def getRootJobName(jobName) {
 }
 
 def getConanfileVersion() {
-    def ret = "conan inspect . --raw=version".execute()
-    ret.waitFor()
+    def conan_ver = runCmdWReturn("conan inspect . --raw=version")
     return ret.text
 }
 
@@ -219,6 +218,14 @@ def runCmd(cmd) {
         sh cmd
     } else {
         bat cmd
+    }
+}
+
+def runCmdWReturn(cmd) {
+    if (isUnix()) {
+        return sh(script: cmd, returnStdout: true).trim()
+    } else {
+        return bat(script: cmd, returnStdout: true).trim()
     }
 }
 
