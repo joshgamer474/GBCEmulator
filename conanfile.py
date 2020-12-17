@@ -4,7 +4,7 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.1.1"
+    version = "0.1.3"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = {"os" : ["Windows", "Linux", "Android"], 
@@ -16,10 +16,10 @@ class GBCEmulator(ConanFile):
                 "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl2/2.0.9@bincrafters/stable",
-        "spdlog/1.2.1@bincrafters/stable",
-        "libpng/1.6.37@bincrafters/stable",
-        "libzip/1.5.1@bincrafters/stable"
+        "sdl2/2.0.12@bincrafters/stable",
+        "spdlog/1.8.1",
+        "libpng/1.6.37",
+        "libzip/1.7.3"
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
     default_options = "shared=False", "lib_only=False"
@@ -32,13 +32,17 @@ class GBCEmulator(ConanFile):
 
     def configure(self):
         self.options["sdl2"].shared = True
+        self.options["sdl2"].iconv = False
         self.options["gtest"].shared = True
         if self.settings.os == "Linux":
             self.options["sdl2"].nas = False
+            self.options["sdl2"].pulse = False
 
         self.options["libzip"].shared = True
         self.options["libzip"].with_bzip2 = False
-        self.options["libzip"].with_openssl = False
+        self.options["libzip"].with_lzma = False
+        self.options["libzip"].with_zstd = False
+        self.options["libzip"].crypto = False
 
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
@@ -90,6 +94,10 @@ class GBCEmulator(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
 
     def deploy(self):
-        self.copy("*", dst="bin", src="bin")
-        self.copy("*", dst="lib", src="lib")
+        if self.options.lib_only == True:
+            self.copy("*GBCEmulator*", dst="lib", src="lib")
+        else:
+            self.copy("*", dst="bin", src="bin")
+            self.copy("*", dst="lib", src="lib")
+
         self.copy("*", dst="include", src="include")
