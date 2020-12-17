@@ -58,6 +58,7 @@ private:
     uint64_t framerate;
     bool keep_aspect_ratio;
     std::atomic_bool have_new_frame;
+    int using_connected_controller;
 };
 
 #endif // SDL_WINDOW_H

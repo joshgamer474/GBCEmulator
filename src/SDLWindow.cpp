@@ -8,6 +8,7 @@ SDLWindow::SDLWindow(const std::string& log_name)
     , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
     , keep_aspect_ratio(true)
     , have_new_frame(false)
+    , using_connected_controller(-1)
 {
     init();
 
@@ -313,8 +314,12 @@ int SDLWindow::run(bool start_emu)
         } // switch(event.type)
 
         if (joypadx)
-        {
-            //joypadx->refreshButtonStates(joypadx->findControllers());
+        {   // Check if a controller has been selected/found yet
+            if (using_connected_controller < 0)
+            {   // Select new controller to use
+                using_connected_controller = joypadx->findControllers();
+            }
+            joypadx->refreshButtonStates(using_connected_controller);
         }
 
         if (have_new_frame)

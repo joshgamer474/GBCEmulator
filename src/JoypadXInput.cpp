@@ -19,7 +19,7 @@ JoypadXInput::JoypadXInput(std::shared_ptr<Joypad> _joypad)
 
 JoypadXInput::~JoypadXInput()
 {
-
+    XInputEnable(false);
 }
 
 void JoypadXInput::setJoypad(std::shared_ptr<Joypad> _joypad)
@@ -31,12 +31,13 @@ void JoypadXInput::init()
 {
 #ifdef _WIN32
     prev_button_states = initButtonStatesMap();
+    XInputEnable(true);
 #endif // _WIN32
 }
 
 int JoypadXInput::findControllers()
 {
-    int numControllersConnected = 0;
+    int numControllersConnected = -1;
 #ifdef _WIN32
     XINPUT_STATE state;
     ZeroMemory(&state, sizeof(XINPUT_STATE));
