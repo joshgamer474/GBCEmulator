@@ -31,7 +31,6 @@ void JoypadXInput::init()
 {
 #ifdef _WIN32
     prev_button_states = initButtonStatesMap();
-    XInputEnable(true);
 #endif // _WIN32
 }
 
