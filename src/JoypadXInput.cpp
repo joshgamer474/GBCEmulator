@@ -19,9 +19,7 @@ JoypadXInput::JoypadXInput(std::shared_ptr<Joypad> _joypad)
 
 JoypadXInput::~JoypadXInput()
 {
-#ifdef _WIN32
-    XInputEnable(false);
-#endif // _WIN32
+
 }
 
 void JoypadXInput::setJoypad(std::shared_ptr<Joypad> _joypad)
