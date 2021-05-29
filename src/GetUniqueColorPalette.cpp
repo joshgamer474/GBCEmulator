@@ -300,6 +300,8 @@ CGBROMPalette GetUniqueGBPalette(const uint8_t& hash)
 
         case 0x01:
         case 0x10:
+        case 0x2A: // Mega Man IV (USA)
+        case 0x2B: // Mega Man V (USA)
         case 0x29:
         case 0x52:
         case 0x5D:
