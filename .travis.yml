@@ -19,7 +19,9 @@ install:
 # Automatic detection of your arch, compiler, etc.
   - conan user
 # Add bincrafters conan remote
-  - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
+  - conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan
+# Add conancenter remote
+  - conan remote add conancenter https://center.conan.io
 before_script:
 # Download dependencies, build if pre-built package not available
   - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 -s cppstd=17 --build=outdated
