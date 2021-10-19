@@ -18,6 +18,8 @@ install:
   - pip3 install conan --upgrade --user
 # Automatic detection of your arch, compiler, etc.
   - conan user
+# Enable revisions
+  - conan config set general.revisions_enabled=1
 # Add bincrafters conan remote
   - conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan
 before_script:
