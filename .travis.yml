@@ -10,6 +10,7 @@ addons:
     packages:
       - g++-8
       - cmake
+      - libgl1-mesa-dev
 install:
   - "[ $CXX = g++ ] && export CXX=g++-8 || true"
 # Start python3 environment
