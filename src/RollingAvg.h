@@ -2,6 +2,7 @@
 #define SRC_ROLLING_AVG_H
 
 #include <queue>
+#include <cstddef>
 
 #define APU_ROLLING_AVG_SAMPLE_SIZE 20
 

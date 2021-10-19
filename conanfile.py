@@ -16,7 +16,7 @@ class GBCEmulator(ConanFile):
                 "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl2/2.0.12@bincrafters/stable",
+        "sdl2/2.0.16@bincrafters/stable",
         "spdlog/1.8.1",
         "libpng/1.6.37",
         "libzip/1.7.3"
@@ -37,6 +37,8 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Linux":
             self.options["sdl2"].nas = False
             self.options["sdl2"].pulse = False
+            self.options["sdl2"].jack = False
+            self.options["libalsa"].shared = True
 
         self.options["libzip"].shared = True
         self.options["libzip"].with_bzip2 = False
@@ -47,7 +49,8 @@ class GBCEmulator(ConanFile):
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
         libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
-        libDest += os.sep + str(self.settings.arch)
+        if self.settings.os == "Android":
+          libDest += os.sep + str(self.settings.arch)
         self.copy("*.dll", src="bin", dst=dest)
         self.copy("*.a", src="lib", dst=libDest)
         self.copy("*.so*", src="lib", dst=libDest)
