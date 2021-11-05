@@ -8,12 +8,12 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-8
+      - g++-10
       - cmake
       - libgl1-mesa-dev
       - libegl1-mesa-dev
 install:
-  - "[ $CXX = g++ ] && export CXX=g++-8 || true"
+  - "[ $CXX = g++ ] && export CXX=g++-10 || true"
 # Start python3 environment
   - pyenv shell 3.7.1
 # Install conan
@@ -24,7 +24,7 @@ install:
   - conan config set general.revisions_enabled=1
 before_script:
 # Download dependencies, build if pre-built package not available
-  - conan install . -if=build -s compiler='gcc' -s compiler.version=8 -s compiler.cppstd=17 --build=outdated
+  - conan install . -if=build -s compiler='gcc' -s compiler.version=10 -s compiler.cppstd=17 --build=outdated
 script:
 # Build the project
   - conan build . -bf=build
