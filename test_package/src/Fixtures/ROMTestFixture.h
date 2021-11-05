@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <SDL.h>
 #include <UnitTests.h>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <atomic>
 #include <array>
 #include <memory>
@@ -66,11 +66,11 @@ protected:
 
 private:
     void setEmuLogLevels(const TestType& test_type);
-    void tryRemoveFile(const std::experimental::filesystem::path& file);
-    std::experimental::filesystem::path getExecutablePath();
+    void tryRemoveFile(const std::filesystem::path& file);
+    std::filesystem::path getExecutablePath();
 
     std::unique_ptr<GBCEmulator> emu;
-    std::experimental::filesystem::path rom_root;
+    std::filesystem::path rom_root;
     ROMUnitTest unit_test;
     uint64_t curr_hash;
     std::atomic_bool hash_passed;

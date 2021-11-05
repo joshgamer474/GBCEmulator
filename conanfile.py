@@ -4,20 +4,19 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.1.3"
+    version = "0.1.4"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
-    settings = {"os" : ["Windows", "Linux", "Android"], 
+    settings = {"os" : ["Windows", "Linux", "Android", "Macos"], 
                 "arch": ["x86", "x86_64", "armv7", "armv8"],
-                "compiler": ["Visual Studio", "gcc", "clang"],
-                "build_type": ["Debug", "Release"],
-                "cppstd": ["14", "17"]}
+                "compiler": ["Visual Studio", "gcc", "clang", "apple-clang"],
+                "build_type": ["Debug", "Release"]}
     options = {"shared": [True, False],
                 "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl2/2.0.16@bincrafters/stable",
-        "spdlog/1.8.1",
+        "sdl/2.0.16",
+        "spdlog/1.9.2",
         "libpng/1.6.37",
         "libzip/1.7.3"
         )
@@ -28,13 +27,13 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
         else:
-            self.build_requires("gtest/1.8.1@bincrafters/stable")
+            self.build_requires("gtest/1.11.0")
 
     def configure(self):
         self.options["sdl2"].shared = True
-        self.options["sdl2"].iconv = False
         self.options["gtest"].shared = True
         if self.settings.os == "Linux":
+            self.options["sdl2"].iconv = False
             self.options["sdl2"].nas = False
             self.options["sdl2"].pulse = False
             self.options["sdl2"].jack = False
@@ -49,19 +48,16 @@ class GBCEmulator(ConanFile):
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
         libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
-        if self.settings.os == "Android":
+        if self.settings.os != "Windows":
           libDest += os.sep + str(self.settings.arch)
         self.copy("*.dll", src="bin", dst=dest)
-        self.copy("*.a", src="lib", dst=libDest)
+        self.copy("*.dylib", src="lib", dst=libDest)
         self.copy("*.so*", src="lib", dst=libDest)
         if (self.settings.os == "Android"):
             self.copy("*.h", src="include", dst="include")
         self.keep_imports = True
 
     def build(self):
-        if self.settings.os == "Linux":
-            "stdc++fs"
-
         cmake = CMake(self, build_type=self.settings.build_type)
         # Don't build test_package as ndk doesn't have std::experimental::filesystem
         if self.settings.os == "Android":

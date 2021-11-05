@@ -21,15 +21,15 @@ install:
   - conan user
 # Enable revisions
   - conan config set general.revisions_enabled=1
-# Add bincrafters conan remote
-  - conan remote add bincrafters https://bincrafters.jfrog.io/artifactory/api/conan/public-conan
+# Add conan center remote
+  - conan remote add conancenter https://center.conan.io
 before_script:
 # Download dependencies, build if pre-built package not available
-  - conan install . -if=build_release -s compiler='gcc' -s compiler.version=8 -s cppstd=17 --build=outdated
+  - conan install . -if=build -s compiler='gcc' -s compiler.version=8 -s compiler.cppstd=17 --build=outdated
 script:
 # Build the project
-  - conan build . -bf=build_release
+  - conan build . -bf=build
 after_script:
 # Run unit tests
-  - cd build_release/bin
+  - cd build/bin
   - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../lib ./GBCEmulatorTestPackage

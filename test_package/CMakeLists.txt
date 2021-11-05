@@ -34,11 +34,14 @@ target_link_libraries(GBCEmulatorTestPackage
     GBCEmulator
     CONAN_PKG::gtest)
 
-# Add std::experimental::filesystem
-if(UNIX)
+# Add std::filesystem
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+if(LINUX)
     target_link_libraries(GBCEmulatorTestPackage
         stdc++fs)
-endif(UNIX)
+endif(LINUX)
 
 message("CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 

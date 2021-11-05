@@ -7,8 +7,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#else
+#elif __linux__
 #include <linux/limits.h>
+#elif __APPLE__
+#include <limits.h>
 #endif // _WIN32
 
 #define EMU_TEST_TIME_SEC 2
@@ -21,13 +23,12 @@ ROMTestFixture::ROMTestFixture()
 
 void ROMTestFixture::init()
 {
-    //rom_root = std::experimental::filesystem::current_path()
     rom_root = getExecutablePath()
         .parent_path() / "blarggtests";
     hash_passed = false;
 }
 
-std::experimental::filesystem::path
+std::filesystem::path
 ROMTestFixture::getExecutablePath()
 {
 #ifdef _WIN32
@@ -53,7 +54,7 @@ void ROMTestFixture::test()
 {
     ASSERT_FALSE(unit_test.rom_path.empty());
     //ASSERT_TRUE(unit_test.passing_frame_hash);
-    ASSERT_TRUE(std::experimental::filesystem::exists(unit_test.rom_path))
+    ASSERT_TRUE(std::filesystem::exists(unit_test.rom_path))
         << "Path does not exist: "
         << unit_test.rom_path.string();
 
@@ -290,10 +291,10 @@ void ROMTestFixture::setEmuLogLevels(const TestType& test_type)
     }
 }
 
-void ROMTestFixture::tryRemoveFile(const std::experimental::filesystem::path& file)
+void ROMTestFixture::tryRemoveFile(const std::filesystem::path& file)
 {
-    if (std::experimental::filesystem::exists(file))
+    if (std::filesystem::exists(file))
     {
-        std::experimental::filesystem::remove(file);
+        std::filesystem::remove(file);
     }
 }

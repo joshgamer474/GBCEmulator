@@ -1,7 +1,7 @@
 #ifndef TEST_PACKAGE_SRC_UNIT_TESTS_H
 #define TEST_PACKAGE_SRC_UNIT_TESTS_H
 
-#include <experimental/filesystem>
+#include <filesystem>
 #include <unordered_map>
 #include <string>
 
@@ -15,11 +15,11 @@ enum class TestType {
 
 
 struct ROMUnitTest {
-    std::experimental::filesystem::path rom_path;
+    std::filesystem::path rom_path;
     uint64_t passing_frame_hash = 0;
     TestType test_type = TestType::DEFAULT;
 
-    ROMUnitTest(const std::experimental::filesystem::path & path, const uint64_t & hash,
+    ROMUnitTest(const std::filesystem::path & path, const uint64_t & hash,
         const TestType & type = TestType::DEFAULT)
         : rom_path(path)
         , passing_frame_hash(hash)

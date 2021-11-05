@@ -11,7 +11,7 @@
 #endif // _WIN32
 
 #include <chrono>
-#include <experimental/filesystem>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -56,7 +56,7 @@ public:
     void release_joypad_button(Joypad::BUTTON button);
     void setTimePerFrame(double d);
     void setFrameUpdateMethod(std::function<void(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> /* frame */)> function);
-    void saveFrameToPNG(std::experimental::filesystem::path filepath);
+    void saveFrameToPNG(std::filesystem::path filepath);
     SDL_Color* get_frame();
     SDL_Color* getFrameRaw() const;
     std::string getROMName() const;

@@ -112,6 +112,7 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     if (emu != emulator)
     {
         emu = emulator;
+        updateWindowTitle("");
     }
 
     // Set emulator display output to SDL screen
@@ -124,11 +125,6 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
 {
-    if (emu)
-    {
-        updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
-    }
-
     if (!renderer)
     {
         logger->error("Refusing to display() without renderer");
@@ -144,10 +140,12 @@ void SDLWindow::updateWindowTitle(const std::string & framerate)
 {
     if (window)
     {
-        const std::string title = "GBCEmulator | "
-            + emu->getGameTitle()
-            + " | "
-            + framerate;
+        std::string title = "GBCEmulator | "
+            + emu->getGameTitle();
+        if (!framerate.empty())
+        {
+            title += " | " + framerate;
+        }
         SDL_SetWindowTitle(window, title.c_str());
     }
 }
@@ -197,6 +195,7 @@ int SDLWindow::run(bool start_emu)
                     false,      // Debug mode
                     false);     // Force CGB mode
                 hookToEmulator(emu);
+                updateWindowTitle("");
                 startEmulator();
             }
 
@@ -330,6 +329,12 @@ int SDLWindow::run(bool start_emu)
             SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
             SDL_RenderPresent(renderer);
             have_new_frame = false;
+#ifndef __ANDROID__
+            if (emu)
+            {
+                updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
+            }
+#endif
         }
 
         std::this_thread::sleep_for(std::chrono::microseconds(200));

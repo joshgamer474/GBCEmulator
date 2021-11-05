@@ -496,7 +496,7 @@ uint64_t GBCEmulator::calculateFrameHash(const std::array<SDL_Color, SCREEN_PIXE
     return hash;
 }
 
-void GBCEmulator::saveFrameToPNG(std::experimental::filesystem::path filepath)
+void GBCEmulator::saveFrameToPNG(std::filesystem::path filepath)
 {
     // Open file
     FILE* fp = fopen(filepath.string().c_str(), "wb");

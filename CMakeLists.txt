@@ -69,10 +69,13 @@ target_link_libraries(GBCEmulator
     ${CONAN_TARGETS})
 
 # Add std::experimental::filesystem
-if(UNIX AND BUILD_UNIT_TEST)
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+if(LINUX AND BUILD_UNIT_TEST)
     target_link_libraries(GBCEmulator
         stdc++fs)
-endif(UNIX)
+endif(LINUX)
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")
