@@ -21,8 +21,6 @@ install:
   - conan user
 # Enable revisions
   - conan config set general.revisions_enabled=1
-# Add conan center remote
-  - conan remote add conancenter https://center.conan.io
 before_script:
 # Download dependencies, build if pre-built package not available
   - conan install . -if=build -s compiler='gcc' -s compiler.version=8 -s compiler.cppstd=17 --build=outdated
