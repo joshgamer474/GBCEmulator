@@ -66,6 +66,20 @@ The Qt wrap includes variety of interactive GUI debug tools:
 
 ```conan build . -bf=build```
 
+## Building Android (Linux env only)
+
+```git clone https://github.com/joshgamer474/GBCEmulator.git```
+
+```cd GBCEmulator```
+
+```conan export . josh/testing```
+
+```mkdir android && cd android```
+
+```conan install GBCEmulator/<version>@josh/testing --build=outdated --profile:host=../profiles/android --profile:build=/home/<username>/.conan/profiles/default -s arch=<desired build arch> -o shared=True -s compiler.cppstd=17```
+
+Now you should have built .so Android library files in android/lib/<desired build arch>
+
 ## How to use
 Open the built GBCEmulator.exe or GBCEmulator_qt.exe and drag and drop your favorite rom in.
 

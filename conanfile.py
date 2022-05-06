@@ -15,17 +15,18 @@ class GBCEmulator(ConanFile):
                 "lib_only": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl/2.0.16",
+        "sdl/2.0.18",
         "spdlog/1.9.2",
         "libpng/1.6.37",
-        "libzip/1.7.3"
+        "libzip/1.7.3",
         )
-    exports_sources = "src/*", "CMakeLists.txt", "test_package/*"
+    exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
+      "!*.gitignore", "!*.log", "!*.sav", "!*.s"
     default_options = "shared=False", "lib_only=False"
 
     def build_requirements(self):
         if self.settings.os == "Android":
-            self.build_requires("android_ndk_installer/r19c@bincrafters/stable")
+            self.build_requires("android-ndk/r24")
         else:
             self.build_requires("gtest/1.11.0")
 
@@ -37,7 +38,9 @@ class GBCEmulator(ConanFile):
             self.options["sdl2"].nas = False
             self.options["sdl2"].pulse = False
             self.options["sdl2"].jack = False
+            self.options["sdl2"].libunwind = False
             self.options["libalsa"].shared = True
+
 
         self.options["libzip"].shared = True
         self.options["libzip"].with_bzip2 = False
@@ -65,7 +68,7 @@ class GBCEmulator(ConanFile):
         else:
             cmake.definitions["BUILD_UNIT_TEST"] = True
 
-        if self.options.lib_only == True:
+        if self.options.lib_only == True or self.settings.os == "Android":
             cmake.definitions["BUILD_LIB_ONLY"] = True
         else:
             cmake.definitions["BUILD_LIB_ONLY"] = False
