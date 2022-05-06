@@ -1,0 +1,16 @@
+[settings]
+os_build=Linux
+arch_build=x86_64
+os=Android
+os.api_level=28
+arch=armv7
+compiler=clang
+compiler.version=14
+compiler.libcxx=libc++
+build_type=Release
+[options]
+*:pic=True
+sdl:shared=True
+[tool_requires]
+android-ndk/r24
+[env]

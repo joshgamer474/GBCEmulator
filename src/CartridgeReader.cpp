@@ -1,6 +1,7 @@
 #include "CartridgeReader.h"
 #include "Debug.h"
 #include "MBC.h"
+#include <algorithm>
 #include <zip.h>
 
 CartridgeReader::CartridgeReader(std::shared_ptr<spdlog::logger> _logger, const bool _force_cgb)
