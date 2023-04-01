@@ -61,6 +61,7 @@ void MainWindow::openDebuggerWindow()
         debuggerWindow = std::make_shared<DebuggerWindow>(this, emuView);
     }
 
+    emuView->debugMode = true;
     debuggerWindow->show();
 }
 

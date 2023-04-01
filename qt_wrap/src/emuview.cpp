@@ -16,34 +16,40 @@
 #include <chrono>
 
 EmuView::EmuView(QObject * parent)
-    :   QGraphicsScene(parent),
-        parent(parent),
-        prevHash(0)
+  : QGraphicsScene(parent)
+  , parent(parent)
+  , prevHash(0)
+  , debugMode(false)
+  , fpsCountingInitialized(false)
 {
 
 }
 
 EmuView::EmuView(QObject * parent,
-    QGraphicsView * graphicsView,
-    std::shared_ptr<spdlog::logger> _logger)
-    :   QGraphicsScene(parent),
-        parent(parent),
-        emuView(graphicsView),
-        logger(_logger),
-        prevHash(0)
+  QGraphicsView * graphicsView,
+  std::shared_ptr<spdlog::logger> _logger)
+  : QGraphicsScene(parent)
+  , parent(parent)
+  , emuView(graphicsView)
+  , logger(_logger)
+  , prevHash(0)
+  , debugMode(false)
+  , fpsCountingInitialized(false)
 {
     init();
 }
 
 EmuView::EmuView(QObject * parent,
-    QGraphicsView * graphicsView,
-    std::string filename,
-    std::shared_ptr<spdlog::logger> _logger)
-    :   QGraphicsScene(parent),
-        parent(parent),
-        emuView(graphicsView),
-        logger(_logger),
-        prevHash(0)
+  QGraphicsView * graphicsView,
+  std::string filename,
+  std::shared_ptr<spdlog::logger> _logger)
+  : QGraphicsScene(parent)
+  , parent(parent)
+  , emuView(graphicsView)
+  , logger(_logger)
+  , prevHash(0)
+  , debugMode(false)
+  , fpsCountingInitialized(false)
 {
     init();
     setupEmulator(filename);
@@ -104,6 +110,10 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
 
 void EmuView::setupFPSCounting()
 {
+    if (fpsCountingInitialized)
+    {
+      return;
+    }
     fps = 0;
     connect(this, &EmuView::updateFPS, static_cast<MainWindow*>(parent), &MainWindow::updateFPS);
     connect(&fpsTimer, &QTimer::timeout, this, [this]()
@@ -117,6 +127,7 @@ void EmuView::setupFPSCounting()
         // Get controller Xinput
         xinput->refreshButtonStates(0);
     });
+    fpsCountingInitialized = true;
 }
 
 void EmuView::runEmulator()
@@ -281,4 +292,32 @@ void EmuView::loadSaveState()
 
     // Start emulator again
     runEmulator();
+}
+
+void EmuView::dragEnterEvent(QGraphicsSceneDragDropEvent * e)
+{
+  if (e->mimeData()->hasUrls())
+  {
+    e->acceptProposedAction();
+  }
+}
+
+void EmuView::dragMoveEvent(QGraphicsSceneDragDropEvent *e)
+{
+  if (e->mimeData()->hasUrls())
+  {
+    e->acceptProposedAction();
+  }
+}
+
+void EmuView::dropEvent(QGraphicsSceneDragDropEvent * e)
+{
+  for (const QUrl & url : e->mimeData()->urls())
+  {
+    QString filename = url.toLocalFile();
+
+    // Restart emulator
+    setupEmulator(filename.toStdString(), debugMode);
+    runEmulator();
+  }
 }

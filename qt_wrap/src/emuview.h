@@ -3,6 +3,7 @@
 
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QGraphicsSceneDragDropEvent>
 #include <QImage>
 #include <QObject>
 #include <QString>
@@ -45,6 +46,7 @@ public:
     QPixmap frame_pixmap;
     QTimer fpsTimer;
     float fps;
+    bool debugMode;
     std::shared_ptr<std::thread> thread;
     std::shared_ptr<spdlog::logger> logger;
 
@@ -55,12 +57,18 @@ public slots:
     void takeSaveState();
     void loadSaveState();
 
+protected:
+    void dragEnterEvent(QGraphicsSceneDragDropEvent *);
+    void dragMoveEvent(QGraphicsSceneDragDropEvent *);
+    void dropEvent(QGraphicsSceneDragDropEvent *);
+
 private:
     int hashImage(const QImage & p);
 
     QObject * parent;
     std::shared_ptr<JoypadInputInterface> xinput;
     int prevHash;
+    bool fpsCountingInitialized;
     std::chrono::system_clock::duration prevTime;
     QTimer joypadTimer;
 };
