@@ -22,16 +22,20 @@ public:
     ~MainWindow();
 
 public Q_SLOTS:
+    void openRomWindow();
     void openDebuggerWindow();
     void updateFPS(QString fps);
 
-private:
-    void init();
-    void connectSignalsSlots();
+protected:
     void dragEnterEvent(QDragEnterEvent *);
     void dropEvent(QDropEvent *);
     void keyPressEvent(QKeyEvent *);
     void keyReleaseEvent(QKeyEvent *);
+
+private:
+    void init();
+    void openRom(const QString& filename);
+    void connectSignalsSlots();
     void setLogLevels(spdlog::level::level_enum level);
 
     Ui::MainWindow *ui;

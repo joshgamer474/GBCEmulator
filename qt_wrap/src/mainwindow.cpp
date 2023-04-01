@@ -7,8 +7,9 @@
 
 #include <QDropEvent>
 #include <QDragEnterEvent>
-#include <QMimeData>
 #include <QGraphicsView>
+#include <QFileDialog>
+#include <QMimeData>
 
 #include <string>
 
@@ -51,7 +52,17 @@ void MainWindow::init()
 
 void MainWindow::connectSignalsSlots()
 {
+    connect(ui->actionOpen_ROM, &QAction::triggered, this, &MainWindow::openRomWindow);
     connect(ui->actionOpen_Debugger, &QAction::triggered, this, &MainWindow::openDebuggerWindow);
+}
+
+void MainWindow::openRomWindow()
+{
+  QFileDialog dialog;
+  dialog.setNameFilter("GB/GBC (*.gb, *.gbc, *.zip)");
+  dialog.exec();
+  const QString filename = dialog.selectedFiles().first();
+  openRom(filename);
 }
 
 void MainWindow::openDebuggerWindow()
@@ -70,6 +81,21 @@ void MainWindow::updateFPS(QString fps)
     this->setWindowTitle("GBCEmulator | " + fps);
 }
 
+void MainWindow::openRom(const QString& filename)
+{
+    if (debuggerWindow)
+    {
+        emuView->setupEmulator(filename.toStdString(), true);   // Run in debug mode
+        debuggerWindow->initEmulatorConnections(emuView->emu);
+    }
+    else
+    {
+        emuView->setupEmulator(filename.toStdString());         // Run in normal mode
+        emuView->runEmulator();
+    }
+    ui->graphicsView->show();
+}
+
 void MainWindow::dragEnterEvent(QDragEnterEvent * e)
 {
     if (e->mimeData()->hasUrls())
@@ -85,17 +111,7 @@ void MainWindow::dropEvent(QDropEvent * e)
         ui->graphicsView->show();
 
         QString filename = url.toLocalFile();
-
-        if (debuggerWindow)
-        {
-            emuView->setupEmulator(filename.toStdString(), true);   // Run in debug mode
-            debuggerWindow->initEmulatorConnections(emuView->emu);
-        }
-        else
-        {
-            emuView->setupEmulator(filename.toStdString());         // Run in normal mode
-            emuView->runEmulator();
-        }
+        openRom(filename);
     }
 }
 
