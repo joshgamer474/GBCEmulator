@@ -74,6 +74,7 @@ class GBCEmulator(ConanFile):
             self.copy("*.h", src="include", dst="include")
         if self.options.qt:
             self.copy("q*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
+            self.copy("libq*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
         self.keep_imports = True
 
     def build(self):
