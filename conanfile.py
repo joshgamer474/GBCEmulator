@@ -19,7 +19,7 @@ class GBCEmulator(ConanFile):
         "sdl/2.0.20",
         "spdlog/1.9.2",
         "libpng/1.6.39",
-        "libzip/1.7.3",
+        "libzip/1.8.0",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
@@ -52,7 +52,7 @@ class GBCEmulator(ConanFile):
             self.options["qt"].with_odbc = False
             self.options["qt"].with_pulseaudio = False
             self.options["qt"].with_dbus = False
-            self.options["qt"].with_gssapi = False
+            #self.options["qt"].with_gssapi = False
             self.options["qt"].with_atspi = False
 
 
@@ -73,7 +73,7 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.copy("*.h", src="include", dst="include")
         if self.options.qt:
-            self.copy("qwindows*.*", src="plugins/platforms", dst=dest + os.sep + "platforms")
+            self.copy("q*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
         self.keep_imports = True
 
     def build(self):
