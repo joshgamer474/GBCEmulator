@@ -87,7 +87,7 @@ void EmuView::setupEmulator(std::string filename, bool debugMode)
     }
 
     logger->info("Creating GBCEmulator, giving file: {0}", filename.c_str());
-    emu = std::make_shared<GBCEmulator>(filename, filename + ".log", debugMode);
+    emu = std::make_shared<GBCEmulator>(filename, filename + ".log", "", debugMode);
 
     if (xinput)
     {

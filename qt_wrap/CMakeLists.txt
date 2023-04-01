@@ -9,55 +9,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
 
 find_package(Qt5 REQUIRED Widgets)
-find_package(SDL2)
-
-set(GBC_HEADERS
-    ../src/APU.h
-    ../src/AudioSquare.h
-    ../src/AudioWave.h
-    ../src/AudioNoise.h
-    ../src/CartridgeReader.h
-    ../src/ColorPalette.h
-    ../src/CPU.h
-    ../src/GBCEmulator.h
-    ../src/GetUniqueColorPalette.h
-    ../src/GPU.h
-    ../src/Joypad.h
-    ../src/JoypadInputInterface.h
-    ../src/JoypadXInput.h
-    ../src/MBC.h
-    ../src/Memory.h
-    ../src/ScreenInterface.h
-    ../src/SDLWindow.h
-    ../src/Tile.h)
-
-set(GBC_SOURCE
-    ../src/APU.cpp
-    ../src/AudioNoise.cpp
-    ../src/AudioSquare.cpp
-    ../src/AudioWave.cpp
-    ../src/CartridgeReader.cpp
-    ../src/ColorPalette.cpp
-    ../src/CPU.cpp
-    ../src/GBCEmulator.cpp
-    ../src/GetUniqueColorPalette.cpp
-    ../src/GPU.cpp
-    ../src/Joypad.cpp
-    ../src/JoypadXInput.cpp
-    ../src/MBC.cpp
-    ../src/Memory.cpp
-    ../src/SDLWindow.cpp
-    ../src/Tile.cpp)
 
 set(QT_UIS
     src/mainwindow.ui
     src/audiodebuggerwindow.ui
     src/debuggerwindow.ui
     src/vramwindow.ui)
-        
+
 set(QT_HEADERS
     src/mainwindow.h
     src/emuview.h
@@ -65,7 +25,7 @@ set(QT_HEADERS
     src/audiodebuggerwindow.h
     src/hexwidget.h
     src/vramwindow.h)
-        
+
 set(QT_SOURCE
     src/mainwindow.cpp
     src/emuview.cpp
@@ -73,31 +33,30 @@ set(QT_SOURCE
     src/debuggerwindow.cpp
     src/hexwidget.cpp
     src/vramwindow.cpp)
-        
+
 set(QT_RUN_SOURCE
     src/main.cpp) 
 
 qt5_wrap_ui(QT_UI_GENERATED_HEADERS ${QT_UIS})
-    
-#add_executable(GBCEmulator_qt WIN32
+
 add_executable(GBCEmulator_qt
     ${QT_RUN_SOURCE}
     ${QT_SOURCE}
     ${QT_HEADERS}
-    ${QT_UI_GENERATED_HEADERS}
-    ${GBC_SOURCE}
-    ${GBC_HEADERS})
-    
+    ${QT_UI_GENERATED_HEADERS})
+
 include_directories(${CONAN_INCLUDE_DIRS}
-    "src/"
+    src
+    ../
     ${CONAN_INCLUDE_DIRS_QT}/QtCore
     ${CONAN_INCLUDE_DIRS_QT}/QtGui
     ${CONAN_INCLUDE_DIRS_QT}/QtWidgets)
-    
+
 target_include_directories(GBCEmulator_qt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator_qt
     ${CONAN_TARGETS}
+    GBCEmulator
     Qt5::Widgets)
 
 if(WIN32)
