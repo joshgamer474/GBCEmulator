@@ -17,6 +17,8 @@ class GBCEmulator(ConanFile):
     generators = "cmake", "cmake_find_package"
     requires = (
         "sdl/2.0.20",
+        "sdl_image/2.0.5",
+        "xz_utils/5.4.0",
         "spdlog/1.9.2",
         "libpng/1.6.39",
         "libzip/1.8.0",

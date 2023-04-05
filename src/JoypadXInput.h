@@ -1,6 +1,7 @@
 #ifndef JOYPAD_XINPUT_H
 #define JOYPAD_XINPUT_H
 
+#include <Joypad.h>
 #include <JoypadInputInterface.h>
 #include <memory>
 #include <unordered_map>

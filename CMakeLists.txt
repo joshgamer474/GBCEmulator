@@ -142,3 +142,5 @@ endif(BUILD_UNIT_TEST)
 if(BUILD_QT_GUI)
     add_subdirectory(qt_wrap)
 endif(BUILD_QT_GUI)
+
+add_subdirectory(mobile)
