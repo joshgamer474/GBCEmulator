@@ -15,7 +15,7 @@ public:
     AudioSquare& operator=(const AudioSquare& rhs);
 
     void setByte(const uint16_t & addr, const uint8_t & val);
-    uint8_t readByte(const uint16_t & addr);
+    uint8_t readByte(const uint16_t & addr) const;
     void tick();
     void tickLengthCounter();
     void tickVolumeEnvelope();

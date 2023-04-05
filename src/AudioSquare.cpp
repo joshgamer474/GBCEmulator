@@ -86,7 +86,7 @@ void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
     }
 }
 
-uint8_t AudioSquare::readByte(const uint16_t & addr)
+uint8_t AudioSquare::readByte(const uint16_t & addr) const
 {
     uint16_t useAddr = addr - reg_offset;
     uint8_t ret = 0;

@@ -135,6 +135,10 @@ endif()
 enable_testing()
 
 if(BUILD_UNIT_TEST)
-# Add unit tests
-add_subdirectory(test_package)
+    # Add unit tests
+    add_subdirectory(test_package)
 endif(BUILD_UNIT_TEST)
+
+if(BUILD_QT_GUI)
+    add_subdirectory(qt_wrap)
+endif(BUILD_QT_GUI)

@@ -12,23 +12,26 @@ class GBCEmulator(ConanFile):
                 "compiler": ["Visual Studio", "gcc", "clang", "apple-clang"],
                 "build_type": ["Debug", "Release"]}
     options = {"shared": [True, False],
-                "lib_only": [True, False]}
+                "lib_only": [True, False],
+                "qt": [True, False]}
     generators = "cmake", "cmake_find_package"
     requires = (
         "sdl/2.0.20",
         "spdlog/1.9.2",
-        "libpng/1.6.37",
-        "libzip/1.7.3",
+        "libpng/1.6.39",
+        "libzip/1.8.0",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
-    default_options = "shared=False", "lib_only=False"
+    default_options = "shared=False", "lib_only=False", "qt=False"
 
     def build_requirements(self):
         if self.settings.os == "Android":
             self.build_requires("android-ndk/r24")
         else:
             self.build_requires("gtest/1.11.0")
+        if self.options.qt:
+            self.build_requires("qt/5.15.8")
 
     def configure(self):
         self.options["sdl2"].shared = True
@@ -40,6 +43,17 @@ class GBCEmulator(ConanFile):
             self.options["sdl2"].jack = False
             self.options["sdl2"].libunwind = False
             self.options["libalsa"].shared = True
+
+        if self.options.qt:
+            self.options["qt"].shared = True
+            self.options["qt"].with_sqlite3 = False
+            self.options["qt"].with_mysql = False
+            self.options["qt"].with_gstreamer = False
+            self.options["qt"].with_odbc = False
+            self.options["qt"].with_pulseaudio = False
+            self.options["qt"].with_dbus = False
+            #self.options["qt"].with_gssapi = False
+            self.options["qt"].with_atspi = False
 
 
         self.options["libzip"].shared = True
@@ -56,8 +70,11 @@ class GBCEmulator(ConanFile):
         self.copy("*.dll", src="bin", dst=dest)
         self.copy("*.dylib", src="lib", dst=libDest)
         self.copy("*.so*", src="lib", dst=libDest)
-        if (self.settings.os == "Android"):
+        if self.settings.os == "Android":
             self.copy("*.h", src="include", dst="include")
+        if self.options.qt:
+            self.copy("q*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
+            self.copy("libq*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
         self.keep_imports = True
 
     def build(self):
@@ -72,6 +89,9 @@ class GBCEmulator(ConanFile):
             cmake.definitions["BUILD_LIB_ONLY"] = True
         else:
             cmake.definitions["BUILD_LIB_ONLY"] = False
+
+        if self.options.qt:
+            cmake.definitions["BUILD_QT_GUI"] = True
 
         cmake.configure()
         cmake.build()

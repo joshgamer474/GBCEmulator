@@ -113,7 +113,7 @@ void Memory::initWorkRAM(bool isColorGB)
 }
 
 
-std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
+std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access) const
 {
 	if (cartridgeReader->has_bios &&
         cartridgeReader->is_in_bios &&
@@ -121,7 +121,7 @@ std::uint8_t Memory::readByte(std::uint16_t pos, bool limit_access)
 	{
         if (pos < cartridgeReader->bios.size())
         {
-		    return cartridgeReader->bios[pos];
+          return cartridgeReader->bios[pos];
         }
         else
         {

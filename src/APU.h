@@ -6,7 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <memory>
-#include <thread>
+
 #include <AudioSquare.h>
 #include <AudioWave.h>
 #include <AudioNoise.h>
@@ -50,7 +50,7 @@ public:
     APU& operator=(const APU& rhs);
 
     void setByte(const uint16_t & addr, const uint8_t & val);
-    uint8_t readByte(const uint16_t & addr);
+    uint8_t readByte(const uint16_t & addr) const;
     void run(const uint8_t & cpuTicks);
     void initCGB();
     void setChannelLogLevel(spdlog::level::level_enum level);
@@ -74,7 +74,7 @@ private:
     bool isSoundOutLeft(uint8_t sound_number) const;
     bool isSoundOutRight(uint8_t sound_number) const;
     void sendChannelOutputToSample(Sample & sample, const uint8_t & audio, const uint8_t & channelNum) const;
-    void sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum) const;
+    void sendChannelOutputToSampleFloat(Sample & sample, const float & audio, const uint8_t & channelNum) const;
     void writeSamplesOut(const uint32_t & audio_device, const std::vector<Sample>& samples, const uint16_t num_samples);
     uint8_t mixAudio(const uint8_t & audio1, const uint8_t & audio2);
     void logSamples();
@@ -86,7 +86,6 @@ private:
     std::unique_ptr<AudioSquare> sound_channel_2;
     std::unique_ptr<AudioWave>   sound_channel_3;
     std::unique_ptr<AudioNoise>  sound_channel_4;
-    std::thread queue_audio_thread;
     std::array<std::vector<Sample>, 2> double_sample_buffer;
     uint8_t frame_sequence_step;
     uint8_t left_volume;

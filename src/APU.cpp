@@ -61,11 +61,6 @@ APU::~APU()
     audioFileOut->close();
 #endif // WRITE_AUDIO_OUT
 
-    if (queue_audio_thread.joinable())
-    {
-        queue_audio_thread.join();
-    }
-
     if (initialized)
     {
         SDL_CloseAudioDevice(audio_device_id);
@@ -229,7 +224,7 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
     }
 }
 
-uint8_t APU::readByte(const uint16_t & addr)
+uint8_t APU::readByte(const uint16_t & addr) const
 {
     uint8_t ret = 0xFF;
 
@@ -457,11 +452,6 @@ void APU::writeSamplesOut(const uint32_t& audio_device, const std::vector<Sample
 
 void APU::writeSamplesOutAsync(const uint32_t& audio_device)
 {
-    if (queue_audio_thread.joinable())
-    {
-        queue_audio_thread.join();
-    }
-
     const std::vector<Sample>& sampleBuffer =
         double_sample_buffer[curr_sample_buffer];
 
@@ -473,20 +463,8 @@ void APU::writeSamplesOutAsync(const uint32_t& audio_device)
     // Clear active sample_buffer for immediate use
     clearCurrentAudioBuffer();
 
-    // Start async audio write out thread
-    queue_audio_thread = std::thread(
-        [&](const std::vector<Sample>& sample_buffer, const uint16_t sample_buffer_size)
-    {
-        
-        logger->debug("Writing sample buffer out, size: {}",
-            sample_buffer_size);
-
-        writeSamplesOut(audio_device, sample_buffer, sample_buffer_size);
-    }
-    , sampleBuffer
-    , sampleBufferSize);
-
-    //queue_audio_thread.detach();
+    writeSamplesOut(audio_device, sampleBuffer,
+      sampleBufferSize);
 }
 
 bool APU::isSoundOutLeft(uint8_t sound_number) const
@@ -531,7 +509,7 @@ void APU::sendChannelOutputToSample(Sample & sample, const uint8_t & audio, cons
     }
 }
 #else
-void APU::sendChannelOutputToSampleFloat(Sample & sample, float & audio, const uint8_t & channelNum) const
+void APU::sendChannelOutputToSampleFloat(Sample & sample, const float & audio, const uint8_t & channelNum) const
 {
     if (isSoundOutLeft(channelNum))
     {

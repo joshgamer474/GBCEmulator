@@ -34,7 +34,7 @@ public:
     MBC& operator=(const MBC& rhs);
 
     // Reading and writing methods
-    uint8_t readByte(const uint16_t pos);
+    uint8_t readByte(const uint16_t pos) const;
     void setByte(const uint16_t pos, uint8_t val);
     void setFromTo(From_To *, int start, int end);
     void latchCurrTimeToRTC();
