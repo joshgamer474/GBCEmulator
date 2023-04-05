@@ -160,7 +160,7 @@ void MBC::setFromTo(From_To *ft, int start, int end)
 }
 
 
-std::uint8_t MBC::readByte(const uint16_t pos)
+std::uint8_t MBC::readByte(const uint16_t pos) const
 {
 	switch (pos & 0xF000)
 	{
@@ -182,6 +182,11 @@ std::uint8_t MBC::readByte(const uint16_t pos)
             logger->trace("Reading from ROM bank: {}", curr_rom_bank % 0x1F);
             return romBanks[curr_rom_bank % 0x1F][pos - 0x4000];
         }
+        /*if (mbc_num == 5 && ram_banking_mode)
+        {    // Only ROM banks 0x00-0x01FF can be used during RAM banking mode
+            logger->trace("Reading from ROM bank: {}", curr_rom_bank % 0x1FF);
+            return romBanks[curr_rom_bank % 0x1FF][pos - 0x4000];
+        }*/
         
         // All ROM banks can be accessed
         logger->trace("Reading from ROM bank: {}", curr_rom_bank % num_rom_banks);
@@ -391,6 +396,31 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
         }
         else if (mbc_num == 5)
         {
+            /*if (rom_banking_mode)
+            {   // Set upper bits of ROM bank number
+                curr_rom_bank = ((curr_rom_bank & 0x001FF) | ((val & 0x0F) << 5)) % num_rom_banks;
+            }
+            else if (ram_banking_mode && val <= 0x0F)
+            {   // Set RAM bank number 
+                //curr_ram_bank = (val & 0x03) % num_ram_banks;
+                curr_ram_bank = val % num_ram_banks;
+            }
+            else
+            {
+                logger->warn("How'd you get here? Addr: 0x{0:x}, val: 0x{1:x}",
+                    pos,
+                    val);
+            }*/
+
+            // Don't use ROM banks 0x00, 0x20, 0x40, or 0x60 for MBC1
+            /*switch (curr_rom_bank)
+            {
+            case 0x20:
+            case 0x40:
+            case 0x60:
+                curr_rom_bank++;
+                break;
+            }*/
             if (val <= 0x0F)
             {
                 curr_ram_bank = val;
@@ -480,8 +510,18 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
         {
             if (external_ram_enabled)
             {
-                ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
-                wroteToRAMBanks = true;
+                /*if (rom_banking_mode)
+                {   // Only RAM bank 0x00 can be used during ROM banking mode
+                    ramBanks[0][pos - 0xA000] = val;
+                    wroteToRAMBanks = true;
+                }
+                else*/
+                {
+                    ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+                    wroteToRAMBanks = true;
+                }
+                //ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
+                //wroteToRAMBanks = true;
             }
             else
             {

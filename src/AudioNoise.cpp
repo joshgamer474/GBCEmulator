@@ -79,7 +79,7 @@ void AudioNoise::setByte(const uint16_t & addr, const uint8_t & val)
     }
 }
 
-uint8_t AudioNoise::readByte(const uint16_t & addr)
+uint8_t AudioNoise::readByte(const uint16_t & addr) const
 {
     uint8_t ret = 0xFF;
   

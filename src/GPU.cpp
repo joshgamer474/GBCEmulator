@@ -159,7 +159,7 @@ void GPU::init_color_gb()
     curr_opt_gb_palette = CGBPaletteCombo::NONE;
 }
 
-std::uint8_t GPU::readByte(const uint16_t pos, bool limit_access)
+std::uint8_t GPU::readByte(const uint16_t& pos, const bool limit_access) const
 {
 	switch (pos & 0xF000)
 	{
@@ -259,7 +259,7 @@ std::uint8_t GPU::readByte(const uint16_t pos, bool limit_access)
 }
 
 
-void GPU::setByte(const uint16_t pos, const uint8_t val, bool limit_access)
+void GPU::setByte(const uint16_t& pos, const uint8_t& val, const bool limit_access)
 {
 	uint8_t tile_block_num = 3;
     uint16_t source_address;
@@ -449,7 +449,7 @@ void GPU::setByte(const uint16_t pos, const uint8_t val, bool limit_access)
 }
 
 
-void GPU::set_color_palette(SDL_Color* palette, const uint8_t val, bool zero_is_transparant)
+void GPU::set_color_palette(SDL_Color* palette, const uint8_t& val, bool zero_is_transparant)
 {
     unsigned char color_val = 0;
     unsigned char alpha = 255;
@@ -509,7 +509,7 @@ void GPU::set_color_palette(SDL_Color* palette, const uint8_t val, bool zero_is_
     }
 }
 
-void GPU::use_color_palette(const CGBROMPalette wanted_palette)
+void GPU::use_color_palette(const CGBROMPalette& wanted_palette)
 {
     object_palette0_color[0] = get_sdl_color(wanted_palette.obj0.colors[0]);
     object_palette0_color[1] = get_sdl_color(wanted_palette.obj0.colors[1]);
@@ -537,7 +537,7 @@ SDL_Color GPU::get_sdl_color(const uint32_t& color) const
     };
 }
 
-void GPU::set_lcd_control(unsigned char lcdControl)
+void GPU::set_lcd_control(const uint8_t& lcdControl)
 {
 	lcd_control = lcdControl;
 	bool old_lcd_display_enable     = lcd_display_enable;
@@ -600,7 +600,7 @@ void GPU::set_lcd_control(unsigned char lcdControl)
     }
 }
 
-void GPU::set_lcd_status(unsigned char lcdStatus)
+void GPU::set_lcd_status(const uint8_t& lcdStatus)
 {
 	lcd_status = lcdStatus & 0xF8;  // First 3 bits are read-only
 
@@ -619,7 +619,7 @@ void GPU::set_lcd_status(unsigned char lcdStatus)
 }
 
 
-void GPU::set_lcd_status_mode_flag(GPU_MODE mode)
+void GPU::set_lcd_status_mode_flag(const GPU_MODE& mode)
 {
     int prev_gpu_mode = gpu_mode;
     gpu_mode = mode;
@@ -844,15 +844,15 @@ void GPU::drawBackgroundLine()
     bool cgb_bg_to_OAM_priority;
 
     // Calculate which row of the Tile we're in (0..7)
-    uint8_t curr_tile_row = (lcd_y + scroll_y) & 0x07;
+    const uint8_t curr_tile_row = (lcd_y + scroll_y) & 0x07;
 
     // Get VRAM offset for which set of tiles to use
-    uint16_t tile_map_vram_offset = bg_tile_map_select.start - 0x8000;
+    const uint16_t tile_map_vram_offset = bg_tile_map_select.start - 0x8000;
 
     uint8_t use_pixel_x = scroll_x;
-    uint8_t use_pixel_y = scroll_y + lcd_y;     // Will rollover naturally due to uint8 (0..255)
+    const uint8_t use_pixel_y = scroll_y + lcd_y;     // Will rollover naturally due to uint8 (0..255)
 
-    uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
+    const uint16_t frame_y_offset = lcd_y * SCREEN_PIXEL_W;
 
     // Draw scanline
     std::lock_guard<std::mutex> lg(frame_mutex);
@@ -1345,7 +1345,7 @@ void GPU::renderLine()
     }
 }
 
-uint16_t GPU::getTileMapNumber(uint8_t pixel_x, uint8_t pixel_y)
+uint16_t GPU::getTileMapNumber(const uint8_t& pixel_x, const uint8_t& pixel_y) const
 {
     // Calculate Tile row
     uint8_t tile_row = pixel_y / 8;
@@ -1544,7 +1544,8 @@ void GPU::printFrame()
 }
 
 
-Tile * GPU::updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t tile_block_num)
+Tile * GPU::updateTile(const uint16_t& pos, const uint8_t& val,
+  const bool& use_vram_bank, const uint8_t& tile_block_num)
 {
 	Tile *tile = NULL;
 	uint16_t tile_num;
@@ -1595,7 +1596,7 @@ bool GPU::SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b)
     }
 }
 
-void GPU::updateBackgroundPalette(uint8_t val)
+void GPU::updateBackgroundPalette(const uint8_t& val)
 {
     // Get Color Palette object
     ColorPalette & colorPalette = cgb_background_palettes[cgb_background_palette_index / 8];
@@ -1610,7 +1611,7 @@ void GPU::updateBackgroundPalette(uint8_t val)
         val);
 }
 
-void GPU::updateSpritePalette(uint8_t val)
+void GPU::updateSpritePalette(const uint8_t& val)
 {
     // Get Color Palette object
     ColorPalette & colorPalette = cgb_sprite_palettes[cgb_sprite_palette_index / 8];
@@ -1659,7 +1660,7 @@ std::array<SDL_Color, SCREEN_PIXEL_TOTAL> GPU::getFrame() const
     return array;
 }
 
-std::string GPU::getGPUModeStr(GPU_MODE mode) const
+std::string GPU::getGPUModeStr(const GPU_MODE& mode) const
 {
     switch (mode)
     {

@@ -75,8 +75,8 @@ public:
     void init_color_gb();
     void run(const uint8_t & cpuTicks);
     std::array<SDL_Color, SCREEN_PIXEL_TOTAL> getFrame() const;
-    uint8_t readByte(const uint16_t pos, bool limit_access = true);
-    void setByte(const uint16_t pos, const uint8_t val, bool limit_access = true);
+    uint8_t readByte(const uint16_t& pos, const bool limit_access = true) const;
+    void setByte(const uint16_t& pos, const uint8_t& val, const bool limit_access = true);
     std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
     const std::vector<int>& getUpdatedBGTileIndexes();
     void changeCGBPalette();
@@ -101,21 +101,21 @@ public:
     bool is_color_gb;
 
 private:
-    void set_color_palette(SDL_Color* palette, const uint8_t val, bool zero_is_transparent = false);
-    void use_color_palette(const CGBROMPalette wanted_palette);
+    void set_color_palette(SDL_Color* palette, const uint8_t& val, bool zero_is_transparent = false);
+    void use_color_palette(const CGBROMPalette& wanted_palette);
     SDL_Color get_sdl_color(const uint32_t& color) const;
     void renderLine();
     void drawBackgroundLine();
     void drawWindowLine();
     void drawOAMLine();
-    uint16_t getTileMapNumber(uint8_t pixel_x, uint8_t pixel_y);
+    uint16_t getTileMapNumber(const uint8_t& pixel_x, const uint8_t& pixel_y) const;
     void renderFullBackgroundMap();
     void drawShownBackgroundArea();
-    Tile * updateTile(uint16_t pos, uint8_t val, bool use_vram_bank, uint8_t tile_block_num);
-    void set_lcd_control(unsigned char lcd_control);
-    void set_lcd_status(unsigned char lcd_status);
-    void set_lcd_status_mode_flag(GPU_MODE);
-    std::string getGPUModeStr(GPU_MODE mode) const;
+    Tile * updateTile(const uint16_t& pos, const uint8_t& val, const bool& use_vram_bank, const uint8_t& tile_block_num);
+    void set_lcd_control(const uint8_t& lcd_control);
+    void set_lcd_status(const uint8_t& lcd_status);
+    void set_lcd_status_mode_flag(const GPU_MODE& mode);
+    std::string getGPUModeStr(const GPU_MODE& mode) const;
     void update_lcd_status_coincidence_flag();
     void printFrame();
     CGBROMPalette get_cgb_rom_palette(const uint8_t& ref) const;
@@ -126,8 +126,8 @@ private:
     Tile * getTileFromBGTiles(const uint8_t& use_vram_bank, const uint8_t& tile_block_num, const int& use_tile_num);
 
     // Palette methods
-    void updateBackgroundPalette(uint8_t val);
-    void updateSpritePalette(uint8_t val);
+    void updateBackgroundPalette(const uint8_t& val);
+    void updateSpritePalette(const uint8_t& val);
 
     bool SDLColorsAreEqual(const SDL_Color & a, const SDL_Color & b);
     void sortNonCGBOAMSpriteOrder();

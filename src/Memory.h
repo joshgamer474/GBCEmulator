@@ -52,7 +52,7 @@ public:
     void updateTimer(const uint8_t & ticks, const uint32_t & clock_speed);
     void initGBPowerOn();
     void setByte(uint16_t pos, uint8_t val, bool limit_access = true);
-    uint8_t readByte(uint16_t pos, bool limit_access = true);
+    uint8_t readByte(uint16_t pos, bool limit_access = true) const;
 
     // Variables
     std::shared_ptr<CartridgeReader> cartridgeReader;
