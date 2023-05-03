@@ -1,6 +1,4 @@
 [settings]
-os_build=Linux
-arch_build=x86_64
 os=Android
 os.api_level=28
 compiler=clang
