@@ -19,6 +19,8 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
     auto_save        = false;
     curr_rom_bank = 1;
     curr_ram_bank = 1;
+    ticks_to_run = 0;
+    run_clock_speed = 0;
 
     num_rom_banks = numROMBanks;
     num_ram_banks = numRAMBanks;
@@ -86,6 +88,8 @@ MBC& MBC::operator=(const MBC& rhs)
     curr_mbc3_latch = rhs.curr_mbc3_latch;
     wroteToRAMBanks = rhs.wroteToRAMBanks;
     wroteToRTC      = rhs.wroteToRTC;
+    ticks_to_run    = rhs.ticks_to_run;
+    run_clock_speed = rhs.run_clock_speed;
 
     return *this;
 }
@@ -109,10 +113,48 @@ void MBC::MBC2_init()
 
 void MBC::MBC3_init()
 {
-    rtcRegisters.resize(5);
+  rtcRegisters.resize(5);
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
+
+  RTC_init();
+}
+
+void MBC::RTC_init()
+{
+  // Setup RTC registers to now
+  uint8_t& seconds = rtcRegisters[0];
+  uint8_t& minutes = rtcRegisters[1];
+  uint8_t& hours = rtcRegisters[2];
+  uint8_t& days = rtcRegisters[3];
+  uint8_t& days_carry_flags = rtcRegisters[4];
+
+  // Get prev day as uint16_t
+  const uint16_t prevDayCounter = ((days_carry_flags & 0x01) << 8) | days;
+  const uint8_t prevHours = hours;
+
+  // Get current time
+  const std::time_t currTime = std::time(NULL);
+
+  // Convert to local calendar time
+  const std::tm calendarTime = *std::localtime(std::addressof(currTime));
+
+  // Set RTC registers
+  seconds = calendarTime.tm_sec;
+  minutes = calendarTime.tm_min;
+  hours = calendarTime.tm_hour;
+
+  const uint32_t days_since_1970 = ((calendarTime.tm_year - 1970) * 365) & 0x3FF;
+  days = days_since_1970 & 0xFF;
+  if (days_since_1970 > 0xFF)
+  { // Set most significant bit of Day counter
+    days_carry_flags |= 0x01;
+  }
+  //if (days_since_1970 > 0x1FF)
+  //{ // Set Day Counter Carry overflow bit
+  //  days_carry_flags |= 0x80;
+  //}
 }
 
 void MBC::MBC5_init()
@@ -286,12 +328,14 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
             if (mbc_num == 3)
             {
                 rtc_timer_enabled = true;
+                //ticks_to_run = 0;
             }
         }
         else if (val == 0)
         {
             external_ram_enabled = false;
             rtc_timer_enabled = false;
+            //ticks_to_run = 0;
         }
 
         break;
@@ -459,7 +503,7 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
             if (prev_mbc3_latch == 0x00 &&
                 curr_mbc3_latch == 0x01)
             {
-                latchCurrTimeToRTC();
+                addRunTimeToRTC();
             }
         }
         else
@@ -493,10 +537,42 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
                 ramBanks[curr_ram_bank % num_ram_banks][pos - 0xA000] = val;
                 wroteToRAMBanks = true;
             }
-            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C && rtc_timer_enabled)
+            else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
             {
-                rtcRegisters[curr_ram_bank - 0x08] = val;
-                wroteToRTC = true;
+                if (curr_ram_bank == 0x0C)
+                {
+                  rtc_timer_enabled = !(val & 0x40);
+                  ticks_to_run = 0;
+                }
+                //if (rtc_timer_enabled)
+                {
+                  switch (curr_ram_bank - 0x08)
+                  {
+                    case 0x00:
+                    case 0x01:
+                    {
+                      rtcRegisters[curr_ram_bank - 0x08] = val & 0x3F;
+                      break;
+                    }
+                    case 0x02:
+                    {
+                      rtcRegisters[curr_ram_bank - 0x08] = val & 0x1F;
+                      break;
+                    }
+                    case 0x03:
+                    {
+                      rtcRegisters[curr_ram_bank - 0x08] = val & 0xFF;
+                      break;
+                    }
+                    case 0x04:
+                    { // Only write to bits 0, 6, and 7
+                      rtcRegisters[curr_ram_bank - 0x08] = val & 0xC1;
+                      break;
+                    }
+                  }
+                  wroteToRTC = true;
+                }
+                //rtcRegisters[curr_ram_bank - 0x08] = val;
             }
             else
             {
@@ -586,6 +662,9 @@ void MBC::loadRTCIntoRAM(const std::string & filename)
     }
 
     rtcFilename = filename;
+
+    RTC_init();
+    return;
 
     // Open file
     std::ifstream file;
@@ -681,10 +760,11 @@ bool MBC::ramBanksAreEmpty() const
     return true;
 }
 
-void MBC::latchCurrTimeToRTC()
+void MBC::addRunTimeToRTC()
 {
     if (mbc_num != 3 ||
-        rtcRegisters.size() != 5)
+        rtcRegisters.size() != 5 ||
+        rtc_timer_enabled == false)
     {
         return;
     }
@@ -696,37 +776,93 @@ void MBC::latchCurrTimeToRTC()
     uint8_t & lower_8_bits_of_day_counter = rtcRegisters[3];
     uint8_t & rtc_DH    = rtcRegisters[4];
 
-    // Get prev day as uint16_t
-    uint16_t prevDayCounter = rtc_DH & 0x01;
-    prevDayCounter = (prevDayCounter << 8) | lower_8_bits_of_day_counter;
-
-    uint8_t prevHours = hours;
-
-    // Get current time
-    const std::time_t currTime = std::time(NULL);
-
-    // Convert to local calendar time
-    const std::tm calendarTime = *std::localtime(std::addressof(currTime));
-
-    // Set RTC registers
-    seconds = calendarTime.tm_sec;
-    minutes = calendarTime.tm_min;
-    hours   = calendarTime.tm_hour;
-
-    // Check for hour overflow
-    if (prevHours > hours)
-    {   // Update dayCounter RTC registers
-        lower_8_bits_of_day_counter = prevDayCounter & 0x00FF;
-        rtc_DH = (rtc_DH & 0xFE) | ((prevDayCounter & 0x0100) >> 8);
-    }
-
-    // Get current day as uint16_t
-    dayCounter = rtc_DH & 0x01;
-    dayCounter = (dayCounter << 8) | lower_8_bits_of_day_counter;
-
-    // Check for overflow of dayCounter
-    if (prevDayCounter > dayCounter)
+    bool carry = false;
+    if (ticks_to_run > run_clock_speed)
     {
-        rtc_DH |= 0x80; // Set Day Counter Carry bit
+      carry = true;
+      ticks_to_run -= run_clock_speed;
     }
+    else
+    {
+      return;
+    }
+
+    if (carry)
+    {
+      carry = false;
+      // Carry over subseconds (ticks) to seconds
+      seconds += 1;
+      seconds &= 0x3F;
+      // Using == to pass rtc3test's Rage Invalid value tick test
+      if (seconds == RTC_SEC_THRESH)
+      {
+        seconds = 0;
+        carry = true;
+      }
+    }
+
+    if (carry)
+    {
+      carry = false;
+      // Carry over seconds to minutes
+      minutes += 1;
+      minutes &= 0x3F;
+      if (minutes == RTC_MIN_THRESH)
+      {
+        minutes = 0;
+        carry = true;
+      }
+    }
+
+    if (carry)
+    {
+      carry = false;
+      // Carry over minutes to hours
+      hours += 1;
+      hours &= 0x1F;
+      if (hours == RTC_HOUR_THRESH)
+      {
+        hours = 0;
+        carry = true;
+      }
+    }
+
+    if (carry)
+    {
+      carry = false;
+      // Carry over hours to days
+      lower_8_bits_of_day_counter += 1;
+      if (lower_8_bits_of_day_counter == 0)
+      {
+        carry = true;
+      }
+    }
+
+    if (carry)
+    {
+      carry = false;
+      // Check if the Day Counter MSB is set
+      if (rtc_DH & 0x01)
+      {
+        // Reset Day Counter MSB
+        rtc_DH &= 0xFE;
+
+        // Set the Day Counter Carry overflow bit
+        rtc_DH |= 0x80;
+      }
+      else
+      {
+        // Set the Day Counter MSB
+        rtc_DH |= 0x01;
+      }
+    }
+}
+
+void MBC::updateRTCTicks(const uint8_t& ticks, const uint32_t& clock_speed)
+{
+  //if (rtc_timer_enabled)
+  {
+    ticks_to_run += ticks;
+    run_clock_speed = clock_speed;
+  }
 }

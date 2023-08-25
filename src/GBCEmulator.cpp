@@ -68,7 +68,7 @@ GBCEmulator::~GBCEmulator()
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
     // Try to write out .rtc file
-    mbc->latchCurrTimeToRTC();
+    mbc->addRunTimeToRTC();
     mbc->saveRTCToFile(filenameNoExtension + ".rtc");
 
     // Write out last frame hash
@@ -181,14 +181,16 @@ void GBCEmulator::runNextInstruction()
     apu->run(ticksRan);
     gpu->run(ticksRan);
 
-	// Update timer
+	// Update timers
 	if (memory->cgb_speed_mode & BIT7)
 	{
 		memory->updateTimer(ticksRan<<1, CLOCK_SPEED_GBC_MAX);
+    mbc->updateRTCTicks(ticksRan<<1, CLOCK_SPEED_GBC_MAX);
 	}
 	else
 	{
 		memory->updateTimer(ticksRan, CLOCK_SPEED);
+    mbc->updateRTCTicks(ticksRan, CLOCK_SPEED);
 	}
 
 #ifdef USE_AUDIO_TIMING

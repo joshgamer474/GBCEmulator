@@ -7,6 +7,13 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 
+#define RTC_SUBSEC_THRESH 4 * 1024 * 1024
+#define RTC_SEC_THRESH 0x3C
+#define RTC_MIN_THRESH 0x3C
+#define RTC_HOUR_THRESH 0x18
+#define RTC_DAYS_LOWER_THRESH 0xFF
+#define RTC_DAYS_THRESH 0x200
+
 enum MBC_Type {
     UNKNOWN,
     MBC1,
@@ -37,12 +44,13 @@ public:
     uint8_t readByte(const uint16_t pos) const;
     void setByte(const uint16_t pos, uint8_t val);
     void setFromTo(From_To *, int start, int end);
-    void latchCurrTimeToRTC();
+    void addRunTimeToRTC();
     void loadSaveIntoRAM(const std::string & filename);
     void loadRTCIntoRAM(const std::string & filename);
     void saveRAMToFile(const std::string & filename);
     void saveRTCToFile(const std::string & filename);
     bool ramBanksAreEmpty() const;
+    void updateRTCTicks(const uint8_t& ticks, const uint32_t& clock_speed);
 
     // Variables
     std::shared_ptr<spdlog::logger> logger;
@@ -64,10 +72,13 @@ private:
     void HuC1_init();
     void HuC3_init();
     void TAMA5_init();
+    void RTC_init();
 
     // Variables
     std::string savFilename;
     std::string rtcFilename;
+    uint32_t ticks_to_run;
+    uint32_t run_clock_speed;
     uint16_t curr_rom_bank;
     uint8_t curr_ram_bank;
     MBC_Type mbc_type;
