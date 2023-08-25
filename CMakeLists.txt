@@ -143,4 +143,6 @@ if(BUILD_QT_GUI)
     add_subdirectory(qt_wrap)
 endif(BUILD_QT_GUI)
 
-add_subdirectory(mobile)
+if(NOT BUILD_LIB_ONLY)
+  add_subdirectory(mobile)
+endif(NOT BUILD_LIB_ONLY)

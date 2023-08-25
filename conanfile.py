@@ -23,7 +23,7 @@ class GBCEmulator(ConanFile):
         "libpng/1.6.39",
         "libzip/1.8.0",
         )
-    exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
+    exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "mobile/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
     default_options = "shared=False", "lib_only=False", "qt=False"
 
@@ -38,10 +38,12 @@ class GBCEmulator(ConanFile):
     def configure(self):
         self.options["sdl2"].shared = True
         self.options["gtest"].shared = True
+        self.options["spdlog"].shared = True
+        self.options["fmt"].shared = True
         if self.settings.os == "Linux":
             self.options["sdl2"].iconv = False
             self.options["sdl2"].nas = False
-            self.options["sdl2"].pulse = False
+            self.options["sdl"].pulse = False
             self.options["sdl2"].jack = False
             self.options["sdl2"].libunwind = False
             self.options["libalsa"].shared = True
@@ -72,6 +74,7 @@ class GBCEmulator(ConanFile):
         self.copy("*.dll", src="bin", dst=dest)
         self.copy("*.dylib", src="lib", dst=libDest)
         self.copy("*.so*", src="lib", dst=libDest)
+        self.copy("*.a", src="lib", dst=libDest)
         if self.settings.os == "Android":
             self.copy("*.h", src="include", dst="include")
         if self.options.qt:
@@ -120,6 +123,7 @@ class GBCEmulator(ConanFile):
     def deploy(self):
         if self.options.lib_only == True:
             self.copy("*GBCEmulator*", dst="lib", src="lib")
+            self.copy("*", excludes="*c++_shared*", dst="lib", src="lib")
         else:
             self.copy("*", dst="bin", src="bin")
             self.copy("*", dst="lib", src="lib")
