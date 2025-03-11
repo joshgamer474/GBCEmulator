@@ -1,37 +1,39 @@
-from conans import ConanFile, CMake, tools
+from conan import ConanFile
+from conan.tools.files import save, load
+from conan.tools.gnu import AutotoolsToolchain, AutotoolsDeps
+from conan.tools.microsoft import unix_path, VCVars, is_msvc
+from conan.errors import ConanInvalidConfiguration
+from conan.errors import ConanException
+from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 import os
 
 class GBCEmulator(ConanFile):
 
     name = "GBCEmulator"
-    version = "0.1.4"
+    version = "0.1.5"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
-    settings = {"os" : ["Windows", "Linux", "Android", "Macos"], 
-                "arch": ["x86", "x86_64", "armv7", "armv8"],
-                "compiler": ["Visual Studio", "gcc", "clang", "apple-clang"],
-                "build_type": ["Debug", "Release"]}
+    settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
                 "lib_only": [True, False],
                 "qt": [True, False]}
-    generators = "cmake", "cmake_find_package"
     requires = (
-        "sdl/2.0.20",
+        "sdl/2.30.9",
         "spdlog/1.9.2",
         "libpng/1.6.39",
         "libzip/1.8.0",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
-    default_options = "shared=False", "lib_only=False", "qt=False"
+    default_options = {"shared": False, "lib_only": False, "qt": False}
 
     def build_requirements(self):
         if self.settings.os == "Android":
-            self.build_requires("android-ndk/r24")
+            self.tool_requires("android-ndk/r24")
         else:
-            self.build_requires("gtest/1.11.0")
+            self.test_requires("gtest/1.11.0")
         if self.options.qt:
-            self.build_requires("qt/5.15.8")
+            self.tool_requires("qt/5.15.8")
 
     def configure(self):
         self.options["sdl2"].shared = True
@@ -77,22 +79,37 @@ class GBCEmulator(ConanFile):
             self.copy("libq*.*", src="bin/archdatadir/plugins/platforms", dst=dest + os.sep + "platforms")
         self.keep_imports = True
 
-    def build(self):
-        cmake = CMake(self, build_type=self.settings.build_type)
+    def layout(self):
+        cmake_layout(self)
+
+    def generate(self):
+        # This generates "conan_toolchain.cmake" in self.generators_folder
+        tc = CMakeToolchain(self)
+        tc.variables["MYVAR"] = "1"
+        tc.preprocessor_definitions["MYDEFINE"] = "2"
+
         # Don't build test_package as ndk doesn't have std::experimental::filesystem
         if self.settings.os == "Android":
-            cmake.definitions["BUILD_UNIT_TEST"] = False
+            tc.variables["BUILD_UNIT_TEST"] = False
         else:
-            cmake.definitions["BUILD_UNIT_TEST"] = True
+            tc.variables["BUILD_UNIT_TEST"] = True
 
         if self.options.lib_only == True or self.settings.os == "Android":
-            cmake.definitions["BUILD_LIB_ONLY"] = True
+            tc.variables["BUILD_LIB_ONLY"] = True
         else:
-            cmake.definitions["BUILD_LIB_ONLY"] = False
+            tc.variables["BUILD_LIB_ONLY"] = False
 
         if self.options.qt:
-            cmake.definitions["BUILD_QT_GUI"] = True
+            tc.variables["BUILD_QT_GUI"] = True
 
+        tc.generate()
+
+        # This generates "foo-config.cmake" and "bar-config.cmake" in self.generators_folder
+        deps = CMakeDeps(self)
+        deps.generate()
+
+    def build(self):
+        cmake = CMake(self)
         cmake.configure()
         cmake.build()
         #cmake.test()

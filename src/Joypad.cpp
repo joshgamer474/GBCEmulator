@@ -86,6 +86,7 @@ void Joypad::release_joypad_button(BUTTON button)
     case B:         joypad_state |= BIT5; break;
     case SELECT:    joypad_state |= BIT6; break;
     case START:     joypad_state |= BIT7; break;
+    default: break;
     }
 
     logger->trace("Button {} released", button);

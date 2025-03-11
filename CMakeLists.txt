@@ -1,10 +1,18 @@
+cmake_minimum_required(VERSION 3.10)
+
 PROJECT(GBCEmulator_bin)
-cmake_minimum_required(VERSION 2.8.12)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+#include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+#conan_basic_setup(TARGETS)
 
-find_package(SDL2)
+# Find dependencies
+find_package(PNG REQUIRED)
+find_package(libzip REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(zlib REQUIRED)
+
+find_package(SDL2 REQUIRED)
 add_definitions(-DSDL_DRAW)
 
 set(GBC_HEADERS
@@ -62,11 +70,19 @@ else()
 endif()
 
 target_include_directories(GBCEmulator PUBLIC
-    ${CONAN_INCLUDE_DIRS}
+    ${libzip_INCLUDE_DIRS}
+    ${PNG_INCLUDE_DIRS}
+    ${spdlog_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
+    ${ZLIB_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(GBCEmulator
-    ${CONAN_TARGETS})
+    ${libzip_LIBRARIES}
+    ${PNG_LIBRARIES}
+    ${spdlog_LIBRARIES}
+    ${SDL2_LIBRARIES}
+    ${ZLIB_LIBRARIES})
 
 # Add std::experimental::filesystem
 if(UNIX AND NOT APPLE)
@@ -75,27 +91,27 @@ endif()
 if(LINUX AND BUILD_UNIT_TEST)
     target_link_libraries(GBCEmulator
         stdc++fs)
-endif(LINUX)
+endif()
 
 include_directories(${CONAN_INCLUDE_DIRS}
     "src/")
 
 if(NOT BUILD_LIB_ONLY)
-# Create GBCEmulator executable
-add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+    # Create GBCEmulator executable
+    add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
 
-target_link_libraries(GBCEmulator_bin
-    GBCEmulator)
+    target_link_libraries(GBCEmulator_bin
+        GBCEmulator)
 
-if(WIN32)
-message("************************************")
-message("LINKING XINPUT")
-target_link_libraries(GBCEmulator_bin
-    XInput)
-endif(WIN32)
+    if(WIN32)
+        message("************************************")
+        message("LINKING XINPUT")
+        target_link_libraries(GBCEmulator_bin
+            XInput)
+    endif(WIN32)
 
-# Rename GBCEmulator_bin to GBCEmulator
-SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
+    # Rename GBCEmulator_bin to GBCEmulator
+    SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
 endif(NOT BUILD_LIB_ONLY)
 
 ################################
@@ -109,11 +125,11 @@ if(CMAKE_NM AND ANDROID_ABI)
   message("NDKLIBPATH ${NDKLIBPATH}")
   # x86
   if(${ANDROID_ABI} STREQUAL x86)
-  set(USENDKLIBPATH ${NDKLIBPATH}/i686-linux-android)
+    set(USENDKLIBPATH ${NDKLIBPATH}/i686-linux-android)
   endif()
   # x86_64
   if(${ANDROID_ABI} STREQUAL x86_64)
-  set(USENDKLIBPATH ${NDKLIBPATH}/x86_64-linux-android)
+    set(USENDKLIBPATH ${NDKLIBPATH}/x86_64-linux-android)
   endif()
   # armv7
   if(${ANDROID_ABI} STREQUAL armeabi-v7a)

@@ -1,7 +1,11 @@
-PROJECT(GBCEmulatorTestPackage)
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10)
 
-#include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+PROJECT(GBCEmulatorTestPackage)
+
+#include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+
+# Find dependencies
+find_package(GTest REQUIRED)
 
 set(CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}/test_package)
 
@@ -32,7 +36,10 @@ add_executable(GBCEmulatorTestPackage
 
 target_link_libraries(GBCEmulatorTestPackage
     GBCEmulator
-    CONAN_PKG::gtest)
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    GTest::gmock_main)
 
 # Add std::filesystem
 if(UNIX AND NOT APPLE)
