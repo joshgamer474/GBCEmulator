@@ -1,5 +1,5 @@
 from conan import ConanFile
-from conan.tools.files import save, load
+from conan.tools.files import copy, save, load
 from conan.tools.gnu import AutotoolsToolchain, AutotoolsDeps
 from conan.tools.microsoft import unix_path, VCVars, is_msvc
 from conan.errors import ConanInvalidConfiguration
@@ -9,7 +9,7 @@ import os
 
 class GBCEmulator(ConanFile):
 
-    name = "GBCEmulator"
+    name = "gbcemulator"
     version = "0.1.5"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
@@ -115,19 +115,26 @@ class GBCEmulator(ConanFile):
         #cmake.test()
 
     def package(self):
-        libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
-        if (self.settings.arch == "armv7"):
-            libDest += os.sep + "armeabi-v7a"
-        elif (self.settings.arch == "armv8"):
-            libDest += os.sep + "arm64-v8a"
-        else:
-            libDest += os.sep + str(self.settings.arch)
-        self.copy("GBCEmulator*", src="bin", dst="bin", keep_path=False, excludes="GBCEmulatorTest*")
-        self.copy("*.dll", src="bin", dst="bin", excludes="g*.dll")
-        self.copy("*.h", src="src", dst="include")
-        self.copy("*.h", src="include", dst="include")
-        self.copy("*.a", src="lib", dst=libDest, keep_path=False)
-        self.copy("*.so", src="lib", dst=libDest, keep_path=False)
+        cmake = CMake(self)
+        cmake.install()
+#        libDest = os.getenv("CONAN_IMPORT_PATH", "lib")
+#        if (self.settings.arch == "armv7"):
+#            libDest += os.sep + "armeabi-v7a"
+#        elif (self.settings.arch == "armv8"):
+#            libDest += os.sep + "arm64-v8a"
+#        else:
+#            libDest += os.sep + str(self.settings.arch)
+#
+#        # Define output dirs
+#        binDest = join(self.package_folder, "bin")
+#        libDest = join(self.package_folder, "lib")
+#        includeDest = join(self.package_folder, "include")
+#
+#        copy(self, "GBCEmulator*", self.build_folder, binDest, keep_path=False, excludes="GBCEmulatorTest*")
+#        copy(self, "*.dll", self.build_folder, binDest, excludes="g*.dll")
+#        copy(self, "*.h", self.source_folder, includeDest)
+#        copy(self, "*.a", self.build_folder, libDest, keep_path=False)
+#        copy(self, "*.so", self.build_folder, libDest, keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)

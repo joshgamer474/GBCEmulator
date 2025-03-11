@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.23)
 
 PROJECT(GBCEmulator_bin)
 
@@ -63,11 +63,18 @@ set(GBC_RUN_SOURCE
 # Create GBCEmulator lib
 if(BUILD_SHARED_LIBS)
     message("Building as SHARED")
-    add_library(GBCEmulator SHARED ${GBC_SOURCE} ${GBC_HEADERS})
+    add_library(GBCEmulator SHARED)
 else()
     message("Building as STATIC")
-    add_library(GBCEmulator STATIC ${GBC_SOURCE} ${GBC_HEADERS})
+    add_library(GBCEmulator STATIC)
 endif()
+
+# Include source code
+target_sources(GBCEmulator
+    PRIVATE ${GBC_SOURCE}
+    PUBLIC FILE_SET HEADERS
+    BASE_DIRS ${CMAKE_SOURCE_DIR}/src
+    FILES ${GBC_HEADERS})
 
 target_include_directories(GBCEmulator PUBLIC
     ${libzip_INCLUDE_DIRS}
@@ -158,3 +165,9 @@ endif(BUILD_UNIT_TEST)
 if(BUILD_QT_GUI)
     add_subdirectory(qt_wrap)
 endif(BUILD_QT_GUI)
+
+# Install
+
+install(TARGETS GBCEmulator)
+install(TARGETS GBCEmulator FILE_SET HEADERS)
+install(TARGETS GBCEmulator_bin)
