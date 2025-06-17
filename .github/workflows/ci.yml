@@ -19,12 +19,12 @@ jobs:
         with:
           conan-version: 2.0 # Or specify a specific version
       - name: Cache Conan packages
-            uses: actions/cache@v3
-            with:
-              path: |
-                ~/.conan2/p
-                ~/.conan2/settings.yml
-              key: ${{ runner.os }}-conan-${{ hashFiles('conanfile.txt') }}
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.conan2/p
+            ~/.conan2/settings.yml
+          key: ${{ runner.os }}-conan-${{ hashFiles('conanfile.txt') }}
       - name: Install dependencies
         run: conan install . -s compiler.cppstd=17 --build=missing -u
       - name: Build
