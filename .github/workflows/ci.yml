@@ -1,10 +1,10 @@
 name: gbcemulator-ci
 
-on: [push]
+on:
   push:
-    branches: [ main, dev, ci ]
+    branches: [ master, dev, ci ]
   pull_request:
-    branches: [ main, dev, ci ]
+    branches: [ master, dev, ci ]
 
 jobs:
   build:
