@@ -26,6 +26,6 @@ jobs:
             ~/.conan2/settings.yml
           key: ${{ runner.os }}-conan-${{ hashFiles('conanfile.txt') }}
       - name: Install dependencies
-        run: conan install . -s compiler.cppstd=17 --build=missing -u
+        run: conan install . -s compiler.cppstd=17 --build=missing -u -c tools.system.package_manager:mode=install
       - name: Build
         run: conan build . -s compiler.cppstd=17
