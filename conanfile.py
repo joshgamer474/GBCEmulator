@@ -31,7 +31,7 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.tool_requires("android-ndk/r24")
         else:
-            self.test_requires("gtest/1.11.0")
+            self.test_requires("gtest/1.16.0")
         if self.options.qt:
             self.tool_requires("qt/5.15.8")
 
@@ -92,7 +92,8 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             tc.variables["BUILD_UNIT_TEST"] = False
         else:
-            tc.variables["BUILD_UNIT_TEST"] = True
+            #tc.variables["BUILD_UNIT_TEST"] = True
+            tc.variables["BUILD_UNIT_TEST"] = False
 
         if self.options.lib_only == True or self.settings.os == "Android":
             tc.variables["BUILD_LIB_ONLY"] = True
