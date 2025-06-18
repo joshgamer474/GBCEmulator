@@ -12,12 +12,15 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-2025, windows-11-arm]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Set up Conan
         uses: conan-io/setup-conan@v1
         with:
           conan-version: 2.0 # Or specify a specific version
+      - name: Install dependencies
+        run: conan install . -s compiler.cppstd=17 --build=missing -u -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
       - name: Cache Conan packages
         uses: actions/cache@v3
         with:
@@ -25,7 +28,5 @@ jobs:
             ~/.conan2/p
             ~/.conan2/settings.yml
           key: ${{ runner.os }}-conan-${{ hashFiles('conanfile.txt') }}
-      - name: Install dependencies
-        run: conan install . -s compiler.cppstd=17 --build=missing -u -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True
       - name: Build
         run: conan build . -s compiler.cppstd=17
