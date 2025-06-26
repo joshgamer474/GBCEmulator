@@ -1,6 +1,8 @@
 #include "GBCEmulator.h"
-#include <libpng16/png.h>
+
 #include <thread>
+
+#include <libpng16/png.h>
 
 GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     const std::string biosPath, bool debugMode, const bool force_cgb_mode)

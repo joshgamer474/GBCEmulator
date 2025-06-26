@@ -32,7 +32,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 
 extern "C" {
-#include <SDL.h>
+#include <SDL3/SDL.h>
 }
 
 #define USE_AUDIO_TIMING

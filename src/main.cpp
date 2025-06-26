@@ -1,11 +1,16 @@
 #define SDL_MAIN_HANDLED
 
 #include <GBCEmulator.h>
+
 #include <SDLWindow.h>
 #include <JoypadXInput.h>
+#include <Util.h>
+
 #include <memory>
+#include <string>
 #include <thread>
-#include <SDL.h>
+
+#include <SDL3/SDL.h>
 
 int main(int argc, char **argv)
 {
@@ -17,7 +22,10 @@ int main(int argc, char **argv)
         std::string romName = argv[1];
         if (SDLWindow::romIsValid(romName))
         {
-            std::shared_ptr<GBCEmulator> emu = std::make_shared<GBCEmulator>(romName, romName + ".log");
+            // Generate log path from ROM name and OS
+            const std::string logFile = generate_log_path(romName);
+            std::shared_ptr<GBCEmulator> emu = std::make_shared<GBCEmulator>(romName, logFile);
+
             window.hookToEmulator(emu);
             start_emu = true;
         }

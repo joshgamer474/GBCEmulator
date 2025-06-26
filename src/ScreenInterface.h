@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 extern "C" {
-#include <SDL.h>
+#include <SDL3/SDL.h>
 }
 
 class ScreenInterface

@@ -2,7 +2,7 @@
 #define TEST_PACKAGE_SRC_ROM_TEST_FIXTURE_H
 
 #include <gtest/gtest.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <UnitTests.h>
 #include <filesystem>
 #include <atomic>

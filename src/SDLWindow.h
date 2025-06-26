@@ -13,7 +13,7 @@
 #include <spdlog/spdlog.h>
 
 extern "C" {
-#include <SDL.h>
+#include <SDL3/SDL.h>
 }
 
 enum SDLRenderType : char {
