@@ -46,6 +46,6 @@ std::string generate_log_path(const std::string& rom_file)
 
   // Get filename from rom_file
   const std::filesystem::path p(rom_file);
-  const std::string filename = p.filename();
+  const std::string filename = p.filename().string();
   return log_dir + filename + ".log";
 }

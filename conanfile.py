@@ -22,7 +22,7 @@ class GBCEmulator(ConanFile):
         "sdl/3.2.14",
         "spdlog/1.9.2",
         "libpng/1.6.39",
-        "libzip/1.8.0",
+        "libzip/1.11.4",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
@@ -32,7 +32,7 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.tool_requires("android-ndk/r24")
         else:
-            self.test_requires("gtest/1.11.0")
+            self.test_requires("gtest/1.17.0")
 
         if self.options.qt:
             #self.tool_requires("qt/5.15.8")

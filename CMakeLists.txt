@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.5)
 
 PROJECT(GBCEmulator_bin)
 
@@ -206,6 +206,13 @@ else()
 
   install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-deps
     LIBRARY DESTINATION lib)
+
+  if (WIN32)
+    add_custom_command (
+        TARGET "${PROJECT_NAME}" POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+          "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
+  endif()
 
 endif()
 
