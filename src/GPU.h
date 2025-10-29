@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <vector>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include "ColorPalette.h"
 #include <GetUniqueColorPalette.h>
 #include <spdlog/spdlog.h>

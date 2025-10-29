@@ -1,124 +1,138 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.6)
 
 PROJECT(GBCEmulator_bin)
 
-#include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+set(LIB_NAME GBCEmulator)
+
+# Set cpp std
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
 include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
-#conan_basic_setup(TARGETS)
 
 # Find dependencies
 find_package(PNG REQUIRED)
 find_package(libzip REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(zlib REQUIRED)
-
-find_package(SDL2 REQUIRED)
+find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 add_definitions(-DSDL_DRAW)
 
 set(GBC_HEADERS
-    src/APU.h
-    src/AudioSquare.h
-    src/AudioWave.h
-    src/AudioNoise.h
-    src/CartridgeReader.h
-    src/ColorPalette.h
-    src/CPU.h
-    src/GBCEmulator.h
-    src/GetUniqueColorPalette.h
-    src/GPU.h
-    src/Joypad.h
-    src/JoypadInputInterface.h
-    src/JoypadXInput.h
-    src/MBC.h
-    src/Memory.h
-    src/ScreenInterface.h
-    src/SDLWindow.h
-    src/SerialTransfer.h
-    src/Tile.h
-	src/RollingAvg.h)
+  src/APU.h
+  src/AudioSquare.h
+  src/AudioWave.h
+  src/AudioNoise.h
+  src/CartridgeReader.h
+  src/ColorPalette.h
+  src/CPU.h
+  src/GBCEmulator.h
+  src/GetUniqueColorPalette.h
+  src/GPU.h
+  src/Joypad.h
+  src/JoypadInputInterface.h
+  src/JoypadXInput.h
+  src/MBC.h
+  src/Memory.h
+  src/ScreenInterface.h
+  src/SDLWindow.h
+  src/SerialTransfer.h
+  src/Tile.h
+  src/RollingAvg.h
+  src/Util.h)
 
 set(GBC_SOURCE
-    src/APU.cpp
-    src/AudioNoise.cpp
-    src/AudioSquare.cpp
-    src/AudioWave.cpp
-    src/CartridgeReader.cpp
-    src/ColorPalette.cpp
-    src/CPU.cpp
-    src/GBCEmulator.cpp
-    src/GetUniqueColorPalette.cpp
-    src/GPU.cpp
-    src/Joypad.cpp
-    src/JoypadXInput.cpp
-    src/MBC.cpp
-    src/Memory.cpp
-    src/SDLWindow.cpp
-    src/SerialTransfer.cpp
-    src/Tile.cpp
-	src/RollingAvg.cpp)
+  src/APU.cpp
+  src/AudioNoise.cpp
+  src/AudioSquare.cpp
+  src/AudioWave.cpp
+  src/CartridgeReader.cpp
+  src/ColorPalette.cpp
+  src/CPU.cpp
+  src/GBCEmulator.cpp
+  src/GetUniqueColorPalette.cpp
+  src/GPU.cpp
+  src/Joypad.cpp
+  src/JoypadXInput.cpp
+  src/MBC.cpp
+  src/Memory.cpp
+  src/SDLWindow.cpp
+  src/SerialTransfer.cpp
+  src/Tile.cpp
+  src/RollingAvg.cpp
+  src/Util.cpp)
 
 set(GBC_RUN_SOURCE
-    src/main.cpp)
+  src/main.cpp)
+
+set(DEPS_INCLUDES
+  ${libzip_INCLUDE_DIRS}
+  ${PNG_INCLUDE_DIRS}
+  ${spdlog_INCLUDE_DIRS}
+  #${SDL2_INCLUDE_DIRS}
+  ${SDL3_INCLUDE_DIRS}
+  ${ZLIB_INCLUDE_DIRS})
+
+set(DEPS_LIBRARIES
+  libzip::zip
+  PNG::PNG
+  spdlog::spdlog
+  SDL3::SDL3
+  ZLIB::ZLIB)
 
 # Create GBCEmulator lib
 if(BUILD_SHARED_LIBS)
-    message("Building as SHARED")
-    add_library(GBCEmulator SHARED)
+  message("Building as SHARED")
+  add_library(${LIB_NAME} SHARED)
 else()
-    message("Building as STATIC")
-    add_library(GBCEmulator STATIC)
+  message("Building as STATIC")
+  add_library(${LIB_NAME} STATIC)
 endif()
 
 # Include source code
-target_sources(GBCEmulator
-    PRIVATE ${GBC_SOURCE}
-    PUBLIC FILE_SET HEADERS
-    BASE_DIRS ${CMAKE_SOURCE_DIR}/src
-    FILES ${GBC_HEADERS})
+target_sources(${LIB_NAME}
+  PRIVATE ${GBC_SOURCE}
+  PUBLIC FILE_SET HEADERS
+  BASE_DIRS ${CMAKE_SOURCE_DIR}/src
+  FILES ${GBC_HEADERS})
 
-target_include_directories(GBCEmulator PUBLIC
-    ${libzip_INCLUDE_DIRS}
-    ${PNG_INCLUDE_DIRS}
-    ${spdlog_INCLUDE_DIRS}
-    ${SDL2_INCLUDE_DIRS}
-    ${ZLIB_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${LIB_NAME} PUBLIC
+  ${DEPS_INCLUDES}
+  ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(GBCEmulator
-    ${libzip_LIBRARIES}
-    ${PNG_LIBRARIES}
-    ${spdlog_LIBRARIES}
-    ${SDL2_LIBRARIES}
-    ${ZLIB_LIBRARIES})
+target_link_libraries(${LIB_NAME}
+  ${DEPS_LIBRARIES})
 
 # Add std::experimental::filesystem
 if(UNIX AND NOT APPLE)
-    set(LINUX TRUE)
+  set(LINUX TRUE)
 endif()
+
 if(LINUX AND BUILD_UNIT_TEST)
-    target_link_libraries(GBCEmulator
-        stdc++fs)
+  target_link_libraries(${LIB_NAME}
+    stdc++fs)
 endif()
 
 include_directories(${CONAN_INCLUDE_DIRS}
-    "src/")
+  "src/")
 
 if(NOT BUILD_LIB_ONLY)
-    # Create GBCEmulator executable
-    add_executable(GBCEmulator_bin ${GBC_RUN_SOURCE})
+  # Create GBCEmulator executable
+  add_executable(${PROJECT_NAME} MACOSX_BUNDLE
+    ${GBC_RUN_SOURCE})
 
-    target_link_libraries(GBCEmulator_bin
-        GBCEmulator)
+  target_link_libraries(${PROJECT_NAME}
+    ${LIB_NAME})
 
-    if(WIN32)
-        message("************************************")
-        message("LINKING XINPUT")
-        target_link_libraries(GBCEmulator_bin
-            XInput)
-    endif(WIN32)
+  if(WIN32)
+    message("************************************")
+    message("LINKING XINPUT")
+    target_link_libraries(${PROJECT_NAME}
+      XInput)
+  endif(WIN32)
 
-    # Rename GBCEmulator_bin to GBCEmulator
-    SET_TARGET_PROPERTIES(GBCEmulator_bin PROPERTIES OUTPUT_NAME GBCEmulator)
+  # Rename GBCEmulator_bin to GBCEmulator
+  SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${LIB_NAME})
 endif(NOT BUILD_LIB_ONLY)
 
 ################################
@@ -150,7 +164,7 @@ if(CMAKE_NM AND ANDROID_ABI)
   if (USENDKLIBPATH)
     message("Copying ${USENDKLIBPATH}/libc++_shared.so to ${CMAKE_BINARY_DIR}/lib")
     file(COPY ${USENDKLIBPATH}/libc++_shared.so
-        DESTINATION ${CMAKE_BINARY_DIR}/lib)
+      DESTINATION ${CMAKE_BINARY_DIR}/lib)
   endif()
 endif()
 
@@ -158,16 +172,51 @@ endif()
 enable_testing()
 
 if(BUILD_UNIT_TEST)
-    # Add unit tests
-    add_subdirectory(test_package)
+  # Add unit tests
+  add_subdirectory(test_package)
 endif(BUILD_UNIT_TEST)
 
 if(BUILD_QT_GUI)
-    add_subdirectory(qt_wrap)
+  add_subdirectory(qt_wrap)
 endif(BUILD_QT_GUI)
 
 # Install
+if (BUILD_LIB_ONLY)
+  install(TARGETS ${LIB_NAME}
+    LIBRARY DESTINATION lib)
+else()
+  install(TARGETS ${PROJECT_NAME}
+    BUNDLE DESTINATION "Applications")
 
-install(TARGETS GBCEmulator)
-install(TARGETS GBCEmulator FILE_SET HEADERS)
-install(TARGETS GBCEmulator_bin)
+  # Fix macos RPATH issues
+  set_target_properties(
+    ${PROJECT_NAME} PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib")
+    #INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_SOURCE_DIR}/path/to/shared/lib") 
+
+  # Install dependencies
+  install(TARGETS ${PROJECT_NAME} ${LIB_NAME}
+    #RUNTIME_DEPENDENCIES
+    RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
+    BUNDLE DESTINATION Applications
+    FRAMEWORK DESTINATION framework
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+  )
+
+  install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-deps
+    LIBRARY DESTINATION lib)
+
+  if (WIN32)
+    add_custom_command (
+        TARGET "${PROJECT_NAME}" POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+          "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
+  endif()
+
+endif()
+
+# Package
+if(NOT BUILD_LIB_ONLY)
+  #include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
+endif()

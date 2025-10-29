@@ -12,7 +12,7 @@
 #include <AudioNoise.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
-#include <SDL_audio.h>
+#include <SDL3/SDL_audio.h>
 #include <RollingAvg.h>
 
 #define SAMPLE_RATE 44100
@@ -90,8 +90,8 @@ private:
     uint8_t frame_sequence_step;
     uint8_t left_volume;
     uint8_t right_volume;
-    uint8_t left_volume_use;
-    uint8_t right_volume_use;
+    float left_volume_use;
+    float right_volume_use;
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
     uint16_t sample_buffer_counter;
@@ -101,6 +101,8 @@ private:
     uint32_t prev_sample_size;
     RollingAvg rolling_avg_sample_size;
     const uint32_t sample_timer_val;
+
+    SDL_AudioStream* audio_stream = nullptr;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
     bool sound_on;

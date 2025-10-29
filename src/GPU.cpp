@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #endif // _WIN32
 
+#include <algorithm>
+
 #include "GPU.h"
 #include "Joypad.h"
 #include "Memory.h"

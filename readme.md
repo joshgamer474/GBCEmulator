@@ -35,7 +35,7 @@ The Qt wrap includes variety of interactive GUI debug tools:
 * [Python 3.x](https://www.python.org/downloads/)
 * pip3
 * Conan.io via pip
-* Conan package SDL/2.0.8@josh/stable
+
 ## Prerequisite Commands
 
 ```pip3 install conan --user```
@@ -83,7 +83,6 @@ Now you should have built .so Android library files in android/lib/<desired buil
 ## How to use
 Open the built GBCEmulator.exe or GBCEmulator_qt.exe and drag and drop your favorite rom in.
 
-
 # TODO
 
 ## Implement some Core features
@@ -95,6 +94,7 @@ Open the built GBCEmulator.exe or GBCEmulator_qt.exe and drag and drop your favo
 - [x] Create a GUI (maybe Qt?)
 - [x] Linux build support
 - [x] Android build support
+- [x] Cross-platform packaging and installers
 
 ## Organization
 - [x] Implement Conan.io packaging for libraries

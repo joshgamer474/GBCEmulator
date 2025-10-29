@@ -6,7 +6,7 @@
 #endif
 
 #include <cstdint>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
 #define BIT0 0x01

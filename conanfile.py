@@ -18,10 +18,11 @@ class GBCEmulator(ConanFile):
                 "lib_only": [True, False],
                 "qt": [True, False]}
     requires = (
-        "sdl/2.30.9",
+        #"sdl/2.30.9",
+        "sdl/3.2.14",
         "spdlog/1.9.2",
         "libpng/1.6.39",
-        "libzip/1.8.0",
+        "libzip/1.11.4",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
@@ -31,19 +32,22 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             self.tool_requires("android-ndk/r24")
         else:
-            self.test_requires("gtest/1.11.0")
+            self.test_requires("gtest/1.17.0")
+
         if self.options.qt:
-            self.tool_requires("qt/5.15.8")
+            #self.tool_requires("qt/5.15.8")
+            self.tool_requires("qt/6.7.3")
 
     def configure(self):
-        self.options["sdl2"].shared = True
+        #self.options["sdl2"].shared = True
+        self.options["sdl3"].shared = True
         self.options["gtest"].shared = True
         if self.settings.os == "Linux":
-            self.options["sdl2"].iconv = False
-            self.options["sdl2"].nas = False
-            self.options["sdl2"].pulse = False
-            self.options["sdl2"].jack = False
-            self.options["sdl2"].libunwind = False
+            #self.options["sdl2"].iconv = False
+            #self.options["sdl2"].nas = False
+            #self.options["sdl2"].pulse = False
+            #self.options["sdl2"].jack = False
+            #self.options["sdl2"].libunwind = False
             self.options["libalsa"].shared = True
 
         if self.options.qt:
@@ -51,12 +55,12 @@ class GBCEmulator(ConanFile):
             self.options["qt"].with_sqlite3 = False
             self.options["qt"].with_mysql = False
             self.options["qt"].with_gstreamer = False
+            self.options["qt"].with_pq = False
             self.options["qt"].with_odbc = False
             self.options["qt"].with_pulseaudio = False
             self.options["qt"].with_dbus = False
             #self.options["qt"].with_gssapi = False
             self.options["qt"].with_atspi = False
-
 
         self.options["libzip"].shared = True
         self.options["libzip"].with_bzip2 = False
@@ -85,8 +89,6 @@ class GBCEmulator(ConanFile):
     def generate(self):
         # This generates "conan_toolchain.cmake" in self.generators_folder
         tc = CMakeToolchain(self)
-        tc.variables["MYVAR"] = "1"
-        tc.preprocessor_definitions["MYDEFINE"] = "2"
 
         # Don't build test_package as ndk doesn't have std::experimental::filesystem
         if self.settings.os == "Android":
@@ -137,7 +139,9 @@ class GBCEmulator(ConanFile):
 #        copy(self, "*.so", self.build_folder, libDest, keep_path=False)
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = ["GBCEmulator"]
+        self.cpp_info.libdirs = ["lib"]
+        self.cpp_info.includedirs = ["include"]
 
     def deploy(self):
         if self.options.lib_only == True:
