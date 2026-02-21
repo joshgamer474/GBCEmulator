@@ -432,18 +432,18 @@ void APU::writeSamplesOut(const uint32_t& audio_device, const std::vector<Sample
 #ifndef USE_FLOAT
     prev_sample_size = num_samples * 2 * sizeof(uint8_t);
     //const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
-    const int ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
+    const bool ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
 #else
     prev_sample_size = num_samples * 2 * sizeof(float);
     //const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
-    const int ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
+    const bool ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
 #endif // USE_FLOAT
 
     rolling_avg_sample_size.Push(prev_sample_size);
 
-    if (ret != 0)
+    if (ret == false)
     {
-        logger->error("SDL_PutAudioStreamData returned {}", ret);
+        logger->error("SDL_PutAudioStreamData returned {}", SDL_GetError());
     }
 
 #ifdef WRITE_AUDIO_OUT
@@ -576,7 +576,7 @@ void APU::initCGB()
 
 void APU::clearCurrentAudioBuffer()
 {
-    logger->trace("Clearing sample buffer: {}", curr_sample_buffer);
+    logger->trace("Clearing sample buffer: {}", curr_sample_buffer.load());
 
     // Get current sample buffer
     std::vector<Sample>& sample_buffer =

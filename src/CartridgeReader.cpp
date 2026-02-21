@@ -95,7 +95,7 @@ bool CartridgeReader::readRom()
         // Read information from cartridge
         getCartridgeInformation();
         logger->info("Finished reading in {}, file size: {}",
-            game_title,
+            reinterpret_cast<char*>(game_title),
             romBuffer.size());
         return true;
     }
@@ -118,7 +118,7 @@ std::vector<unsigned char> CartridgeReader::readFile(const std::string& filename
         in.seekg(0, std::ios::end);
         fileSize = in.tellg();
 
-        logger->info("File size is {0:d} bytes", fileSize);
+        logger->info("File size is {0:d} bytes", static_cast<size_t>(fileSize));
 
         // Seek back to the beginning of the ROM
         in.seekg(0, std::ios::beg);
@@ -188,7 +188,7 @@ int CartridgeReader::uncompressZip(const std::string& filename, std::vector<unsi
             }
 
             uncompressed_out.resize(st.size);
-            const int len = zip_fread(zf, uncompressed_out.data(), st.size);
+            const int len = static_cast<int>(zip_fread(zf, uncompressed_out.data(), st.size));
             zip_fclose(zf);
 
             // Done reading entry, close opened zip entry
@@ -257,7 +257,7 @@ void CartridgeReader::getCartridgeInformation()
 
     logger->info("Parsed cartridge, game_title: {}, game_title_hash: {}, game_title_hash_16: {}, "
         "old_licensee_code: {}, header_checksum: {}",
-        game_title,
+        reinterpret_cast<char*>(game_title),
         game_title_hash,
         game_title_hash_16,
         old_licensee_code,
@@ -287,7 +287,7 @@ int CartridgeReader::getNumOfRomBanks(unsigned char rom_size)
 	{
 	case 0x00: return 1;
 	case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07: case 0x08:
-		return std::pow(2, (int)(rom_size + 1));
+		return static_cast<int>(std::pow(2, (int)(rom_size + 1)));
 
 	case 0x52: return 72;
 	case 0x53: return 80;
