@@ -3,8 +3,8 @@
 #include <SDL3/SDL_stdinc.h>
 
 #include <algorithm>
+#include <format>
 
-#include <fmt/core.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <Util.h>
@@ -50,6 +50,12 @@ void SDLWindow::init()
 
     //SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_VIDEO) == false)
+    {
+        logger->error("SDL_Init() failed: {}", SDL_GetError());
+        return;
+    }
+
+    if (SDL_Init(SDL_INIT_GAMEPAD) == false)
     {
         logger->error("SDL_Init() failed: {}", SDL_GetError());
         return;
@@ -128,6 +134,7 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     // Get emulator joypad, hook up XInput joypad to emulator joypad
     joypad = emulator->get_Joypad();
     joypadx = std::make_shared<JoypadXInput>(joypad);   // Joypad XInput support
+    joypadg = std::make_shared<JoypadGeneric>(joypad);  // Joypad XInput support
 }
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
@@ -319,7 +326,16 @@ int SDLWindow::run(bool start_emu)
 
         } // switch(event.type)
 
-        if (joypadx)
+         if (joypadg)
+        {
+            // Check if a controller has been selected/found yet
+            if (using_connected_controller < 0)
+            {   // Select new controller to use
+                using_connected_controller = joypadg->findControllers();
+            }
+            joypadg->refreshButtonStates(using_connected_controller);
+        }
+        else if (joypadx)
         {   // Check if a controller has been selected/found yet
             if (using_connected_controller < 0)
             {   // Select new controller to use
@@ -327,6 +343,15 @@ int SDLWindow::run(bool start_emu)
             }
             joypadx->refreshButtonStates(using_connected_controller);
         }
+        /*else if (joypadg)
+        {
+            // Check if a controller has been selected/found yet
+            if (using_connected_controller < 0)
+            {   // Select new controller to use
+                using_connected_controller = joypadg->findControllers();
+            }
+            joypadg->refreshButtonStates(using_connected_controller);
+        }*/
 
         if (have_new_frame)
         {
@@ -339,7 +364,7 @@ int SDLWindow::run(bool start_emu)
 #ifndef __ANDROID__
             if (emu)
             {
-                updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
+                updateWindowTitle(std::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
             }
 #endif
         }

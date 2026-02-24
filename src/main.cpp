@@ -3,7 +3,6 @@
 #include <GBCEmulator.h>
 
 #include <SDLWindow.h>
-#include <JoypadXInput.h>
 #include <Util.h>
 
 #include <memory>

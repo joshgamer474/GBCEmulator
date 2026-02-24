@@ -1,20 +1,20 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.16)
 
 PROJECT(GBCEmulator_bin)
 
 set(LIB_NAME GBCEmulator)
 
 # Set cpp std
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+#include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
 
 # Find dependencies
+find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
 find_package(libzip REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(zlib REQUIRED)
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 add_definitions(-DSDL_DRAW)
 
@@ -30,6 +30,7 @@ set(GBC_HEADERS
   src/GetUniqueColorPalette.h
   src/GPU.h
   src/Joypad.h
+  src/JoypadGeneric.h
   src/JoypadInputInterface.h
   src/JoypadXInput.h
   src/MBC.h
@@ -53,6 +54,7 @@ set(GBC_SOURCE
   src/GetUniqueColorPalette.cpp
   src/GPU.cpp
   src/Joypad.cpp
+  src/JoypadGeneric.cpp
   src/JoypadXInput.cpp
   src/MBC.cpp
   src/Memory.cpp
@@ -69,7 +71,6 @@ set(DEPS_INCLUDES
   ${libzip_INCLUDE_DIRS}
   ${PNG_INCLUDE_DIRS}
   ${spdlog_INCLUDE_DIRS}
-  #${SDL2_INCLUDE_DIRS}
   ${SDL3_INCLUDE_DIRS}
   ${ZLIB_INCLUDE_DIRS})
 

@@ -3,6 +3,8 @@
 #endif // _WIN32
 
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 
 #include "GPU.h"
 #include "Joypad.h"

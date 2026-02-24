@@ -55,7 +55,7 @@ void Joypad::set_joypad_button(BUTTON button)
 
     joypad_state = unsetBit(joypad_state, bitToUnset);
 
-    logger->trace("Button {} pressed", button);
+    logger->trace("Button {} pressed", static_cast<int>(button));
 
     if (bitIsUnset(joypad_byte, BIT4) &&
         buttonIsDirectionKey(button))
@@ -89,7 +89,7 @@ void Joypad::release_joypad_button(BUTTON button)
     default: break;
     }
 
-    logger->trace("Button {} released", button);
+    logger->trace("Button {} released", static_cast<int>(button));
 }
 
 void Joypad::set_joypad_byte(std::uint8_t val)

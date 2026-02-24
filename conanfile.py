@@ -20,8 +20,8 @@ class GBCEmulator(ConanFile):
     requires = (
         #"sdl/2.30.9",
         "sdl/3.2.14",
-        "spdlog/1.9.2",
-        "libpng/1.6.39",
+        "spdlog/1.16.0",
+        "libpng/1.6.53",
         "libzip/1.11.4",
         )
     exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
@@ -42,6 +42,7 @@ class GBCEmulator(ConanFile):
         #self.options["sdl2"].shared = True
         self.options["sdl3"].shared = True
         self.options["gtest"].shared = True
+        self.options["spdlog"].use_std_fmt = True
         if self.settings.os == "Linux":
             #self.options["sdl2"].iconv = False
             #self.options["sdl2"].nas = False

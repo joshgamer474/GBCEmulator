@@ -10,52 +10,58 @@ find_package(GTest REQUIRED)
 set(CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}/test_package)
 
 set(UNIT_TEST_TEMPLATE_HEADERS
-    src/Fixtures/ROMTestFixture.h
-    src/UnitTests.h)
+  src/Fixtures/ROMTestFixture.h
+  src/UnitTests.h)
 
 set(UNIT_TEST_TEMPLATE_SOURCE
-    src/Fixtures/ROMTestFixture.cpp)
+  src/Fixtures/ROMTestFixture.cpp)
 
 set(UNIT_TEST_SOURCE
-    src/Tests/blargg_cgb_sounds.cpp
-    src/Tests/blargg_cpu_instrs.cpp
-    src/Tests/blargg_dmg_sounds.cpp
-    src/Tests/blargg_halt_bug.cpp
-    src/Tests/blargg_instr_timing.cpp
-    src/Tests/blargg_interrupt_time.cpp
-    src/Tests/blargg_mem_timing.cpp
-    src/Tests/blargg_mem_timing_2.cpp
-    src/Tests/blargg_oam_bug.cpp)
+  src/Tests/blargg_cgb_sounds.cpp
+  src/Tests/blargg_cpu_instrs.cpp
+  src/Tests/blargg_dmg_sounds.cpp
+  src/Tests/blargg_halt_bug.cpp
+  src/Tests/blargg_instr_timing.cpp
+  src/Tests/blargg_interrupt_time.cpp
+  src/Tests/blargg_mem_timing.cpp
+  src/Tests/blargg_mem_timing_2.cpp
+  src/Tests/blargg_oam_bug.cpp)
 
-include_directories(src)
 
-add_executable(GBCEmulatorTestPackage
-    ${UNIT_TEST_SOURCE}
-    ${UNIT_TEST_TEMPLATE_SOURCE}
-    ${UNIT_TEST_TEMPLATE_HEADERS})
+add_executable(${PROJECT_NAME}
+  ${UNIT_TEST_SOURCE}
+  ${UNIT_TEST_TEMPLATE_SOURCE}
+  ${UNIT_TEST_TEMPLATE_HEADERS})
 
-target_link_libraries(GBCEmulatorTestPackage
-    GBCEmulator
-    GTest::gtest
-    GTest::gtest_main
-    GTest::gmock
-    GTest::gmock_main)
+target_link_libraries(${PROJECT_NAME}
+  GBCEmulator
+  GTest::gtest
+  GTest::gtest_main
+  GTest::gmock
+  GTest::gmock_main)
+
+message("GTest_INCLUDE_DIRS: ${GTest_INCLUDE_DIRS}")
+
+target_include_directories(${PROJECT_NAME}
+ PUBLIC
+  src
+  ${GTest_INCLUDE_DIRS})
 
 # Add std::filesystem
 if(UNIX AND NOT APPLE)
-    set(LINUX TRUE)
+  set(LINUX TRUE)
 endif()
 if(LINUX)
-    target_link_libraries(GBCEmulatorTestPackage
-        stdc++fs)
+  target_link_libraries(${PROJECT_NAME}
+    stdc++fs)
 endif(LINUX)
 
 message("CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 
 # Copy blarggtest roms dir to build dir
 message("Copying dir ${CMAKE_SOURCE_DIR}/test_package/blarggtests ")
-add_custom_command(TARGET GBCEmulatorTestPackage PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/test_package/blarggtests $<TARGET_FILE_DIR:GBCEmulatorTestPackage>/blarggtests)
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_SOURCE_DIR}/test_package/blarggtests $<TARGET_FILE_DIR:GBCEmulatorTestPackage>/blarggtests)
 
-add_test(NAME romUnitTests COMMAND GBCEmulatorTestPackage)
+add_test(NAME romUnitTests COMMAND ${PROJECT_NAME})

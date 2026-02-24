@@ -1,5 +1,4 @@
-#ifndef JOYPAD_INPUT_INTERFACE_H
-#define JOYPAD_INPUT_INTERFACE_H
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -10,11 +9,9 @@ class Joypad;
 class JoypadInputInterface
 {
 public:
-    JoypadInputInterface() {}
-    JoypadInputInterface(std::shared_ptr<Joypad>) {}
-    //virtual JoypadInputInterface() = 0;
-    //virtual JoypadInputInterface(std::shared_ptr<Joypad> _joypad) = 0;
-    virtual ~JoypadInputInterface() {}
+    JoypadInputInterface() {};
+    JoypadInputInterface(std::shared_ptr<Joypad>) {};
+    virtual ~JoypadInputInterface() {};
 
     virtual void setJoypad(std::shared_ptr<Joypad> _joypad) = 0;
     virtual void refreshButtonStates(const int & controller) = 0;
@@ -29,5 +26,3 @@ protected:
     //std::unordered_map<int, bool> prev_button_states;
     //std::shared_ptr<Joypad> joypad;
 };
-
-#endif // JOYPAD_INPUT_INTERFACE_H

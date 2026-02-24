@@ -1,0 +1,10 @@
+# Ignore Dockerfiles
+docker
+
+# Ignore build dirs
+build
+build2
+out
+
+.git
+.vscode

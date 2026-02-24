@@ -1,18 +1,17 @@
 #pragma once
 
-#include <JoypadInputInterface.h>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-//class Joypad;
+#include <JoypadInputInterface.h>
 
-class JoypadXInput : public JoypadInputInterface
+class JoypadGeneric : public JoypadInputInterface
 {
 public:
-    JoypadXInput();
-    JoypadXInput(std::shared_ptr<Joypad> _joypad);
-    virtual ~JoypadXInput();
+    JoypadGeneric();
+    JoypadGeneric(std::shared_ptr<Joypad> _joypad);
+    virtual ~JoypadGeneric();
 
     void setJoypad(std::shared_ptr<Joypad> _joypad);
     void refreshButtonStates(const int & controller);
