@@ -1,0 +1,7 @@
+set(CPACK_GENERATOR "DragNDrop")
+set(CPACK_DMG_VOLUME_NAME "${CPACK_PACKAGE_NAME} ${CPACK_PACKAGE_VERSION}")
+
+set(MAC_ICON ${CMAKE_SOURCE_DIR}/packaging/macos/GBCEmulator.icns)
+if(EXISTS "${MAC_ICON}")
+  set(CPACK_PACKAGE_ICON "${MAC_ICON}")
+endif()

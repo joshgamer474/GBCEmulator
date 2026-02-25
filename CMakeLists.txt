@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-
-PROJECT(GBCEmulator_bin)
+project(GBCEmulator_bin VERSION 0.1.5 LANGUAGES CXX)
 
 set(LIB_NAME GBCEmulator)
 
@@ -184,40 +183,42 @@ endif(BUILD_QT_GUI)
 # Install
 if (BUILD_LIB_ONLY)
   install(TARGETS ${LIB_NAME}
-    LIBRARY DESTINATION lib)
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin)
 else()
+  if(APPLE)
+    set(LIB_DEST "Applications/${LIB_NAME}.app/Contents/Frameworks")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+      INSTALL_RPATH "@executable_path/../Frameworks")
+  else()
+    set(LIB_DEST "lib")
+  endif()
+
+  # Install application and collect runtime dependencies.
   install(TARGETS ${PROJECT_NAME}
-    BUNDLE DESTINATION "Applications")
-
-  # Fix macos RPATH issues
-  set_target_properties(
-    ${PROJECT_NAME} PROPERTIES
-    INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib")
-    #INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_SOURCE_DIR}/path/to/shared/lib") 
-
-  # Install dependencies
-  install(TARGETS ${PROJECT_NAME} ${LIB_NAME}
-    #RUNTIME_DEPENDENCIES
     RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
     BUNDLE DESTINATION Applications
-    FRAMEWORK DESTINATION framework
+    FRAMEWORK DESTINATION ${LIB_DEST}
     RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
+    LIBRARY DESTINATION ${LIB_DEST}
   )
 
-  install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-deps
-    LIBRARY DESTINATION lib)
+  install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
+    FRAMEWORK DESTINATION ${LIB_DEST}
+    LIBRARY DESTINATION ${LIB_DEST}
+  )
 
   if (WIN32)
     add_custom_command (
-        TARGET "${PROJECT_NAME}" POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-          "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
+      TARGET "${PROJECT_NAME}" POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
   endif()
 
 endif()
 
 # Package
 if(NOT BUILD_LIB_ONLY)
-  #include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
+  include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
 endif()

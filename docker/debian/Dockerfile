@@ -1,4 +1,4 @@
-FROM ubuntu:25.10
+FROM debian:trixie-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 

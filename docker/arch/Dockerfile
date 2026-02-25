@@ -8,5 +8,11 @@ RUN pacman -Sy --noconfirm libpng libzip spdlog zlib sdl3
 WORKDIR /gbcemulator
 COPY . .
 
+# Build
 RUN mkdir build && cd build && cmake .. && cmake --build .
+# Install
 RUN cd build && cmake --install . --prefix install
+# Package
+RUN cd build && cpack --config CPackConfig.cmake -G TGZ
+# Export
+RUN mkdir -p /export && mv build/*.tar.gz /export/
