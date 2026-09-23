@@ -1,7 +1,3 @@
-#ifndef SDL_MAIN_HANDLED
-#define SDL_MAIN_HANDLED
-#endif
-
 #ifndef GBCEMULATOR_H
 #define GBCEMULATOR_H
 

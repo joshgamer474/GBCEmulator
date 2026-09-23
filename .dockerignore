@@ -6,5 +6,8 @@ build
 build2
 out
 
+# Ignore export dir
+export
+
 .git
 .vscode

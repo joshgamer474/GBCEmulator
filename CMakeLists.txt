@@ -14,7 +14,8 @@ find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
 find_package(libzip REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+#find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+find_package(SDL3 CONFIG REQUIRED)
 add_definitions(-DSDL_DRAW)
 
 set(GBC_HEADERS
@@ -118,17 +119,15 @@ include_directories(${CONAN_INCLUDE_DIRS}
 
 if(NOT BUILD_LIB_ONLY)
   # Create GBCEmulator executable
-  add_executable(${PROJECT_NAME} MACOSX_BUNDLE
+  add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE
     ${GBC_RUN_SOURCE})
 
   target_link_libraries(${PROJECT_NAME}
     ${LIB_NAME})
 
   if(WIN32)
-    message("************************************")
-    message("LINKING XINPUT")
-    target_link_libraries(${PROJECT_NAME}
-      XInput)
+    target_link_libraries(${LIB_NAME}
+      xinput1_4)
   endif(WIN32)
 
   # Rename GBCEmulator_bin to GBCEmulator
@@ -195,16 +194,45 @@ else()
     set(LIB_DEST "lib")
   endif()
 
+  # MinGW cross compile
+  set(RUNTIME_SEARCH_DIRECTORIES)
+  set(RUNTIME_LIB_EXCLUDES)
+  if(MINGW AND CMAKE_CROSSCOMPILING)
+    # Add runtime DLL paths
+    list(APPEND RUNTIME_SEARCH_DIRECTORIES
+      DIRECTORIES
+        "/usr/x86_64-w64-mingw32/bin")
+
+    # Exclude unneeded DLLs
+    list(APPEND RUNTIME_LIB_EXCLUDES
+      PRE_EXCLUDE_REGEXES
+        "^api-ms-win-.*"
+        "^ext-ms-win-.*"
+        "^(advapi32|gdi32|imm32|kernel32|oleaut32|setupapi|shell32|user32|version|winmm|bcrypt|ole32)\\.dll$"
+        "^xinput1_4\\.dll$")
+
+    # Fix cross compile cmake_install.cmake error
+    install(CODE [[
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM "windows+pe")
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "objdump")
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND
+          "/usr/bin/x86_64-w64-mingw32-objdump")
+    ]])
+  endif()
+
   # Install application and collect runtime dependencies.
   install(TARGETS ${PROJECT_NAME}
     RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
     BUNDLE DESTINATION Applications
-    FRAMEWORK DESTINATION ${LIB_DEST}
     RUNTIME DESTINATION bin
+    FRAMEWORK DESTINATION ${LIB_DEST}
     LIBRARY DESTINATION ${LIB_DEST}
   )
 
   install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
+    ${RUNTIME_SEARCH_DIRECTORIES}
+    ${RUNTIME_LIB_EXCLUDES}
+    RUNTIME DESTINATION bin
     FRAMEWORK DESTINATION ${LIB_DEST}
     LIBRARY DESTINATION ${LIB_DEST}
   )

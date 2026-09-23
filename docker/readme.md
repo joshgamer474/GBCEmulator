@@ -29,7 +29,7 @@ Building via `docker` or `podman` is available for Linux.
 
 ## Windows
 
-`podman buildx build --platform linux/amd64 -t gbcemulator:windows -f docker/windows/Dockerfile .`
+`podman buildx build --platform linux/amd64 -t gbcemulator:windows-amd64 -f docker/windows/Dockerfile .`
 
 
 # Exporting
