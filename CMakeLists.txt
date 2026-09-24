@@ -126,8 +126,13 @@ if(NOT BUILD_LIB_ONLY)
     ${LIB_NAME})
 
   if(WIN32)
-    target_link_libraries(${LIB_NAME}
-      xinput1_4)
+    if(MINGW AND CMAKE_CROSSCOMPILING)
+      target_link_libraries(${LIB_NAME}
+        xinput1_4)
+    else()
+      target_link_libraries(${LIB_NAME}
+        xinput)
+    endif()
   endif(WIN32)
 
   # Rename GBCEmulator_bin to GBCEmulator
