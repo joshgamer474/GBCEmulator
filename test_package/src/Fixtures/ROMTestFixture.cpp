@@ -189,7 +189,7 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::instr_timing test) const
 {
     switch (test)
     {
-    case blargg::instr_timing::group: return ROMUnitTest(rom_root / "instr_timing" / "instr_timing.gb", 0);
+    case blargg::instr_timing::group: return ROMUnitTest(rom_root / "instr_timing" / "instr_timing.gb", 94831934909952);
     }
     return ROMUnitTest("", 0);
 }

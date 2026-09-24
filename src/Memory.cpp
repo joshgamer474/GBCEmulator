@@ -768,9 +768,9 @@ void Memory::updateTimer(const uint8_t & ticks, const uint32_t & clockSpeed)
     }
 
     // Update 0xFF05 - TIMA
-    //while (timer_enabled && clock_tima_diff >= clock_tima_rate)
-    if (timer_enabled &&
-        clock_tima_accumulator >= clock_tima_rate)
+    while (timer_enabled && clock_tima_accumulator >= clock_tima_rate)
+    //if (timer_enabled &&
+    //    clock_tima_accumulator >= clock_tima_rate)
     {
         timer_counter++;
         if (timer_counter == 0x00)

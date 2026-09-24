@@ -763,7 +763,7 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 		// CP d8
 	case 0xFE:
 
-		ret = CP(memory->readByte(get_register_16((CPU::REGISTERS) PC)), false);
+		ret = CP(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
         return ret;
 
@@ -1360,7 +1360,7 @@ uint8_t CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 
 
 	// Return ticks_accumulated
-	if (!indirect)
+	if (indirect)
 		return 8;
 	else
 		return 4;
@@ -1774,14 +1774,14 @@ uint8_t CPU::INC(CPU::REGISTERS reg, bool indirect=false)
         setByteToMemory(get_register_16(reg), result);
     }
 
-	// Returns ticks_accumulated
-    if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
-    {
-        return 8;
-    }
-    else if (reg == CPU::REGISTERS::HL && indirect)
+    // Returns ticks_accumulated
+    if (reg == CPU::REGISTERS::HL && indirect)
     {
         return 12;
+    }
+    else if (reg < B)
+    {
+        return 8;
     }
     else
     {
@@ -1832,13 +1832,13 @@ uint8_t CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 		setByteToMemory(get_register_16(reg), result);
 
 	// Return ticks_accumulated
-    if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
-    {
-        return 8;
-    }
-    else if (reg == CPU::REGISTERS::HL && indirect)
+    if (reg == CPU::REGISTERS::HL && indirect)
     {
         return 12;
+    }
+    else if (reg < B)
+    {
+        return 8;
     }
     else
     {
@@ -2432,7 +2432,7 @@ uint8_t CPU::handle_CB(std::uint8_t instruc)
 
     logger->trace("CB 0x{0:x}", instruc);
 
-	ret += 4;
+	//ret += 4;
 	registers[PC]++;
 
 	switch (instruc)
