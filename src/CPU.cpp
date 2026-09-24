@@ -1405,7 +1405,7 @@ uint8_t CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 
 
 	// Return ticks_accumulated
-	if (!indirect)
+	if (indirect)
 		return 8;
 	else
 		return 4;

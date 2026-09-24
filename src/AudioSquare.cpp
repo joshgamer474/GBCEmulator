@@ -70,13 +70,13 @@ AudioSquare& AudioSquare::operator=(const AudioSquare& rhs)
     return *this;
 }
 
-void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
+void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock)
 {
     uint16_t useAddr = addr - reg_offset;
 
     if (useAddr <= 4)
     {
-        parseRegister(useAddr, val);
+        parseRegister(useAddr, val, extra_length_clock);
     }
     else
     {
@@ -129,8 +129,10 @@ uint8_t AudioSquare::readByte(const uint16_t & addr) const
 }
 
 
-void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
+void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock)
 {
+    bool was_length_enabled = false;
+    bool reload_length = false;
     switch (reg)
     {
     case 0:
@@ -166,12 +168,27 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     case 4:
         frequency_16 &= 0x00FF;
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
+        was_length_enabled = stop_output_when_sound_length_ends;
         stop_output_when_sound_length_ends = val & BIT6;
+
+        // Tick length counter at register write while between length ticks
+        if (!was_length_enabled && stop_output_when_sound_length_ends && extra_length_clock)
+        {
+            tickLengthCounter();
+        }
 
         restart_sound = val & BIT7;
         if (restart_sound)
         {
+            // Check if length counter should be reloaded after the above^ length counter tick
+            reload_length = sound_length_data == 0;
+
             reset();
+
+            if (reload_length && stop_output_when_sound_length_ends && extra_length_clock)
+            {
+                tickLengthCounter();
+            }
         }
         break;
     }

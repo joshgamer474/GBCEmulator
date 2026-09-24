@@ -14,7 +14,7 @@ public:
     virtual ~AudioSquare();
     AudioSquare& operator=(const AudioSquare& rhs);
 
-    void setByte(const uint16_t & addr, const uint8_t & val);
+    void setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock);
     uint8_t readByte(const uint16_t & addr) const;
     void tick();
     void tickLengthCounter();
@@ -32,7 +32,7 @@ public:
 private:
     uint16_t calculateSweepFrequency();
     void initWaveDutyTable();
-    void parseRegister(const uint8_t & reg, const uint8_t & val);
+    void parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock);
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
 
     std::array<std::array<bool, 8>, 4> wave_duty_table;

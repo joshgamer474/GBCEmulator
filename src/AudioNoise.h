@@ -13,7 +13,7 @@ public:
     virtual ~AudioNoise();
     AudioNoise& operator=(const AudioNoise& rhs);
 
-    void setByte(const uint16_t & addr, const uint8_t & val);
+    void setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock);
     uint8_t readByte(const uint16_t & addr) const;
     void tick();
     void tickLengthCounter();
@@ -28,7 +28,7 @@ public:
     bool restart_sound;
 
 private:
-    void parseRegister(const uint8_t & reg, const uint8_t & val);
+    void parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock);
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
 
     uint16_t reg_offset;

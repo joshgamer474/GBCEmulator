@@ -65,13 +65,13 @@ AudioNoise& AudioNoise::operator=(const AudioNoise& rhs)
     return *this;
 }
 
-void AudioNoise::setByte(const uint16_t & addr, const uint8_t & val)
+void AudioNoise::setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock)
 {
     uint16_t useAddr = addr - reg_offset;
 
     if (useAddr <= 4)
     {
-        parseRegister(useAddr, val);
+        parseRegister(useAddr, val, extra_length_clock);
     }
     else
     {
@@ -108,8 +108,10 @@ uint8_t AudioNoise::readByte(const uint16_t & addr) const
 }
 
 
-void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
+void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock)
 {
+    bool was_length_enabled = false;
+    bool reload_length = false;
     switch (reg)
     {
     case 0:
@@ -138,11 +140,27 @@ void AudioNoise::parseRegister(const uint8_t & reg, const uint8_t & val)
 
     case 3:
         restart_sound                       = val & BIT7;
+        was_length_enabled = stop_output_when_sound_length_ends;
         stop_output_when_sound_length_ends  = val & BIT6;
 
+        // Tick length counter at register write while between length ticks
+        if (!was_length_enabled && stop_output_when_sound_length_ends && extra_length_clock)
+        {
+            tickLengthCounter();
+        }
+
         if (restart_sound)
-        {   // Sound turning on
+        {
+            // Check if length counter should be reloaded after the above^ length counter tick
+            reload_length = sound_length_data == 0;
+
+            // Sound turning on
             reset();
+
+            if (reload_length && stop_output_when_sound_length_ends && extra_length_clock)
+            {
+                tickLengthCounter();
+            }
         }
         break;
     }

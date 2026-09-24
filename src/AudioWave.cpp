@@ -43,8 +43,10 @@ AudioWave& AudioWave::operator=(const AudioWave& rhs)
     return *this;
 }
 
-void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
+void AudioWave::setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock)
 {
+    bool was_length_enabled = false;
+    bool reload_length = false;
     switch (addr)
     {
     case 0xFF1A:    // NR30
@@ -56,13 +58,13 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
         }
         break;
     case 0xFF1B:    // NR31
-        sound_length_data = 0x0100 - static_cast<uint16_t>(val & 0xFF);
+        sound_length_data = 0x0100 - static_cast<uint16_t>(val);
 
-        if (sound_length_data == 0x0100)
+        /*if (sound_length_data == 0x0100)
         {
             sound_length_data = 0xFF;
             logger->trace("Setting sound_length_data to 0xFF as it was 0x0100, but the register is supposed to be 1 byte");
-        }
+        }*/
 
         break;
     case 0xFF1C:    // NR32
@@ -73,12 +75,19 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
         frequency_16 |= val;
         break;
     case 0xFF1E:    // NR34
+        was_length_enabled = stop_output_when_sound_length_ends;
         stop_output_when_sound_length_ends = val & BIT6;
         frequency_16 &= 0x00FF;
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
 
         // Calculate frequency
         frequency = 131072 / (2048 - frequency_16);
+
+        // Tick length counter at register write while between length ticks
+        if (!was_length_enabled && stop_output_when_sound_length_ends && extra_length_clock)
+        {
+            tickLengthCounter();
+        }
 
         //if (restart_sound == false && (val & BIT7))
         //{
@@ -87,7 +96,15 @@ void AudioWave::setByte(const uint16_t & addr, const uint8_t & val)
         restart_sound = val & BIT7;
         if (restart_sound)
         {
+            // Check if length counter should be reloaded after the above^ length counter tick
+            reload_length = sound_length_data == 0;
+
             reset();
+
+            if (reload_length && stop_output_when_sound_length_ends && extra_length_clock)
+            {
+                tickLengthCounter();
+            }
         }
 
         break;
@@ -157,8 +174,8 @@ void AudioWave::reset()
 
     if (sound_length_data == 0)
     {
-        //sound_length_data = 0x0100;
-        sound_length_data = 0xFF;
+        sound_length_data = 0x0100;
+        //sound_length_data = 0xFF;
     }
 }
 

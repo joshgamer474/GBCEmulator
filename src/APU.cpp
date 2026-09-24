@@ -162,25 +162,28 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         addr,
         val);
 
+    // Check if we're between length clocks
+    const bool extra_length_clock = (frame_sequence_step & 0x01) != 0;
+
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {   // Channel 1 - Square 1 - NR10-NR14
-        sound_channel_1->setByte(addr, val);
+        sound_channel_1->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
     {   // Channel 2 - Square 2 - NR21-NR24
-        sound_channel_2->setByte(addr, val);
+        sound_channel_2->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
     {   // Channel 3 - Wave - NR30-NR34
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
     {   // Channel 4 - Noise - NR41-NR44
-        sound_channel_4->setByte(addr, val);
+        sound_channel_4->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {   // Wave Pattern RAM
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
 
     switch (addr)
@@ -284,7 +287,7 @@ void APU::reset()
     // Reset Wave RAM
     for (uint16_t i = 0xFF30; i < 0xFF3F; i++)
     {
-        sound_channel_3->setByte(i, 0);
+        sound_channel_3->setByte(i, 0, true);
     }
 
     sound_channel_1->reset();
