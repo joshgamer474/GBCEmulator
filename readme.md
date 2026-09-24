@@ -48,9 +48,9 @@ The Qt wrap includes variety of interactive GUI debug tools:
 
 ```cd GBCEmulator```
 
-```conan install . -if=build --build=outdated -s compiler.cppstd=17```
+```conan install . --build=missing --build=outdated -s compiler.cppstd=20```
 
-```conan build . -bf=build```
+```conan build .```
 
 ## Building Qt wrapped GBCEmulator
 
