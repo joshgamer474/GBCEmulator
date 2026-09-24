@@ -1285,7 +1285,7 @@ uint8_t CPU::LDH_INDIRECT(std::uint16_t addr, std::uint8_t val)
 	setByteToMemory(addr, val);
 
 	// Return ticks_accumulated
-	return 16;
+	return 12;
 }
 
 // LD HL, SP+r8

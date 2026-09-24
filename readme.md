@@ -62,9 +62,9 @@ The Qt wrap includes variety of interactive GUI debug tools:
 
 ```cd qt_wrap```
 
-```conan install . -if=build --build=outdated -s compiler.cppstd=17```
+```conan install . --build=outdated -s compiler.cppstd=17```
 
-```conan build . -bf=build```
+```conan build . ```
 
 ## Building Android (Linux env only)
 

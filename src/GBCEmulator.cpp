@@ -16,7 +16,6 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     init_logging(logName);
 
     cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink), force_cgb_mode);
-    apu     = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", loggerSink));
     serial_transfer = std::make_shared<SerialTransfer>(std::make_shared<spdlog::logger>("SerialTransfer", loggerSink));
 
@@ -29,6 +28,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     read_rom(romName);
 
     // Initialize GPU and memory objects, link GB components together
+    init_apu(force_cgb_mode);
     init_gpu(force_cgb_mode);
     init_memory(force_cgb_mode);
 
@@ -50,6 +50,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     // Set log levels
     set_logging_level(spdlog::level::err);
     //cpu->logger->set_level(spdlog::level::trace);
+    //gpu->logger->set_level(spdlog::level::debug);
+    //apu->logger->set_level(spdlog::level::trace);
 /*
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
@@ -153,6 +155,12 @@ void GBCEmulator::init_gpu(const bool force_cgb_mode)
     {
         gpu->init_color_gb();
     }
+}
+
+void GBCEmulator::init_apu(const bool force_cgb_mode)
+{
+    const bool is_color_gb = cartridgeReader->isColorGB() || force_cgb_mode;
+    apu = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink), is_color_gb);
 }
 
 void GBCEmulator::run()
