@@ -198,7 +198,7 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::interrupt_time test) const
 {
     switch (test)
     {
-    case blargg::interrupt_time::group: return ROMUnitTest(rom_root / "interrupt_time" / "interrupt_time.gb", 0);
+    case blargg::interrupt_time::group: return ROMUnitTest(rom_root / "interrupt_time" / "interrupt_time.gb", 91820270335488);
     }
     return ROMUnitTest("", 0);
 }

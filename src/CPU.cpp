@@ -297,7 +297,7 @@ uint8_t CPU::handleInterrupt()
             //memory->interrupt_flag = 0xE0;
 
             // PUSH PC after HALT
-            PUSH(PC);
+            ret += PUSH(PC); // 16 clocks
             registers[PC] = interrupt_table[i];
             logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);
             ret += 4; // "It takes 20 clocks to dispatch an interrupt" TCAGBD.pdf
