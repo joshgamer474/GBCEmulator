@@ -628,7 +628,7 @@ void GPU::set_lcd_status_mode_flag(const GPU_MODE& mode)
     int prev_gpu_mode = gpu_mode;
     gpu_mode = mode;
 
-    logger->debug("Changing GPU mode to: %s, previous GPU mode: %s",
+    logger->debug("Changing GPU mode to: {}, previous GPU mode: {}",
         getGPUModeStr((GPU_MODE)prev_gpu_mode).c_str(),
         getGPUModeStr((GPU_MODE)gpu_mode).c_str());
 
