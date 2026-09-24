@@ -31,30 +31,24 @@ void JoypadGeneric::init()
 
 int JoypadGeneric::findControllers()
 {
-  const bool ret = SDL_HasGamepad();
-  return ret;
   int numControllersConnected = -1;
 
-  SDL_JoystickID *ids = SDL_GetGamepads(&numControllersConnected);
-  do
+  if (!SDL_HasGamepad())
   {
-    if (ids[numControllersConnected] != 0)
-    {
-      return ids[numControllersConnected];
-      //numControllersConnected++;
-    }
-    else
-    {
-      break;
-    }
+    return numControllersConnected;
   }
-  while (true);
-  /*SDL_Gamepad* gamepad = NULL;
 
+  // Check for gamepads connected
+  SDL_JoystickID *ids = SDL_GetGamepads(&numControllersConnected);
+  int id = -1;
+
+  // Initialize gamepad
+  SDL_Gamepad* gamepad = NULL;
   for (int i = 0; i < numControllersConnected; i++)
   {
-    SDL_Gamepad* gp = SDL_OpenGamepad(ids[i]);
-    if (gp == nullptr)
+    id = ids[i];
+    SDL_Gamepad* gp = SDL_OpenGamepad(id);
+    if (gp != nullptr)
     {
       gamepad = gp;
     }
@@ -65,10 +59,7 @@ int JoypadGeneric::findControllers()
     }
   }
 
-  if (!gamepad)
-  {
-  }*/
-  return numControllersConnected;
+  return id;
 }
 
 void JoypadGeneric::refreshButtonStates(const int & controller)
@@ -134,9 +125,9 @@ int JoypadGeneric::getJoypadButtonFromMask(const int & mask) const
 {
   switch (mask)
   {
-    case SDL_GAMEPAD_BUTTON_SOUTH:             return Joypad::BUTTON::A;
-    case SDL_GAMEPAD_BUTTON_EAST:             return Joypad::BUTTON::B;
-    case SDL_GAMEPAD_BUTTON_WEST:             return Joypad::BUTTON::B;
+    case SDL_GAMEPAD_BUTTON_SOUTH:         return Joypad::BUTTON::A;
+    case SDL_GAMEPAD_BUTTON_EAST:          return Joypad::BUTTON::B;
+    case SDL_GAMEPAD_BUTTON_WEST:          return Joypad::BUTTON::B;
     case SDL_GAMEPAD_BUTTON_DPAD_LEFT:     return Joypad::BUTTON::LEFT;
     case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:    return Joypad::BUTTON::RIGHT;
     case SDL_GAMEPAD_BUTTON_DPAD_UP:       return Joypad::BUTTON::UP;
