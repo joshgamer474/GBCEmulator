@@ -310,7 +310,7 @@ uint8_t CPU::handleInterrupt()
 }
 
 // Get instruction from Ram[PC]
-std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
+std::uint8_t CPU::getInstruction(uint8_t& ticks_ran)
 {
 	// Check for interrupts
     checkJoypadForInterrupt();
@@ -357,7 +357,7 @@ std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
 	return getByteFromMemory(get_register_16(PC));
 }
 
-uint8_t CPU::runInstruction(uint8_t instruc)
+uint8_t CPU::runInstruction(const uint8_t& instruc)
 {
     uint8_t ret = 0;
     uint8_t a8, d8, parenA8, flagType;
@@ -2266,6 +2266,12 @@ uint8_t CPU::STOP()
 {
 	logger->trace("STOP");
 	is_stopped = true;
+
+	// Trigger CGB speed switch when the mode is armed
+	if (memory->is_color_gb && memory->cgb_speed_mode & 0x01)
+	{
+		memory->cgb_perform_speed_switch = true;
+	}
 	return 4;
 }
 

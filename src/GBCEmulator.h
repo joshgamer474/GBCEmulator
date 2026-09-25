@@ -80,6 +80,7 @@ public:
     std::shared_ptr<spdlog::logger> logger;
 
 private:
+    void tick(uint8_t ticksRan);
     void read_rom(std::string filename);
     void init_apu(const bool force_cgb_mode);
     void init_memory(const bool force_cgb_mode);

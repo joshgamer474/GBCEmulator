@@ -579,7 +579,7 @@ void GPU::set_lcd_control(const uint8_t& lcdControl)
             lcd_display_enable);
 		lcd_y = 0;
 		update_lcd_status_coincidence_flag();
-        set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+        set_lcd_status_mode_flag(GPU_MODE_OAM);
         ticks_accumulated = 0;
 	}
 
@@ -606,7 +606,8 @@ void GPU::set_lcd_control(const uint8_t& lcdControl)
 
 void GPU::set_lcd_status(const uint8_t& lcdStatus)
 {
-	lcd_status = lcdStatus & 0xF8;  // First 3 bits are read-only
+    // First 3 bits are read-only
+    lcd_status = (lcdStatus & 0xF8) | (lcd_status & 0x07);
 
     if (lcd_status & BIT6)
     {
@@ -616,12 +617,7 @@ void GPU::set_lcd_status(const uint8_t& lcdStatus)
     {
         enable_lcd_y_compare_interrupt = false;
     }
-
-	if (lcd_status & 0x20) gpu_mode = GPU_MODE_OAM;
-	if (lcd_status & 0x10) gpu_mode = GPU_MODE_VBLANK;
-	if (lcd_status & 0x08) gpu_mode = GPU_MODE_HBLANK;
 }
-
 
 void GPU::set_lcd_status_mode_flag(const GPU_MODE& mode)
 {
@@ -1327,7 +1323,7 @@ void GPU::renderLine()
 
     logger->debug("lcd_y: {}", lcd_y);
 
-    if (bg_display_enable)
+    if (is_color_gb || bg_display_enable)
     {
         drawBackgroundLine();
     }
@@ -1467,7 +1463,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
             }
 
-			ticks_accumulated = 0;
+			ticks_accumulated -= 204;
 		}
 		break;
 
@@ -1495,7 +1491,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 }
 			}
 
-            ticks_accumulated = 0;
+            ticks_accumulated -= 456;
 		}
 		break;
 
@@ -1505,7 +1501,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
 		if (ticks_accumulated >= 80)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
-            ticks_accumulated = 0;
+            ticks_accumulated -= 80;
 		}
 		break;
 
@@ -1517,7 +1513,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
             logger->trace("Rendering line lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             renderLine();
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
-			ticks_accumulated = 0;
+			ticks_accumulated -= 172;
 		}
 		break;
 	}

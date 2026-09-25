@@ -480,12 +480,7 @@ void Memory::setByte(std::uint16_t pos, std::uint8_t val, bool limit_access)
 			}
             else if (pos == 0xFF4D)
             {
-                if ((val & 0x01) && (cgb_speed_mode & 0x01) == 0)
-                {
-                    gpu->setByte(0xFF40, gpu->readByte(0xFF40, limit_access) & 0x7F); // Disable LCD 
-                    cgb_perform_speed_switch = true;
-                }
-                cgb_speed_mode = val & 0x01;    // Only bit 0 is writable
+                cgb_speed_mode = (cgb_speed_mode & 0xFE) | (val & 0x01); // Only bit 0 is writable
             }
 			else if (pos < 0xFF6C)
 			{

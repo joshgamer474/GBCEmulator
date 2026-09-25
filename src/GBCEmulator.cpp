@@ -50,7 +50,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     // Set log levels
     set_logging_level(spdlog::level::err);
     //cpu->logger->set_level(spdlog::level::trace);
-    //gpu->logger->set_level(spdlog::level::debug);
+    //gpu->logger->set_level(spdlog::level::trace);
     //apu->logger->set_level(spdlog::level::trace);
 /*
     gpu->logger->set_level(spdlog::level::info);
@@ -179,8 +179,34 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    uint8_t ticksRan = cpu->runNextInstruction();
+    //uint8_t ticksRan = cpu->runNextInstruction();
+    uint8_t ticksRan = 4;
+    const uint8_t instruction = cpu->getInstruction(ticksRan);
 
+    // Update GPU, APU, and memory
+    tick(ticksRan);
+
+    ticksRan = cpu->runInstruction(instruction) - 4;
+
+#ifdef ENABLE_DEBUG_PRINT
+    cpu->printRegisters();
+#endif
+
+    // Update GPU, APU, and memory
+    tick(ticksRan);
+
+    if (logCounter % 1000 == 0)
+    {
+        logCounter = 0;
+        loggerSink->flush();
+    }
+    logCounter++;
+
+    ranInstruction = true;
+}
+
+void GBCEmulator::tick(uint8_t ticksRan)
+{
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
     {   // In double speed mode, divide tickDiff by 2 to simulate
@@ -277,15 +303,6 @@ void GBCEmulator::runNextInstruction()
         memory->cgb_speed_mode |= BIT7;
         memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
-
-    if (logCounter % 1000 == 0)
-    {
-        logCounter = 0;
-        loggerSink->flush();
-    }
-    logCounter++;
-
-    ranInstruction = true;
 }
 
 void GBCEmulator::runTo(uint16_t pc)
