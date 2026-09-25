@@ -71,6 +71,8 @@ public:
     std::string numToHex(const T number) const;
     std::string getRegisterString(const REGISTERS reg) const;
 
+    bool isHalted() const;
+
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
 

@@ -179,13 +179,28 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
+    // Prevent CPU execution while VRAM DMA is pending
+    while (gpu->vramDMABlockReady(cpu->isHalted()))
+    {
+        const bool doubleSpeed = memory->cgb_speed_mode & BIT7;
+        const int cyclesPerBlock = doubleSpeed ? 16 : 8;
+        for (uint8_t i = 0; i < cyclesPerBlock; i++)
+        {
+            // Tick GPU, APU, and memory
+            tick(4);
+        }
+        gpu->finishVRAMDMABlock();
+    }
+
+    // Get next CPU instruction
     //uint8_t ticksRan = cpu->runNextInstruction();
     uint8_t ticksRan = 4;
     const uint8_t instruction = cpu->getInstruction(ticksRan);
 
-    // Update GPU, APU, and memory
+    // Tick GPU, APU, and memory
     tick(ticksRan);
 
+    // Execute CPU instruction
     ticksRan = cpu->runInstruction(instruction) - 4;
 
 #ifdef ENABLE_DEBUG_PRINT
