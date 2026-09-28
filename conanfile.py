@@ -10,7 +10,7 @@ import os
 class GBCEmulator(ConanFile):
 
     name = "gbcemulator"
-    version = "0.1.5"
+    version = "0.2.0"
     url = "https://github.com/joshgamer474/GBCEmulator"
     description = "A WIP Gameboy (Color) emulator written in C++"
     settings = "os", "arch", "compiler", "build_type"

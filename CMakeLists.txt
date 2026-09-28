@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GBCEmulator_bin VERSION 0.1.5 LANGUAGES CXX)
+project(GBCEmulator_bin VERSION 0.2.0 LANGUAGES CXX)
 
 set(LIB_NAME GBCEmulator)
 
