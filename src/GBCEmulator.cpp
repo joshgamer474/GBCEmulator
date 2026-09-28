@@ -72,7 +72,7 @@ GBCEmulator::~GBCEmulator()
     mbc->saveRAMToFile(filenameNoExtension + ".sav");
 
     // Try to write out .rtc file
-    mbc->latchCurrTimeToRTC();
+    //mbc->latchCurrTimeToRTC();
     mbc->saveRTCToFile(filenameNoExtension + ".rtc");
 
     // Write out last frame hash

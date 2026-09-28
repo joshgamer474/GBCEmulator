@@ -3,6 +3,9 @@
 #ifndef MBC_H
 #define MBC_H
 
+#include <array>
+#include <chrono>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <spdlog/spdlog.h>
@@ -48,7 +51,7 @@ public:
     std::shared_ptr<spdlog::logger> logger;
     std::vector<std::vector<unsigned char>> romBanks;	// size per bank = 16 KB = 0x4000
     std::vector<std::vector<unsigned char>> ramBanks;	// size per bank = 8 KB = 0x2000
-    std::vector<unsigned char> rtcRegisters;
+    std::array<uint8_t, 5> rtcRegisters = {};
     const uint16_t ROM_BANK_SIZE = 0x4000;
     const uint16_t RAM_BANK_SIZE = 0x2000;
     int mbc_num;
@@ -64,6 +67,9 @@ private:
     void HuC1_init();
     void HuC3_init();
     void TAMA5_init();
+
+    void advance_rtc();
+    void add_rtc_seconds(const uint64_t& elapsed);
 
     // Variables
     std::string savFilename;
@@ -84,5 +90,7 @@ private:
     uint8_t curr_mbc3_latch;
     From_To rom_from_to;
     From_To ram_from_to;
+    std::array<uint8_t, 5> latched_rtc_registers = {};
+    std::chrono::steady_clock::time_point rtc_last_update;
 };
 #endif
