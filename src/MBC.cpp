@@ -9,6 +9,13 @@
 #include <ctime>
 #include <exception>
 
+int64_t rtc_unix_seconds()
+{
+    return std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+}
+
 MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::logger> _logger)
 {
     rom_banking_mode = true;
@@ -33,6 +40,11 @@ MBC::MBC(int mbcNum, int numROMBanks, int numRAMBanks, std::shared_ptr<spdlog::l
 
     mbc_num = mbcNum;
     mbc_type = static_cast<MBC_Type>(mbcNum);
+
+    rtc_last_update = std::chrono::steady_clock::now();
+    rtc_timer_enabled = false;
+    prev_mbc3_latch = 0xFF;
+    curr_mbc3_latch = 0xFF;
 
     switch (mbc_num)
     {
@@ -67,7 +79,9 @@ MBC& MBC::operator=(const MBC& rhs)
     rom_banking_mode        = rhs.rom_banking_mode;
     ram_banking_mode        = rhs.ram_banking_mode;
     external_ram_enabled    = rhs.external_ram_enabled;
-    rtc_timer_enabled = rhs.rtc_timer_enabled;
+    rtc_timer_enabled       = rhs.rtc_timer_enabled;
+    latched_rtc_registers   = rhs.latched_rtc_registers;
+    rtc_last_update         = rhs.rtc_last_update;
 
     curr_rom_bank   = rhs.curr_rom_bank;
     curr_ram_bank   = rhs.curr_ram_bank;
@@ -109,7 +123,13 @@ void MBC::MBC2_init()
 
 void MBC::MBC3_init()
 {
-    rtcRegisters.resize(5);
+    rtcRegisters.fill(0);
+    latched_rtc_registers.fill(0);
+    rtc_last_update = std::chrono::steady_clock::now();
+
+    rtc_timer_enabled = false;
+    prev_mbc3_latch = 0xFF;
+    curr_mbc3_latch = 0xFF;
 
 	setFromTo(&rom_from_to, 0x4000, 0x7FFF);
 	setFromTo(&ram_from_to, 0xA000, 0xBFFF);
@@ -229,7 +249,8 @@ std::uint8_t MBC::readByte(const uint16_t pos) const
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C)
             {
                 logger->trace("Reading from RTC register: {}", curr_ram_bank - 0x08);
-                return rtcRegisters[curr_ram_bank - 0x08];
+                //return rtcRegisters[curr_ram_bank - 0x08];
+                return latched_rtc_registers[curr_ram_bank - 0x08];
             }
         }
         else
@@ -279,18 +300,16 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
 	case 0x1000:
 
         // 0x0000 - 0x1FFF : Set RAM enable
-        if ((val & 0x0F) == 0x0A)
+        external_ram_enabled = (val & 0x0F) == 0x0A;
+        if (external_ram_enabled)
         {
-            external_ram_enabled = true;
-
             if (mbc_num == 3)
             {
                 rtc_timer_enabled = true;
             }
         }
-        else if (val == 0)
+        else
         {
-            external_ram_enabled = false;
             rtc_timer_enabled = false;
         }
 
@@ -421,10 +440,7 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
                 curr_rom_bank++;
                 break;
             }*/
-            if (val <= 0x0F)
-            {
-                curr_ram_bank = val;
-            }
+            curr_ram_bank = val & 0x0F;
         }
 
         break;
@@ -495,7 +511,25 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
             }
             else if (curr_ram_bank >= 0x08 && curr_ram_bank <= 0x0C && rtc_timer_enabled)
             {
-                rtcRegisters[curr_ram_bank - 0x08] = val;
+                advance_rtc();
+
+                const bool wasHalted = rtcRegisters[4] & 0x40;
+                switch (curr_ram_bank - 0x08)
+                {
+                    case 0: rtcRegisters[0] = val & 0x3F; break;
+                    case 1: rtcRegisters[1] = val & 0x3F; break;
+                    case 2: rtcRegisters[2] = val & 0x1F; break;
+                    case 3: rtcRegisters[3] = val; break;
+                    case 4: rtcRegisters[4] = val & 0xC1; break; // Bit 8, halt, and carry are writable
+                }
+                //rtcRegisters[curr_ram_bank - 0x08] = val;
+
+                const bool isHalted = rtcRegisters[4] & 0x40;
+                if (wasHalted != isHalted || (curr_ram_bank - 0x08) == 0)
+                {
+                    rtc_last_update = std::chrono::steady_clock::now();
+                }
+
                 wroteToRTC = true;
             }
             else
@@ -586,35 +620,75 @@ void MBC::loadRTCIntoRAM(const std::string & filename)
     }
 
     rtcFilename = filename;
+    rtc_last_update = std::chrono::steady_clock::now();
 
     // Open file
     std::ifstream file;
     file.open(filename, std::ios::binary);
-
-    if (file.is_open())
-    {   // Read in file
-        logger->info("Reading in RTC file");
-        std::vector<unsigned char> rtc(
-            (std::istreambuf_iterator<char>(file)),
-            (std::istreambuf_iterator<char>()));
-
-        logger->info("Finished reading in RTC file, size: {} bytes",
-            rtc.size());
-
-        if (rtc.size() == rtcRegisters.size())
-        {   // Write RTC to RTC registers
-            rtcRegisters = std::move(rtc);
-        }
-        else
-        {
-            logger->error("Failed to load in RTC, .rtc size: {}, RTC register size: {}",
-                rtc.size(),
-                rtcRegisters.size());
-        }
-
-        // Close file
-        file.close();
+    if (!file)
+    {
+        return;
     }
+
+    // Read in file
+    logger->info("Reading in RTC file");
+    std::vector<unsigned char> data(
+        (std::istreambuf_iterator<char>(file)),
+        (std::istreambuf_iterator<char>()));
+
+    // Verify format is correct
+    uint64_t saved_timestamp = 0;
+    bool found_timestamp = false;
+    if (data.size() == 17 &&
+        data[0] == 'R' &&
+        data[1] == 'T' &&
+        data[2] == 'C' &&
+        data[3] == '1')
+    {
+        // Read in saved RTC registers
+        uint8_t offset = 4;
+        for (uint8_t i = 0; i < 5; i++)
+        {
+            rtcRegisters[i] = data[i + offset];
+        }
+        offset += 5;
+
+        // Read in saved timestamp
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            saved_timestamp |= static_cast<uint64_t>(data[i + offset]) << (i * 8);
+        }
+        found_timestamp = true;
+    }
+    else
+    {
+        logger->error("Failed to decode RTC file {}", filename);
+        return;
+    }
+
+    // Ensure RTC register bits
+    rtcRegisters[0] &= 0x3F;
+    rtcRegisters[1] &= 0x3F;
+    rtcRegisters[2] &= 0x1F;
+    rtcRegisters[3] &= 0xFF;
+    rtcRegisters[4] &= 0xC1;
+
+    const int64_t now = rtc_unix_seconds();
+    if (found_timestamp &&
+        now >= 0 &&
+        static_cast<uint64_t>(now) > saved_timestamp)
+    {
+        add_rtc_seconds(static_cast<uint64_t>(now) - saved_timestamp);
+    }
+    rtc_last_update = std::chrono::steady_clock::now();
+
+    // Update RTC registers to internal RTC clock
+    latched_rtc_registers = rtcRegisters;
+
+    wroteToRTC = false;
+
+    // Close file
+    file.close();
 }
 
 void MBC::saveRAMToFile(const std::string & filename)
@@ -643,26 +717,48 @@ void MBC::saveRAMToFile(const std::string & filename)
 
 void MBC::saveRTCToFile(const std::string & filename)
 {
-    if (mbc_num != 3
-        || rtcRegisters.empty()
-        || wroteToRTC == false)
+    if (mbc_num != 3)
     {
         logger->info("MBC{} does not have RTC registers to write out",
             mbc_num);
         return;
     }
 
+    // Increment RTC clock
+    advance_rtc();
+
+    // Get current time in seconds
+    const int64_t now = rtc_unix_seconds();
+
     // Open file
     std::ofstream file;
-    file.open(filename, std::ios::binary);
+    file.open(filename, std::ios::binary | std::ios::trunc);
+    if (!file)
+    {
+        logger->error("Could not open RTC file {}", filename);
+        return;
+    }
 
     logger->info("Saving RTC to {}", filename);
 
     // Write RTC to file
-    file.write(reinterpret_cast<const char *>(rtcRegisters.data()), rtcRegisters.size());
+    //file.write(reinterpret_cast<const char *>(rtcRegisters.data()), rtcRegisters.size());
+    file.write("RTC1", 4);
+    file.write(reinterpret_cast<const char*>(rtcRegisters.data()), rtcRegisters.size());
+
+    const uint64_t timestamp = static_cast<uint64_t>(now);
+    std::array<uint8_t, 8> atimestamp = {};
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        atimestamp[i] = static_cast<char>((timestamp >> (i * 8)) & 0xFF);
+    }
+    file.write(reinterpret_cast<const char*>(atimestamp.data()), atimestamp.size());
+    file.flush();
 
     // Close file
     file.close();
+
+    wroteToRTC = false;
 }
 
 
@@ -683,50 +779,83 @@ bool MBC::ramBanksAreEmpty() const
 
 void MBC::latchCurrTimeToRTC()
 {
-    if (mbc_num != 3 ||
-        rtcRegisters.size() != 5)
+    if (mbc_num != 3)
     {
         return;
     }
 
-    uint16_t dayCounter;
-    uint8_t & seconds   = rtcRegisters[0];
-    uint8_t & minutes   = rtcRegisters[1];
-    uint8_t & hours     = rtcRegisters[2];
-    uint8_t & lower_8_bits_of_day_counter = rtcRegisters[3];
-    uint8_t & rtc_DH    = rtcRegisters[4];
+    // Increment RTC registers
+    advance_rtc();
 
-    // Get prev day as uint16_t
-    uint16_t prevDayCounter = rtc_DH & 0x01;
-    prevDayCounter = (prevDayCounter << 8) | lower_8_bits_of_day_counter;
+    // Copy RTC registers to internal RTC time
+    latched_rtc_registers = rtcRegisters;
+}
 
-    uint8_t prevHours = hours;
-
-    // Get current time
-    const std::time_t currTime = std::time(NULL);
-
-    // Convert to local calendar time
-    const std::tm calendarTime = *std::localtime(std::addressof(currTime));
-
-    // Set RTC registers
-    seconds = calendarTime.tm_sec;
-    minutes = calendarTime.tm_min;
-    hours   = calendarTime.tm_hour;
-
-    // Check for hour overflow
-    if (prevHours > hours)
-    {   // Update dayCounter RTC registers
-        lower_8_bits_of_day_counter = prevDayCounter & 0x00FF;
-        rtc_DH = (rtc_DH & 0xFE) | ((prevDayCounter & 0x0100) >> 8);
+void MBC::add_rtc_seconds(const uint64_t& elapsed)
+{
+    if (rtcRegisters[4] & 0x40 || elapsed == 0)
+    {
+        return;
     }
 
-    // Get current day as uint16_t
-    dayCounter = rtc_DH & 0x01;
-    dayCounter = (dayCounter << 8) | lower_8_bits_of_day_counter;
+    uint8_t& seconds   = rtcRegisters[0];
+    uint8_t& minutes   = rtcRegisters[1];
+    uint8_t& hours     = rtcRegisters[2];
+    uint8_t& lower_8_bits_of_day_counter = rtcRegisters[3];
+    uint8_t& rtc_DH    = rtcRegisters[4];
 
-    // Check for overflow of dayCounter
-    if (prevDayCounter > dayCounter)
+    // Calculate number of RTC days
+    const uint16_t days = lower_8_bits_of_day_counter | ((static_cast<uint16_t>(rtc_DH) & 0x01) << 8);
+
+    const uint64_t secondsPerHour = 60 * 60;
+    const uint64_t secondsPerDay = secondsPerHour * 24;
+    uint64_t elapsedDays = elapsed / secondsPerDay;
+    uint64_t timeOfDay =
+        static_cast<uint64_t>(hours) * secondsPerHour +
+        static_cast<uint64_t>(minutes) * 60 +
+        seconds +
+        elapsed % secondsPerDay;
+
+    elapsedDays += timeOfDay / secondsPerDay;
+    timeOfDay %= secondsPerDay;
+
+    const uint64_t totalDays = days + elapsedDays;
+    const uint64_t wrappedDays = static_cast<uint16_t>(totalDays & 0x1FF);
+
+    uint8_t flags = rtc_DH & 0xC0;
+    if (totalDays >= 512)
     {
-        rtc_DH |= 0x80; // Set Day Counter Carry bit
+        flags |= 0x80;
+    }
+
+    seconds = static_cast<uint8_t>(timeOfDay % 60);
+    minutes = static_cast<uint8_t>((timeOfDay / 60) % 60);
+    hours = static_cast<uint8_t>((timeOfDay / secondsPerHour));
+    lower_8_bits_of_day_counter = static_cast<uint8_t>(wrappedDays);
+    rtc_DH = flags | ((wrappedDays >> 8) & 0x01);
+}
+
+void MBC::advance_rtc()
+{
+    if (mbc_num != 3)
+    {
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+
+    // Check if currently halted
+    if (rtcRegisters[4] & 0x40)
+    {   // Don't increment RTC time when halted
+        rtc_last_update = now;
+        return;
+    }
+
+    // Calculate last time since now
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - rtc_last_update);
+    if (elapsed.count() > 0)
+    {
+        add_rtc_seconds(static_cast<uint64_t>(elapsed.count()));
+        rtc_last_update += elapsed;
     }
 }

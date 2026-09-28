@@ -2,7 +2,7 @@
 #define COLOR_PALETTE_H
 
 #include <array>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #define CGB_NUM_COLORS_PER_PALETTE 4
 

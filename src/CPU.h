@@ -51,6 +51,8 @@ public:
     ~CPU();
     CPU& operator=(const CPU& rhs);
 
+    uint8_t getInstruction(uint8_t& ticks_ran);
+    uint8_t runInstruction(const uint8_t& instruc);
     uint8_t runNextInstruction();
     uint8_t peekNextByte() const;
     int8_t peekNextByteSigned() const;
@@ -69,14 +71,14 @@ public:
     std::string numToHex(const T number) const;
     std::string getRegisterString(const REGISTERS reg) const;
 
+    bool isHalted() const;
+
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
 
 private:
     void checkJoypadForInterrupt();
     void printRegisters();
-    uint8_t getInstruction(uint8_t & ticks_ran);
-    uint8_t runInstruction(uint8_t);
     uint8_t handleInterrupt();
 
     void set_register(const REGISTERS reg, const uint16_t);

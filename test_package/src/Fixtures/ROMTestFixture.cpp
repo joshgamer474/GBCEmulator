@@ -127,17 +127,17 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::cgb_sound test) const
     {
     case blargg::cgb_sound::_01_registers:              return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "01-registers.gb", 94802695448064, test_type);
     case blargg::cgb_sound::_02_len_ctr:                return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "02-len ctr.gb", 94648144006656, test_type);
-    case blargg::cgb_sound::_03_trigger:                return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "03-trigger.gb", 0, test_type);
-    case blargg::cgb_sound::_04_sweep:                  return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "04-sweep.gb", 0, test_type);
-    case blargg::cgb_sound::_05_sweep_details:          return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "05-sweep details.gb", 0, test_type);
+    case blargg::cgb_sound::_03_trigger:                return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "03-trigger.gb", 94531186159104, test_type);
+    case blargg::cgb_sound::_04_sweep:                  return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "04-sweep.gb", 95032434077184, test_type);
+    case blargg::cgb_sound::_05_sweep_details:          return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "05-sweep details.gb", 94468530169344, test_type);
     case blargg::cgb_sound::_06_overflow_on_trigger:    return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "06-overflow on trigger.gb", 88436846888448, test_type);
     case blargg::cgb_sound::_07_len_sweep_period_sync:  return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "07-len sweep period sync.gb", 93988167581184, test_type);
-    case blargg::cgb_sound::_08_len_ctr_during_power:   return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "08-len ctr during power.gb", 0, test_type);
-    case blargg::cgb_sound::_09_wave_read_while_on:     return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "09-wave read while on.gb", 0, test_type);
+    case blargg::cgb_sound::_08_len_ctr_during_power:   return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "08-len ctr during power.gb", 93161108516352, test_type);
+    case blargg::cgb_sound::_09_wave_read_while_on:     return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "09-wave read while on.gb", 80191318636032, test_type);
     case blargg::cgb_sound::_10_wave_trigger_while_on:  return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "10-wave trigger while on.gb", 79380967835136, test_type);
-    case blargg::cgb_sound::_11_regs_after_power:       return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "11-regs after power.gb", 0, test_type);
-    case blargg::cgb_sound::_12_wave:                   return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "12-wave.gb", 0, test_type);
-    case blargg::cgb_sound::group:                      return ROMUnitTest(rom_root / "cgb_sound" / "cgb_sound.gb", 0, test_type);
+    case blargg::cgb_sound::_11_regs_after_power:       return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "11-regs after power.gb", 94405874179584, test_type);
+    case blargg::cgb_sound::_12_wave:                   return ROMUnitTest(rom_root / "cgb_sound" / "rom_singles" / "12-wave.gb", 95182808452608, test_type);
+    case blargg::cgb_sound::group:                      return ROMUnitTest(rom_root / "cgb_sound" / "cgb_sound.gb", 89840341059072, test_type);
     }
     return ROMUnitTest("", 0);
 }
@@ -170,17 +170,17 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::dmg_sound test) const
     {
     case blargg::dmg_sound::_01_registers:              return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "01-registers.gb", 97478577815040, test_type);
     case blargg::dmg_sound::_02_len_ctr:                return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "02-len ctr.gb", 97319664034560, test_type);
-    case blargg::dmg_sound::_03_trigger:                return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "03-trigger.gb", 0, test_type);
-    case blargg::dmg_sound::_04_sweep:                  return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "04-sweep.gb", 0, test_type);
-    case blargg::dmg_sound::_05_sweep_details:          return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "05-sweep details.gb", 0, test_type);
+    case blargg::dmg_sound::_03_trigger:                return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "03-trigger.gb", 97199404957440, test_type);
+    case blargg::dmg_sound::_04_sweep:                  return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "04-sweep.gb", 97714801002240, test_type);
+    case blargg::dmg_sound::_05_sweep_details:          return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "05-sweep details.gb", 97134980451840, test_type);
     case blargg::dmg_sound::_06_overflow_on_trigger:    return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "06-overflow on trigger.gb", 90933048046080, test_type);
     case blargg::dmg_sound::_07_len_sweep_period_sync:  return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "07-len sweep period sync.gb", 96641059242240, test_type);
-    case blargg::dmg_sound::_08_len_ctr_during_power:   return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "08-len ctr during power.gb", 0, test_type);
-    case blargg::dmg_sound::_09_wave_read_while_on:     return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "09-wave read while on.gb", 0, test_type);
-    case blargg::dmg_sound::_10_wave_trigger_while_on:  return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "10-wave trigger while on.gb", 0, test_type);
+    case blargg::dmg_sound::_08_len_ctr_during_power:   return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "08-len ctr during power.gb", 95992519219200, test_type);
+    case blargg::dmg_sound::_09_wave_read_while_on:     return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "09-wave read while on.gb", 83940841704960, test_type);
+    case blargg::dmg_sound::_10_wave_trigger_while_on:  return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "10-wave trigger while on.gb", 81716048778240, test_type);
     case blargg::dmg_sound::_11_regs_after_power:       return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "11-regs after power.gb", 97070555946240, test_type);
-    case blargg::dmg_sound::_12_wave_write_while_on:    return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "12-wave write while on.gb", 0, test_type);
-    case blargg::dmg_sound::group:                      return ROMUnitTest(rom_root / "dmg_sound" / "dmg_sound.gb", 0, test_type);
+    case blargg::dmg_sound::_12_wave_write_while_on:    return ROMUnitTest(rom_root / "dmg_sound" / "rom_singles" / "12-wave write while on.gb", 81905027328000, test_type);
+    case blargg::dmg_sound::group:                      return ROMUnitTest(rom_root / "dmg_sound" / "dmg_sound.gb", 92328912334080, test_type);
     }
     return ROMUnitTest("", 0);
 }
@@ -189,7 +189,7 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::instr_timing test) const
 {
     switch (test)
     {
-    case blargg::instr_timing::group: return ROMUnitTest(rom_root / "instr_timing" / "instr_timing.gb", 0);
+    case blargg::instr_timing::group: return ROMUnitTest(rom_root / "instr_timing" / "instr_timing.gb", 94831934909952);
     }
     return ROMUnitTest("", 0);
 }
@@ -198,7 +198,7 @@ ROMUnitTest ROMTestFixture::getUnitTest(blargg::interrupt_time test) const
 {
     switch (test)
     {
-    case blargg::interrupt_time::group: return ROMUnitTest(rom_root / "interrupt_time" / "interrupt_time.gb", 0);
+    case blargg::interrupt_time::group: return ROMUnitTest(rom_root / "interrupt_time" / "interrupt_time.gb", 91820270335488);
     }
     return ROMUnitTest("", 0);
 }

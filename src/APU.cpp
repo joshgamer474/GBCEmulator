@@ -2,22 +2,24 @@
 #include <GBCEmulator.h>
 #include <CPU.h>
 #include <Joypad.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_audio.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_audio.h>
 #include <chrono>
 
-APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger)
+APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger, 
+    const bool is_color_gb)
     : SAMPLE_BUFFER_SIZE(1470)//1470
     , SAMPLE_OUTPUT_CHANNEL_SIZE(2)
     , SAMPLE_BUFFER_MEM_SIZE(SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE)
     , SAMPLE_BUFFER_MEM_SIZE_FLOAT(SAMPLE_BUFFER_MEM_SIZE * sizeof(float))
     , sample_timer_val(CLOCK_SPEED / SAMPLE_RATE)
     , frame_sequence_timer_val(CLOCK_SPEED / 512)
+    , is_color_gb(is_color_gb)
 {
     logger = _logger;
     sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
     sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, std::make_shared<spdlog::logger>("APU.Channel.2", logger_sink));
-    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink));
+    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink), is_color_gb);
     sound_channel_4 = std::make_unique<AudioNoise>(0xFF20,  std::make_shared<spdlog::logger>("APU.Channel.4", logger_sink));
     frame_sequence_step     = 0;
     channel_control         = 0;
@@ -25,8 +27,8 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     sound_on                = 0;
     left_volume             = 0;
     right_volume            = 0;
-    left_volume_use         = 0;
-    right_volume_use        = 0;
+    left_volume_use         = 0.0f;
+    right_volume_use        = 0.0f;
     sample_buffer_counter   = 0;
     samplesPerFrame         = 0;
     left_out_enabled        = false;
@@ -43,7 +45,7 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     audioFileOut = std::make_unique<std::ofstream>("audioOut.pcm", std::ios::binary);
 #endif // WRITE_AUDIO_OUT
 
-    if (SDL_Init(SDL_INIT_AUDIO) < 0)
+    if (!SDL_Init(SDL_INIT_AUDIO))
     {
         logger->error("SDL_Init(SDL_INIT_AUDIO) failed: {0:s}", SDL_GetError());
     }
@@ -84,6 +86,7 @@ APU& APU::operator=(const APU& rhs)
     double_speed_mode           = rhs.double_speed_mode;
     send_samples_to_debugger    = rhs.send_samples_to_debugger;
     audio_device_id             = rhs.audio_device_id;
+    is_color_gb                 = rhs.is_color_gb;
 
     *sound_channel_1.get() = *rhs.sound_channel_1.get();
     *sound_channel_2.get() = *rhs.sound_channel_2.get();
@@ -103,26 +106,25 @@ APU& APU::operator=(const APU& rhs)
 void APU::initSDLAudio()
 {
     // SDL Configuration
-    desired_spec.callback = NULL;
 #ifndef USE_FLOAT
-    desired_spec.format  = AUDIO_U8;
+    desired_spec.format  = SDL_AUDIO_U8;
 #else
-    desired_spec.format  = AUDIO_F32SYS;
+    desired_spec.format  = SDL_AUDIO_F32;
 #endif
     desired_spec.freq = SAMPLE_RATE;
     desired_spec.channels = 2;
-    //desired_spec.samples = SAMPLE_BUFFER_SIZE * 2;
-    desired_spec.samples = SAMPLE_BUFFER_SIZE;
-    desired_spec.userdata = this;
 
     // Open SDL Audio instance
-    audio_device_id = SDL_OpenAudioDevice(NULL,
-        0,
-        &desired_spec,
-        &obtained_spec,
-        SDL_AUDIO_ALLOW_ANY_CHANGE);
+    audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+        &desired_spec, NULL, this);
 
-    if (audio_device_id == 0)
+    // audio_device_id = SDL_OpenAudioDevice(NULL,
+    //     0,
+    //     &desired_spec,
+    //     &obtained_spec,
+    //     SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+    if (!audio_stream)
     {
         logger->error("Failed to open audio: {0:s}", SDL_GetError());
         return;
@@ -130,29 +132,58 @@ void APU::initSDLAudio()
     
     if (obtained_spec.format != desired_spec.format)
     {
-        logger->error("Failed to get audio format requested, from: {} to: {}",
-            desired_spec.samples,
-            obtained_spec.samples);
+        // logger->error("Failed to get audio format requested, from: {} to: {}",
+        //     desired_spec.samples,
+        //     obtained_spec.samples);
+        logger->error("Failed to get audio format requested");
     }
 
-    // Get 'silence' value/byte
-    sdl_silence_val = obtained_spec.silence;
-
     // Start playing audio
-    SDL_PauseAudioDevice(audio_device_id, 0);
+    //SDL_PauseAudioDevice(audio_device_id, 0);
+    //SDL_PauseAudioDevice(audio_device_id);
+    SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(audio_stream));
 
     // Clear current audio queue
-    SDL_ClearQueuedAudio(audio_device_id);
+    //SDL_ClearQueuedAudio(audio_device_id);
 
     initialized = true;
 }
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
 {
+    // Check if we're between length clocks
+    const bool extra_length_clock = (frame_sequence_step & 0x01) != 0;
+
+    // Check if we should skip over writing to channels when sound is disabled
     if (sound_on == false &&
-        addr < 0xFF26 &&
-        addr != 0xFF20) // NR41 can still be written to when off
+        addr < 0xFF26)// &&
+        //addr != 0xFF20) // NR41 can still be written to when off
     {
+        // DMG can write to channels when sound is disabled
+        // CGB cannot
+        if (!is_color_gb)
+        {
+            switch (addr)
+            {
+            case 0xFF11:
+                //sound_channel_1->setByte(addr, val, extra_length_clock);
+                // Don't update wave_pattern_duty when off
+                sound_channel_1->sound_length_data = 0x40 - (val & 0x3F);
+                break;
+            case 0xFF16:
+                //sound_channel_2->setByte(addr, val, extra_length_clock);
+                // Don't update wave_pattern_duty when off
+                sound_channel_2->sound_length_data = 0x40 - (val & 0x3F);
+                break;
+            case 0xFF1B:
+                sound_channel_3->setByte(addr, val, extra_length_clock);
+                break;
+            case 0xFF20:
+                sound_channel_4->setByte(addr, val, extra_length_clock);
+                break;
+            }
+        }
+
         logger->info("Tried to write to addr: 0x{0:x}, val 0x{1:x} but APU sound is disabled",
             addr,
             val);
@@ -165,23 +196,23 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
 
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {   // Channel 1 - Square 1 - NR10-NR14
-        sound_channel_1->setByte(addr, val);
+        sound_channel_1->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
     {   // Channel 2 - Square 2 - NR21-NR24
-        sound_channel_2->setByte(addr, val);
+        sound_channel_2->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
     {   // Channel 3 - Wave - NR30-NR34
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
     {   // Channel 4 - Noise - NR41-NR44
-        sound_channel_4->setByte(addr, val);
+        sound_channel_4->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {   // Wave Pattern RAM
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
 
     switch (addr)
@@ -192,9 +223,9 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         right_out_enabled   = val & BIT3;
         left_volume         = (val & 0x70) >> 4;
         right_volume        = val & 0x07;
-
-        left_volume_use     = (128 * (left_volume + 1)) / 7;
-        right_volume_use    = (128 * (right_volume + 1)) / 7;
+        // Scale volume to uint8 255, then to 0-1.0 float
+        left_volume_use     = static_cast<float>(static_cast<uint8_t>((128 * (left_volume + 1)) / 7.0f) / 255.0f);
+        right_volume_use    = static_cast<float>(static_cast<uint8_t>((128 * (right_volume + 1)) / 7.0f) / 255.0f);
         break;
     case 0xFF25:    // NR51
         selection_of_sound_output  = val;
@@ -203,11 +234,26 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         if (sound_on && (val & BIT7) == 0)
         {   // Disabling sound, reset APU
             logger->info("Turning APU off, zeroing out 0xFF10-0xFF25");
+
+            // Save sound lengths before overwritting with 0s
+            const uint8_t length1 = sound_channel_1->sound_length_data;
+            const uint8_t length2 = sound_channel_2->sound_length_data;
+            const uint16_t length3 = sound_channel_3->sound_length_data;
+            const uint8_t length4 = sound_channel_4->sound_length_data;
+
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
                 setByte(i, 0);
             }
+
+            // Reload sound lengths for DMG only
+            sound_channel_1->sound_length_data = is_color_gb ? 0 : length1;
+            sound_channel_2->sound_length_data = is_color_gb ? 0 : length2;
+            sound_channel_3->sound_length_data = is_color_gb ? 0 : length3;
+            sound_channel_4->sound_length_data = is_color_gb ? 0 : length4;
+
+            // Disable channels
             sound_channel_1->is_enabled = false;
             sound_channel_2->is_enabled = false;
             sound_channel_3->is_enabled = false;
@@ -216,7 +262,15 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         else if (!sound_on && (val & BIT7))
         {   // Enabling sound
             logger->info("Turning APU on, resetting APU");
-            reset();
+
+            frame_sequence_step = 0;
+
+            // Reset channel positions
+            sound_channel_1->duty_pos = 0;
+            sound_channel_2->duty_pos = 0;
+            sound_channel_3->powerOn();
+
+            //reset();
         }
 
         sound_on = val & BIT7; // Only BIT7 is writable
@@ -285,7 +339,7 @@ void APU::reset()
     // Reset Wave RAM
     for (uint16_t i = 0xFF30; i < 0xFF3F; i++)
     {
-        sound_channel_3->setByte(i, 0);
+        sound_channel_3->setByte(i, 0, false);
     }
 
     sound_channel_1->reset();
@@ -293,7 +347,7 @@ void APU::reset()
     sound_channel_3->reset();
     sound_channel_4->reset();
 
-    SDL_ClearQueuedAudio(audio_device_id);
+    SDL_ClearAudioStream(audio_stream);
 }
 
 void APU::run(const uint8_t & cpuTickDiff)
@@ -313,44 +367,50 @@ void APU::run(const uint8_t & cpuTickDiff)
 
         if (frame_sequence_timer == 0)
         {
-            logger->trace("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
-                frame_sequence_step);
-            switch (frame_sequence_step)
+            if (sound_on)
             {
-            case 0:
-            case 4:
-                sound_channel_1->tickLengthCounter();
-                sound_channel_2->tickLengthCounter();
-                sound_channel_3->tickLengthCounter();
-                sound_channel_4->tickLengthCounter();
-                break;
-            case 2:
-            case 6:
-                sound_channel_1->tickLengthCounter();
-                sound_channel_2->tickLengthCounter();
-                sound_channel_3->tickLengthCounter();
-                sound_channel_4->tickLengthCounter();
-                sound_channel_1->tickSweep();
-                break;
-            case 7:
-                sound_channel_1->tickVolumeEnvelope();
-                sound_channel_2->tickVolumeEnvelope();
-                sound_channel_4->tickVolumeEnvelope();
-                break;
-            }
+                logger->trace("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
+                    frame_sequence_step);
+                switch (frame_sequence_step)
+                {
+                case 0:
+                case 4:
+                    sound_channel_1->tickLengthCounter();
+                    sound_channel_2->tickLengthCounter();
+                    sound_channel_3->tickLengthCounter();
+                    sound_channel_4->tickLengthCounter();
+                    break;
+                case 2:
+                case 6:
+                    sound_channel_1->tickLengthCounter();
+                    sound_channel_2->tickLengthCounter();
+                    sound_channel_3->tickLengthCounter();
+                    sound_channel_4->tickLengthCounter();
+                    sound_channel_1->tickSweep();
+                    break;
+                case 7:
+                    sound_channel_1->tickVolumeEnvelope();
+                    sound_channel_2->tickVolumeEnvelope();
+                    sound_channel_4->tickVolumeEnvelope();
+                    break;
+                }
 
-            frame_sequence_step++;
-            frame_sequence_step &= 7; // Sequence can only be 0..7
+                frame_sequence_step++;
+                frame_sequence_step &= 7; // Sequence can only be 0..7
+            }
 
             // Reset frame_sequence_timer
             frame_sequence_timer = frame_sequence_timer_val;
         }
 
         // Tick sound channels
-        sound_channel_1->tick();
-        sound_channel_2->tick();
-        sound_channel_3->tick();
-        sound_channel_4->tick();
+        if (sound_on)
+        {
+            sound_channel_1->tick();
+            sound_channel_2->tick();
+            sound_channel_3->tick();
+            sound_channel_4->tick();
+        }
 
         // Tick sample_timer
         if (sample_timer > 0)
@@ -432,17 +492,19 @@ void APU::writeSamplesOut(const uint32_t& audio_device, const std::vector<Sample
     // Push sample_buffer to SDL
 #ifndef USE_FLOAT
     prev_sample_size = num_samples * 2 * sizeof(uint8_t);
-    const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
+    //const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
+    const bool ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const uint8_t*>(samples.data()), prev_sample_size);
 #else
     prev_sample_size = num_samples * 2 * sizeof(float);
-    const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
+    //const int ret = SDL_QueueAudio(audio_device_id, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
+    const bool ret = SDL_PutAudioStreamData(audio_stream, reinterpret_cast<const float*>(samples.data()), prev_sample_size);
 #endif // USE_FLOAT
 
     rolling_avg_sample_size.Push(prev_sample_size);
 
-    if (ret != 0)
+    if (ret == false)
     {
-        logger->error("SDL_QueueAudio returned {}", ret);
+        logger->error("SDL_PutAudioStreamData returned {}", SDL_GetError());
     }
 
 #ifdef WRITE_AUDIO_OUT
@@ -513,18 +575,19 @@ void APU::sendChannelOutputToSampleFloat(Sample & sample, const float & audio, c
 {
     if (isSoundOutLeft(channelNum))
     {
-        SDL_MixAudioFormat((uint8_t *)&sample.left, 
+        SDL_MixAudio((uint8_t *)&sample.left, 
             (uint8_t *)&audio,
-            AUDIO_F32SYS,
+            //AUDIO_F32SYS,
+            SDL_AUDIO_F32,
             sizeof(float),
             left_volume_use);
     }
 
     if (isSoundOutRight(channelNum))
     {
-        SDL_MixAudioFormat((uint8_t *)&sample.right,
+        SDL_MixAudio((uint8_t *)&sample.right,
             (uint8_t *)&audio,
-            AUDIO_F32SYS,
+            SDL_AUDIO_F32,
             sizeof(float),
             right_volume_use);
     }
@@ -564,6 +627,7 @@ void APU::logSamples()
 void APU::initCGB()
 {
     double_speed_mode = true;
+    is_color_gb = true;
 
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;
@@ -574,7 +638,7 @@ void APU::initCGB()
 
 void APU::clearCurrentAudioBuffer()
 {
-    logger->trace("Clearing sample buffer: {}", curr_sample_buffer);
+    logger->trace("Clearing sample buffer: {}", curr_sample_buffer.load());
 
     // Get current sample buffer
     std::vector<Sample>& sample_buffer =
@@ -607,7 +671,8 @@ void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_sta
     int microElapsedInt = 0;
 
     // Drain audio buffer (?)
-    uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
+    //uint32_t queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
+    uint32_t queuedAudioSize = static_cast<uint32_t>(SDL_GetAudioStreamQueued(audio_stream));
     const uint32_t queuedAudioSizeOrig = queuedAudioSize;
     const uint32_t singleFrameAudioBufferSize = samplesPerFrame * 2 * sizeof(float);
     const size_t rollingAvgSampleSize = rolling_avg_sample_size.GetRollingAvg() * 2 * sizeof(float);
@@ -637,7 +702,8 @@ void APU::sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_sta
         // Sleep for 1 millisecond
         SDL_Delay(1);   // std::this_thread::sleep_for() causes audio delay on Linux
         //std::this_thread::sleep_for(std::chrono::microseconds(200));
-        queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
+        //queuedAudioSize = SDL_GetQueuedAudioSize(audio_device_id);
+        queuedAudioSize = static_cast<uint32_t>(SDL_GetAudioStreamQueued(audio_stream));
     }
 
     logger->trace("Slept for {} milliseconds, buffer size diff: {}, buffer size start: {}, buffer size end: {}",

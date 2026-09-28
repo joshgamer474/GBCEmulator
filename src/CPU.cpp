@@ -51,6 +51,11 @@ CPU& CPU::operator=(const CPU & rhs)
     return *this;
 }
 
+bool CPU::isHalted() const
+{
+    return is_halted;
+}
+
 uint8_t CPU::runNextInstruction()
 {
     uint8_t ticksRanInstr = 0;
@@ -297,7 +302,7 @@ uint8_t CPU::handleInterrupt()
             //memory->interrupt_flag = 0xE0;
 
             // PUSH PC after HALT
-            PUSH(PC);
+            ret += PUSH(PC); // 16 clocks
             registers[PC] = interrupt_table[i];
             logger->trace("Interrupt 0x{0:x}", interrupt_table[i]);
             ret += 4; // "It takes 20 clocks to dispatch an interrupt" TCAGBD.pdf
@@ -310,7 +315,7 @@ uint8_t CPU::handleInterrupt()
 }
 
 // Get instruction from Ram[PC]
-std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
+std::uint8_t CPU::getInstruction(uint8_t& ticks_ran)
 {
 	// Check for interrupts
     checkJoypadForInterrupt();
@@ -357,7 +362,7 @@ std::uint8_t CPU::getInstruction(uint8_t & ticks_ran)
 	return getByteFromMemory(get_register_16(PC));
 }
 
-uint8_t CPU::runInstruction(uint8_t instruc)
+uint8_t CPU::runInstruction(const uint8_t& instruc)
 {
     uint8_t ret = 0;
     uint8_t a8, d8, parenA8, flagType;
@@ -763,7 +768,7 @@ uint8_t CPU::runInstruction(uint8_t instruc)
 		// CP d8
 	case 0xFE:
 
-		ret = CP(memory->readByte(get_register_16((CPU::REGISTERS) PC)), false);
+		ret = CP(memory->readByte(get_register_16((CPU::REGISTERS) PC)), true);
 		registers[PC]++;
         return ret;
 
@@ -1285,7 +1290,7 @@ uint8_t CPU::LDH_INDIRECT(std::uint16_t addr, std::uint8_t val)
 	setByteToMemory(addr, val);
 
 	// Return ticks_accumulated
-	return 16;
+	return 12;
 }
 
 // LD HL, SP+r8
@@ -1360,7 +1365,7 @@ uint8_t CPU::ADD(CPU::REGISTERS reg, std::uint8_t d8, bool indirect=false)
 
 
 	// Return ticks_accumulated
-	if (!indirect)
+	if (indirect)
 		return 8;
 	else
 		return 4;
@@ -1405,7 +1410,7 @@ uint8_t CPU::ADC(CPU::REGISTERS reg, std::uint8_t val, bool indirect=false)
 
 
 	// Return ticks_accumulated
-	if (!indirect)
+	if (indirect)
 		return 8;
 	else
 		return 4;
@@ -1774,14 +1779,14 @@ uint8_t CPU::INC(CPU::REGISTERS reg, bool indirect=false)
         setByteToMemory(get_register_16(reg), result);
     }
 
-	// Returns ticks_accumulated
-    if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
-    {
-        return 8;
-    }
-    else if (reg == CPU::REGISTERS::HL && indirect)
+    // Returns ticks_accumulated
+    if (reg == CPU::REGISTERS::HL && indirect)
     {
         return 12;
+    }
+    else if (reg < B)
+    {
+        return 8;
     }
     else
     {
@@ -1832,13 +1837,13 @@ uint8_t CPU::DEC(CPU::REGISTERS reg, bool indirect=false)
 		setByteToMemory(get_register_16(reg), result);
 
 	// Return ticks_accumulated
-    if (reg < B || (reg == CPU::REGISTERS::HL && !indirect))
-    {
-        return 8;
-    }
-    else if (reg == CPU::REGISTERS::HL && indirect)
+    if (reg == CPU::REGISTERS::HL && indirect)
     {
         return 12;
+    }
+    else if (reg < B)
+    {
+        return 8;
     }
     else
     {
@@ -2266,6 +2271,12 @@ uint8_t CPU::STOP()
 {
 	logger->trace("STOP");
 	is_stopped = true;
+
+	// Trigger CGB speed switch when the mode is armed
+	if (memory->is_color_gb && memory->cgb_speed_mode & 0x01)
+	{
+		memory->cgb_perform_speed_switch = true;
+	}
 	return 4;
 }
 
@@ -2432,7 +2443,7 @@ uint8_t CPU::handle_CB(std::uint8_t instruc)
 
     logger->trace("CB 0x{0:x}", instruc);
 
-	ret += 4;
+	//ret += 4;
 	registers[PC]++;
 
 	switch (instruc)

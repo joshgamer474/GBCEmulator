@@ -2,11 +2,11 @@
 #define JOYPAD_H
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #include <cstdint>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <spdlog/spdlog.h>
 
 #define BIT0 0x01

@@ -55,7 +55,7 @@ void Joypad::set_joypad_button(BUTTON button)
 
     joypad_state = unsetBit(joypad_state, bitToUnset);
 
-    logger->trace("Button {} pressed", button);
+    logger->trace("Button {} pressed", static_cast<int>(button));
 
     if (bitIsUnset(joypad_byte, BIT4) &&
         buttonIsDirectionKey(button))
@@ -89,7 +89,7 @@ void Joypad::release_joypad_button(BUTTON button)
     default: break;
     }
 
-    logger->trace("Button {} released", button);
+    logger->trace("Button {} released", static_cast<int>(button));
 }
 
 void Joypad::set_joypad_byte(std::uint8_t val)
@@ -120,20 +120,18 @@ std::uint8_t Joypad::get_joypad_byte()
 void Joypad::check_keyboard_input(SDL_Event *e)
 {
 	BUTTON b = NONE;
-	if (e->key.keysym.sym == SDLK_RIGHT)
-		b = RIGHT;
-	else if (e->key.keysym.sym == SDLK_LEFT)
-		b = LEFT;
-	else if (e->key.keysym.sym == SDLK_UP)
-		b = UP;
-	else if (e->key.keysym.sym == SDLK_DOWN)
-		b = DOWN;
-	else if (e->key.keysym.sym == SDLK_RETURN)
-		b = START;
-	else if (e->key.keysym.sym == SDLK_z)
-		b = A;
-	else if (e->key.keysym.sym == SDLK_x)
-		b = B;
+    switch (e->key.key)
+    {
+      case SDLK_RIGHT: b = RIGHT; break;
+      case SDLK_LEFT: b = LEFT; break;
+      case SDLK_UP: b = UP; break;
+      case SDLK_DOWN: b = DOWN; break;
+      case SDLK_RETURN: b = START; break;
+      case SDLK_Z: b = A; break;
+      case SDLK_X: b = B; break;
+      default:
+        break;
+    }
 
 	if (b != NONE)
 		set_joypad_button(b);

@@ -3,6 +3,7 @@
 
 #include <ScreenInterface.h>
 #include <GBCEmulator.h>
+#include <JoypadGeneric.h>
 #include <JoypadXInput.h>
 #include <atomic>
 #include <array>
@@ -13,7 +14,7 @@
 #include <spdlog/spdlog.h>
 
 extern "C" {
-#include <SDL.h>
+#include <SDL3/SDL.h>
 }
 
 enum SDLRenderType : char {
@@ -44,6 +45,7 @@ private:
     std::shared_ptr<GBCEmulator> emu;
     std::shared_ptr<GBCEmulator> emu_savestate;
     std::shared_ptr<Joypad> joypad;
+    std::shared_ptr<JoypadGeneric> joypadg;
     std::shared_ptr<JoypadXInput> joypadx;
     std::shared_ptr<spdlog::logger> logger;
     std::array<SDL_Color, SCREEN_PIXEL_TOTAL> curr_frame;

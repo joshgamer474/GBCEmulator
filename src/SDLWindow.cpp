@@ -1,15 +1,28 @@
 #include <SDLWindow.h>
+#include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_stdinc.h>
+
 #include <algorithm>
-#include <SDL_thread.h>
-#include <fmt/core.h>
+#include <format>
+
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#include <Util.h>
 
 SDLWindow::SDLWindow(const std::string& log_name)
     :   ScreenInterface()
-    , logger(spdlog::rotating_logger_mt("SDLWindow", log_name, 1024 * 1024 * 3, 3))
     , keep_aspect_ratio(true)
     , have_new_frame(false)
     , using_connected_controller(-1)
 {
+    // Only log out to file if not on Apple
+#if __APPLE__
+    logger = spdlog::stdout_color_mt("console");
+#else
+    const std::string logFile = generate_log_path("SDLWindow");
+    logger = spdlog::rotating_logger_mt(logFile, log_name, 1024 * 1024 * 3, 3);
+#endif
+
     init();
 
     std::array<SDL_Color, SCREEN_PIXEL_TOTAL> grayFrame;
@@ -23,7 +36,7 @@ SDLWindow::SDLWindow(const std::string& log_name)
 SDLWindow::~SDLWindow()
 {
     std::lock_guard<std::mutex> lg(renderer_mutex);
-    SDL_GL_DeleteContext(glContext);
+    SDL_GL_DestroyContext(glContext);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -36,26 +49,31 @@ void SDLWindow::init()
     logger->info("Started init()");
 
     //SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO) == false)
     {
         logger->error("SDL_Init() failed: {}", SDL_GetError());
         return;
     }
+
+    if (SDL_Init(SDL_INIT_GAMEPAD) == false)
+    {
+        logger->error("SDL_Init() failed: {}", SDL_GetError());
+        return;
+    }
+    // Support DirectInput controllers
+    SDL_SetHint(SDL_HINT_JOYSTICK_DIRECTINPUT, "1");
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-    SDL_DisplayMode current;
-    SDL_GetCurrentDisplayMode(0, &current);
+    const SDL_DisplayMode* current = SDL_GetCurrentDisplayMode(0);
 
     window = SDL_CreateWindow("GBCEmulator",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
         SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL |
-        SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
+        SDL_WINDOW_OPENGL |
+        SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_RESIZABLE);
     if (!window)
     {
         logger->error("SDL_CreateWindow() failed: {}", SDL_GetError());
@@ -68,8 +86,7 @@ void SDLWindow::init()
         logger->error("SDL_GL_CreateContext() failed: {}", SDL_GetError());
     }
 
-    renderer = SDL_CreateRenderer(window, -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_TARGETTEXTURE);
+    renderer = SDL_CreateRenderer(window, NULL);
     if (!renderer)
     {
         logger->error("SDL_CreateRenderer() failed: {}", SDL_GetError());
@@ -77,7 +94,7 @@ void SDLWindow::init()
 
     if (keep_aspect_ratio)
     {   // Force original aspect ratio
-        SDL_RenderSetLogicalSize(renderer, SCREEN_PIXEL_W, SCREEN_PIXEL_H);
+        SDL_SetRenderLogicalPresentation(renderer, SCREEN_PIXEL_W, SCREEN_PIXEL_H, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
     }
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -90,11 +107,9 @@ void SDLWindow::init()
     {
         logger->error("SDL_CreateTexture() failed: {}", SDL_GetError());
     }
+    SDL_SetTextureScaleMode(screen_texture, SDL_SCALEMODE_NEAREST);
 
     screen_texture_rect = { 0, 0, SCREEN_PIXEL_W * 4, SCREEN_PIXEL_H * 4 };
-
-    //SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, reinterpret_cast<char*>(SDLRenderType::NEAREST_PIXEL));
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
     logger->info("init() complete");
 }
@@ -118,9 +133,13 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     // Set emulator display output to SDL screen
     emulator->setFrameUpdateMethod(std::bind(&SDLWindow::display, this, std::placeholders::_1));
 
-    // Get emulator joypad, hook up XInput joypad to emulator joypad
+    // Get emulator joypad
     joypad = emulator->get_Joypad();
-    joypadx = std::make_shared<JoypadXInput>(joypad);   // Joypad XInput support
+    // Hook up XInput/DirectInput joypad to emulator joypad
+#ifdef WIN32
+    joypadx = std::make_shared<JoypadXInput>(joypad);   // XInput support
+#endif
+    joypadg = std::make_shared<JoypadGeneric>(joypad);  // DirectInput support
 }
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
@@ -167,14 +186,14 @@ int SDLWindow::run(bool start_emu)
         SDL_PollEvent(&event);
         switch (event.type)
         {
-        case SDL_QUIT:
+        case SDL_EVENT_QUIT:
         {
             run = false;
             break;
         }
-        case SDL_DROPFILE:
+        case SDL_EVENT_DROP_FILE:
         {
-            char* romName = event.drop.file;
+            const char* romName = event.drop.data;
             const std::string romNameStr(romName);
             const std::string biosPath = 
                 //"/home/childers/Downloads/bios.gbc";
@@ -189,8 +208,12 @@ int SDLWindow::run(bool start_emu)
                     emu->stop();
                 }
 
+                // Generate a log file name based on OS
+                const std::string logFile = generate_log_path(romNameStr);
+
+                // Start emulator
                 emu = std::make_shared<GBCEmulator>(romNameStr,
-                    romNameStr + ".log",
+                    logFile,
                     biosPath,
                     false,      // Debug mode
                     false);     // Force CGB mode
@@ -200,70 +223,81 @@ int SDLWindow::run(bool start_emu)
             }
 
             // Free file hold
-            SDL_free(romName);
+            //SDL_free(romName);
         }
-        case SDL_KEYDOWN:
+        case SDL_EVENT_KEY_DOWN:
         {
-            switch (event.key.keysym.sym)
+            switch (event.key.key)
             {
-            case SDLK_w: joypad->set_joypad_button(Joypad::BUTTON::UP);     break;
-            case SDLK_a: joypad->set_joypad_button(Joypad::BUTTON::LEFT);   break;
-            case SDLK_s: joypad->set_joypad_button(Joypad::BUTTON::DOWN);   break;
-            case SDLK_d: joypad->set_joypad_button(Joypad::BUTTON::RIGHT);  break;
-            case SDLK_z: joypad->set_joypad_button(Joypad::BUTTON::A);      break;
-            case SDLK_x: joypad->set_joypad_button(Joypad::BUTTON::B);      break;
-            case SDLK_m: joypad->set_joypad_button(Joypad::BUTTON::START);  break;
-            case SDLK_n: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
-            case SDLK_r:
+            case SDLK_W: joypad->set_joypad_button(Joypad::BUTTON::UP);     break;
+            case SDLK_A: joypad->set_joypad_button(Joypad::BUTTON::LEFT);   break;
+            case SDLK_S: joypad->set_joypad_button(Joypad::BUTTON::DOWN);   break;
+            case SDLK_D: joypad->set_joypad_button(Joypad::BUTTON::RIGHT);  break;
+            case SDLK_Z: joypad->set_joypad_button(Joypad::BUTTON::A);      break;
+            case SDLK_X: joypad->set_joypad_button(Joypad::BUTTON::B);      break;
+            case SDLK_M: joypad->set_joypad_button(Joypad::BUTTON::START);  break;
+            case SDLK_N: joypad->set_joypad_button(Joypad::BUTTON::SELECT); break;
+            case SDLK_R:
             {
                 loadSaveState();
                 break;
             }
-            case SDLK_t:
+            case SDLK_T:
             {
                 takeSaveState();
                 break;
             }
-            case SDLK_o:
+            case SDLK_O:
             {
                 emu->changeCGBPalette();
                 break;
+            }
+            case SDLK_F11:
+            {
+                if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)
+                {   // Toggle off fullscreen
+                    SDL_SetWindowFullscreen(window, false);
+                }
+                else
+                {   // Toggle fullscreen
+                    SDL_SetWindowFullscreen(window, true);
+                }
             }
             } // end switch()
             break;
         } // end case SDL_KEYDOWN
 
-        case SDL_KEYUP:
+        case SDL_EVENT_KEY_UP:
         {
-            switch (event.key.keysym.sym)
+            switch (event.key.key)
             {
-            case SDLK_w: joypad->release_joypad_button(Joypad::BUTTON::UP);     break;
-            case SDLK_a: joypad->release_joypad_button(Joypad::BUTTON::LEFT);   break;
-            case SDLK_s: joypad->release_joypad_button(Joypad::BUTTON::DOWN);   break;
-            case SDLK_d: joypad->release_joypad_button(Joypad::BUTTON::RIGHT);  break;
-            case SDLK_z: joypad->release_joypad_button(Joypad::BUTTON::A);      break;
-            case SDLK_x: joypad->release_joypad_button(Joypad::BUTTON::B);      break;
-            case SDLK_m: joypad->release_joypad_button(Joypad::BUTTON::START);  break;
-            case SDLK_n: joypad->release_joypad_button(Joypad::BUTTON::SELECT); break;
+            case SDLK_W: joypad->release_joypad_button(Joypad::BUTTON::UP);     break;
+            case SDLK_A: joypad->release_joypad_button(Joypad::BUTTON::LEFT);   break;
+            case SDLK_S: joypad->release_joypad_button(Joypad::BUTTON::DOWN);   break;
+            case SDLK_D: joypad->release_joypad_button(Joypad::BUTTON::RIGHT);  break;
+            case SDLK_Z: joypad->release_joypad_button(Joypad::BUTTON::A);      break;
+            case SDLK_X: joypad->release_joypad_button(Joypad::BUTTON::B);      break;
+            case SDLK_M: joypad->release_joypad_button(Joypad::BUTTON::START);  break;
+            case SDLK_N: joypad->release_joypad_button(Joypad::BUTTON::SELECT); break;
             }
             break;
         } // end case SDL_KEYUP
 
-        case SDL_JOYBUTTONDOWN:
+        case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         {
-            SDL_Log("JOYBUTTONDOWN %d", event.jbutton.button);
+            SDL_Log("GAMEPAD_BUTTON_DOWN %d", event.jbutton.button);
 
             switch (event.jbutton.button)
             {
-                case SDL_CONTROLLER_BUTTON_A:           emu->set_joypad_button(Joypad::BUTTON::A); break;
-                case SDL_CONTROLLER_BUTTON_B:           emu->set_joypad_button(Joypad::BUTTON::B); break;
-                case SDL_CONTROLLER_BUTTON_START:       emu->set_joypad_button(Joypad::BUTTON::START); break;
-                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:emu->set_joypad_button(Joypad::BUTTON::SELECT); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_UP:     emu->set_joypad_button(Joypad::BUTTON::UP); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:   emu->set_joypad_button(Joypad::BUTTON::DOWN); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:   emu->set_joypad_button(Joypad::BUTTON::LEFT); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:  emu->set_joypad_button(Joypad::BUTTON::RIGHT); break;
-                case SDL_CONTROLLER_BUTTON_BACK:
+                case SDL_GAMEPAD_BUTTON_SOUTH:       emu->set_joypad_button(Joypad::BUTTON::A); break;
+                case SDL_GAMEPAD_BUTTON_EAST:        emu->set_joypad_button(Joypad::BUTTON::B); break;
+                case SDL_GAMEPAD_BUTTON_START:       emu->set_joypad_button(Joypad::BUTTON::START); break;
+                case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:emu->set_joypad_button(Joypad::BUTTON::SELECT); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_UP:     emu->set_joypad_button(Joypad::BUTTON::UP); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_DOWN:   emu->set_joypad_button(Joypad::BUTTON::DOWN); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_LEFT:   emu->set_joypad_button(Joypad::BUTTON::LEFT); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:  emu->set_joypad_button(Joypad::BUTTON::RIGHT); break;
+                case SDL_GAMEPAD_BUTTON_BACK:
                 {
                     //quit = true;
                     break;
@@ -272,21 +306,21 @@ int SDLWindow::run(bool start_emu)
             break;
         }
 
-        case SDL_JOYBUTTONUP:
+        case SDL_EVENT_GAMEPAD_BUTTON_UP:
         {
-            SDL_Log("JOYBUTTONUP %d", event.jbutton.button);
+            SDL_Log("GAMEPAD_BUTTON_UP %d", event.jbutton.button);
 
             switch (event.jbutton.button)
             {
-                case SDL_CONTROLLER_BUTTON_A:           emu->release_joypad_button(Joypad::BUTTON::A); break;
-                case SDL_CONTROLLER_BUTTON_B:           emu->release_joypad_button(Joypad::BUTTON::B); break;
-                case SDL_CONTROLLER_BUTTON_START:       emu->release_joypad_button(Joypad::BUTTON::START); break;
-                case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:emu->release_joypad_button(Joypad::BUTTON::SELECT); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_UP:     emu->release_joypad_button(Joypad::BUTTON::UP); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_DOWN:   emu->release_joypad_button(Joypad::BUTTON::DOWN); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_LEFT:   emu->release_joypad_button(Joypad::BUTTON::LEFT); break;
-                case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:  emu->release_joypad_button(Joypad::BUTTON::RIGHT); break;
-                case SDL_CONTROLLER_BUTTON_BACK:
+                case SDL_GAMEPAD_BUTTON_SOUTH:       emu->release_joypad_button(Joypad::BUTTON::A); break;
+                case SDL_GAMEPAD_BUTTON_EAST:        emu->release_joypad_button(Joypad::BUTTON::B); break;
+                case SDL_GAMEPAD_BUTTON_START:       emu->release_joypad_button(Joypad::BUTTON::START); break;
+                case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:emu->release_joypad_button(Joypad::BUTTON::SELECT); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_UP:     emu->release_joypad_button(Joypad::BUTTON::UP); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_DOWN:   emu->release_joypad_button(Joypad::BUTTON::DOWN); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_LEFT:   emu->release_joypad_button(Joypad::BUTTON::LEFT); break;
+                case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:  emu->release_joypad_button(Joypad::BUTTON::RIGHT); break;
+                case SDL_GAMEPAD_BUTTON_BACK:
                 {
 
                 }
@@ -294,23 +328,26 @@ int SDLWindow::run(bool start_emu)
             break;
         }
 
-        case SDL_WINDOWEVENT:
+        case SDL_EVENT_GAMEPAD_REMOVED:
         {
-            switch (event.window.event)
-            {
-            case SDL_WINDOWEVENT_SIZE_CHANGED:
-                std::lock_guard<std::mutex> lg(renderer_mutex);
-                // Clear first frame in double buffer
-                SDL_RenderClear(renderer);
-                SDL_RenderPresent(renderer);
-                // Clear second frame in double buffer
-                SDL_RenderClear(renderer);
-                SDL_RenderPresent(renderer);
-                break;
-            }
+            using_connected_controller = -1;
+            break;
+        }
+
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        {
+            std::lock_guard<std::mutex> lg(renderer_mutex);
+            // Clear first frame in double buffer
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+            // Clear second frame in double buffer
+            SDL_RenderClear(renderer);
+            SDL_RenderPresent(renderer);
+            break;
         }
 
         } // switch(event.type)
+
 
         if (joypadx)
         {   // Check if a controller has been selected/found yet
@@ -320,19 +357,28 @@ int SDLWindow::run(bool start_emu)
             }
             joypadx->refreshButtonStates(using_connected_controller);
         }
+        if (joypadg)
+        {
+            // Check if a controller has been selected/found yet
+            if (using_connected_controller < 0)
+            {   // Select new controller to use
+                using_connected_controller = joypadg->findControllers();
+            }
+            joypadg->refreshButtonStates(using_connected_controller);
+        }
 
         if (have_new_frame)
         {
             std::lock_guard<std::mutex> lg(renderer_mutex);
             SDL_UpdateTexture(screen_texture, NULL, curr_frame.data(), SCREEN_PIXEL_W * sizeof(SDL_Color));
             //SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+            SDL_RenderTexture(renderer, screen_texture, NULL, NULL);
             SDL_RenderPresent(renderer);
             have_new_frame = false;
 #ifndef __ANDROID__
             if (emu)
             {
-                updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
+                updateWindowTitle(std::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
             }
 #endif
         }
@@ -369,13 +415,13 @@ void SDLWindow::startEmulator()
         emu_thread.join();
     }
 
-    int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
+    int ret = SDL_SetCurrentThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
 
     // Have emulator tick in its own thread
     logger->info("Starting emulator thread");
     emu_thread = std::thread([&]()
     {
-        int ret = SDL_SetThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
+        int ret = SDL_SetCurrentThreadPriority(SDL_ThreadPriority::SDL_THREAD_PRIORITY_TIME_CRITICAL);
         emu->run();
     });
 }

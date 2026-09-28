@@ -12,7 +12,7 @@
 #include <AudioNoise.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/rotating_file_sink.h>
-#include <SDL_audio.h>
+#include <SDL3/SDL_audio.h>
 #include <RollingAvg.h>
 
 #define SAMPLE_RATE 44100
@@ -44,11 +44,11 @@ struct Sample {
 
 class APU
 {
-public:
-    APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> logger);
+    public:
+    APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> logger, const bool is_color_gb);
     virtual ~APU();
     APU& operator=(const APU& rhs);
-
+    
     void setByte(const uint16_t & addr, const uint8_t & val);
     uint8_t readByte(const uint16_t & addr) const;
     void run(const uint8_t & cpuTicks);
@@ -58,8 +58,9 @@ public:
     void sendSamplesToDebugger(bool b);
     void writeSamplesOutAsync(const uint32_t& audio_device);
     void sleepUntilBufferIsEmpty(const std::chrono::duration<double>& frame_start_time);
-
+    
     std::shared_ptr<spdlog::logger> logger;
+    bool is_color_gb;
     uint16_t samplesPerFrame;
     uint8_t sdl_silence_val;
     uint32_t audio_device_id;
@@ -90,8 +91,8 @@ private:
     uint8_t frame_sequence_step;
     uint8_t left_volume;
     uint8_t right_volume;
-    uint8_t left_volume_use;
-    uint8_t right_volume_use;
+    float left_volume_use;
+    float right_volume_use;
     uint8_t channel_control;
     uint8_t selection_of_sound_output;
     uint16_t sample_buffer_counter;
@@ -101,6 +102,8 @@ private:
     uint32_t prev_sample_size;
     RollingAvg rolling_avg_sample_size;
     const uint32_t sample_timer_val;
+
+    SDL_AudioStream* audio_stream = nullptr;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
     bool sound_on;

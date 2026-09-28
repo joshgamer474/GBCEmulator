@@ -1,5 +1,4 @@
-#ifndef JOYPAD_XINPUT_H
-#define JOYPAD_XINPUT_H
+#pragma once
 
 #include <JoypadInputInterface.h>
 #include <memory>
@@ -28,5 +27,3 @@ private:
     std::unordered_map<int, bool> prev_button_states;
     std::shared_ptr<Joypad> joypad;
 };
-
-#endif // JOYPAD_XINPUT_H

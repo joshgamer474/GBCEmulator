@@ -3,6 +3,8 @@
 #endif // _WIN32
 
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 
 #include "GPU.h"
 #include "Joypad.h"
@@ -52,6 +54,7 @@ GPU::GPU(std::shared_ptr<spdlog::logger> _logger)
 	cgb_auto_increment_sprite_palette_index = false;
     is_cgb_tile_palette_updated = false;
     is_tile_palette_updated     = false;
+    vram_dma_hblank_pending = false;
 
     cgb_dma_in_progress = false;
     cgb_dma_hblank_in_progress = false;
@@ -112,6 +115,7 @@ GPU& GPU::operator=(const GPU& rhs)
     cgb_bg_to_oam_priority_array    = rhs.cgb_bg_to_oam_priority_array;
     cgb_bg_scanline_color_palettes  = rhs.cgb_bg_scanline_color_palettes;
 
+    vram_dma_hblank_pending = rhs.vram_dma_hblank_pending;
     hdma1 = rhs.hdma1;
     hdma2 = rhs.hdma2;
     hdma3 = rhs.hdma3;
@@ -220,7 +224,7 @@ std::uint8_t GPU::readByte(const uint16_t& pos, const bool limit_access) const
 			case 0xFF53:	return hdma3;
 			case 0xFF54:	return hdma4;
 			case 0xFF55:	return hdma5;
-			case 0xFF68:	return cgb_background_palette_index;
+			case 0xFF68:	return cgb_background_palette_index | (cgb_auto_increment_background_palette_index ? 0x80 : 0);
 			case 0xFF69:
                 // Block reading to VRAM when VRAM is being used
                 if (gpu_mode == GPU_MODE_OAM || gpu_mode == GPU_MODE_VRAM)
@@ -232,7 +236,7 @@ std::uint8_t GPU::readByte(const uint16_t& pos, const bool limit_access) const
                 {
                     return cgb_background_palette_data[cgb_background_palette_index];
                 }
-			case 0xFF6A:	return cgb_sprite_palette_index;
+			case 0xFF6A:	return cgb_sprite_palette_index | (cgb_auto_increment_background_palette_index ? 0x80 : 0);
             case 0xFF6B:
                 // Block reading to VRAM when VRAM is being used
                 if (limit_access)
@@ -343,35 +347,24 @@ void GPU::setByte(const uint16_t& pos, const uint8_t& val, const bool limit_acce
                 case 0xFF53:	hdma3 = val; return;
                 case 0xFF54:	hdma4 = val; return;
                 case 0xFF55:
-                    if ((val & BIT7) &&
-                        gpu_mode == GPU_MODE_HBLANK)
+
+                    if (cgb_dma_in_progress)
                     {
-                        logger->warn("Cannot start H-Blank DMA during H-Blank...");
-                        hdma5 = 0xFF;
+                        if (cgb_dma_hblank_in_progress && !(val & BIT7))
+                        {   // Terminate current active H-Blank transfer
+                            logger->warn("Terminating current H-Blank DMA, num bytes left to transfer: 0x{0:x}",
+                                ((hdma5 & 0x7F) + 1) * 0x10);
+                            hdma5 |= 0x80;
+                            cgb_dma_in_progress = false;
+                            cgb_dma_hblank_in_progress = false;
+                            vram_dma_hblank_pending = false;
+                        }
+                        // Cannot set HDMA5 while DMA is in progress
                         return;
                     }
 
-                    if (cgb_dma_in_progress &&
-                        cgb_dma_hblank_in_progress &&
-                        (val & BIT7) == 0)
-                    {   // Terminate current active H-Blank transfer
-                        logger->warn("Terminating current H-Blank DMA, num bytes left to transfer: 0x{0:x}",
-                            ((hdma5 & 0x7F) + 1) * 0x10);
-                        hdma5 |= 0x80;
-                        cgb_dma_in_progress = false;
-                        cgb_dma_hblank_in_progress = false;
-                        return;
-                    }
-
+                    vram_dma_hblank_pending = false;
                     hdma5 = val;
-                    cgb_dma_in_progress = true;
-                    
-                    source_address = hdma1;
-                    source_address = (source_address << 8) | hdma2;
-
-                    dest_address = hdma3;
-                    dest_address = (dest_address << 8) | hdma4;
-
                     memory->do_cgb_oam_dma_transfer(hdma1, hdma2, hdma3, hdma4, hdma5);
                     return;
 
@@ -450,6 +443,32 @@ void GPU::setByte(const uint16_t& pos, const uint8_t& val, const bool limit_acce
 	}
 }
 
+bool GPU::vramDMABlockReady(const bool cpuHalted) const
+{
+    if (!cgb_dma_in_progress)
+    {
+        return false;
+    }
+
+    if (!cgb_dma_hblank_in_progress)
+    {
+        return true;
+    }
+
+    const bool ret = !cpuHalted
+        && lcd_display_enable
+        && lcd_y < SCREEN_PIXEL_H
+        && gpu_mode == GPU_MODE_HBLANK
+        && vram_dma_hblank_pending;
+    return ret;
+}
+
+void GPU::finishVRAMDMABlock()
+{
+    vram_dma_hblank_pending = false;
+
+    memory->do_cgb_h_blank_dma(hdma1, hdma2, hdma3, hdma4, hdma5);
+}
 
 void GPU::set_color_palette(SDL_Color* palette, const uint8_t& val, bool zero_is_transparant)
 {
@@ -568,6 +587,7 @@ void GPU::set_lcd_control(const uint8_t& lcdControl)
         update_lcd_status_coincidence_flag();
         set_lcd_status_mode_flag(GPU_MODE_VBLANK);
         ticks_accumulated = 0;
+        vram_dma_hblank_pending = false;
 	}
 	else if (old_lcd_display_enable == false &&
         lcd_display_enable == true)
@@ -577,7 +597,7 @@ void GPU::set_lcd_control(const uint8_t& lcdControl)
             lcd_display_enable);
 		lcd_y = 0;
 		update_lcd_status_coincidence_flag();
-        set_lcd_status_mode_flag(GPU_MODE_HBLANK);
+        set_lcd_status_mode_flag(GPU_MODE_OAM);
         ticks_accumulated = 0;
 	}
 
@@ -604,7 +624,8 @@ void GPU::set_lcd_control(const uint8_t& lcdControl)
 
 void GPU::set_lcd_status(const uint8_t& lcdStatus)
 {
-	lcd_status = lcdStatus & 0xF8;  // First 3 bits are read-only
+    // First 3 bits are read-only
+    lcd_status = (lcdStatus & 0xF8) | (lcd_status & 0x07);
 
     if (lcd_status & BIT6)
     {
@@ -614,19 +635,14 @@ void GPU::set_lcd_status(const uint8_t& lcdStatus)
     {
         enable_lcd_y_compare_interrupt = false;
     }
-
-	if (lcd_status & 0x20) gpu_mode = GPU_MODE_OAM;
-	if (lcd_status & 0x10) gpu_mode = GPU_MODE_VBLANK;
-	if (lcd_status & 0x08) gpu_mode = GPU_MODE_HBLANK;
 }
-
 
 void GPU::set_lcd_status_mode_flag(const GPU_MODE& mode)
 {
     int prev_gpu_mode = gpu_mode;
     gpu_mode = mode;
 
-    logger->debug("Changing GPU mode to: %s, previous GPU mode: %s",
+    logger->debug("Changing GPU mode to: {}, previous GPU mode: {}",
         getGPUModeStr((GPU_MODE)prev_gpu_mode).c_str(),
         getGPUModeStr((GPU_MODE)gpu_mode).c_str());
 
@@ -878,7 +894,7 @@ void GPU::drawBackgroundLine()
             cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
 
             // Update BG to OAM array
-            cgb_bg_to_oam_priority_array[frame_x] |= cgb_bg_to_OAM_priority;
+            cgb_bg_to_oam_priority_array[frame_x] = cgb_bg_to_OAM_priority;
         }
 
         // Find which tile memory block should be used
@@ -922,6 +938,9 @@ void GPU::drawBackgroundLine()
 
         // Get pixel
         const uint8_t & pixel = tile->getPixel(pixel_use_row, pixel_use_col);
+
+        // Cache pixel at current position
+        bg_scanline_indices[frame_x] = pixel;
 
         if (frame_x + frame_y_offset > SCREEN_PIXEL_TOTAL)
         {
@@ -1040,7 +1059,7 @@ void GPU::drawWindowLine()
             cgb_bg_to_OAM_priority  = cgb_tile_attributes & BIT7;
 
             // Update BG to OAM array
-            cgb_bg_to_oam_priority_array[frame_x] |= cgb_bg_to_OAM_priority;
+            cgb_bg_to_oam_priority_array[frame_x] = cgb_bg_to_OAM_priority;
         }
 
         // Find which tile memory block should be used
@@ -1084,6 +1103,9 @@ void GPU::drawWindowLine()
 
         // Get pixel
         const uint8_t & pixel = tile->getPixel(pixel_use_row, pixel_use_col);
+
+        // Cache pixel at current position
+        bg_scanline_indices[frame_x] = pixel;
 
         // Draw pixel
         if (is_color_gb)
@@ -1227,36 +1249,24 @@ void GPU::drawOAMLine()
 
                 // Get current pixel in frame
                 auto curr_frame_pixel = frame[use_x + frame_y_offset];
-                bool bg_is_color_0 = false;
+                const bool bg_is_color_0 = bg_scanline_indices[use_x] == 0;
 
                 // Check if pixel should be drawn due to object_behind_bg flag
                 // or CGB's object_behind_bg flag
                 if (is_color_gb)
-                {   // Ensure that we have a BG palette present
-                    if (cgb_bg_scanline_color_palettes[use_x])
-                    {
-                        bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, cgb_bg_scanline_color_palettes[use_x]->getColor(0));
-                    }
-
-                    if (cgb_bg_to_oam_priority_array[use_x] == 0)
-                    {   // Use OAM byte 3 flag
-                        if (object_behind_bg)
-                        {   // BG has priority over sprite
-                            if (bg_is_color_0 == false)
-                            {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
-                                continue;
-                            }
-                        }
-                    }
-                    else
+                {
+                    if (bg_display_enable
+                        && !bg_is_color_0
+                        && (cgb_bg_to_oam_priority_array[use_x] || object_behind_bg))
                     {   // BG has priority over sprite
                         continue;
                     }
                 }
-                else if (object_behind_bg)
-                {   // Non-CGB handling
-                    bg_is_color_0 = SDLColorsAreEqual(curr_frame_pixel, bg_palette_color[0]);
-                    if (bg_is_color_0 == false)
+                else
+                {   // DMG handling
+                    if (bg_display_enable
+                        && object_behind_bg
+                        && !bg_is_color_0)
                     {   // Current BG pixel == color 1, 2, or 3 - don't draw sprite here
                         continue;
                     }
@@ -1318,14 +1328,18 @@ void GPU::drawOAMLine()
 
 void GPU::renderLine()
 {
-    if (lcd_y > 144)
+    if (lcd_y >= SCREEN_PIXEL_H)
     {
         return;
     }
 
     logger->debug("lcd_y: {}", lcd_y);
 
-    if (bg_display_enable)
+    // Reset scanline cached data
+    bg_scanline_indices.fill(0);
+    cgb_bg_to_oam_priority_array.fill(false);
+
+    if (is_color_gb || bg_display_enable)
     {
         drawBackgroundLine();
     }
@@ -1434,16 +1448,12 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 logger->trace("Start Frame");
             }
 
+            // Clear VRAM DMA request when HBLANK ends
+            vram_dma_hblank_pending = false;
+
 			lcd_y++;
             logger->trace("Incrementing lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             update_lcd_status_coincidence_flag();
-
-            if (cgb_dma_in_progress &&
-                cgb_dma_hblank_in_progress &&
-                hdma5 != 0xFF)
-            {
-                memory->do_cgb_h_blank_dma(hdma1, hdma2, hdma3, hdma4, hdma5);
-            }
 
 			// Check if frame rendering has completed, start VBLANK interrupt
             if (lcd_y == 144)
@@ -1465,7 +1475,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 set_lcd_status_mode_flag(GPU_MODE_OAM);
             }
 
-			ticks_accumulated = 0;
+			ticks_accumulated -= 204;
 		}
 		break;
 
@@ -1493,7 +1503,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
                 }
 			}
 
-            ticks_accumulated = 0;
+            ticks_accumulated -= 456;
 		}
 		break;
 
@@ -1503,7 +1513,7 @@ void GPU::run(const uint8_t & cpuTickDiff)
 		if (ticks_accumulated >= 80)
 		{
             set_lcd_status_mode_flag(GPU_MODE_VRAM);
-            ticks_accumulated = 0;
+            ticks_accumulated -= 80;
 		}
 		break;
 
@@ -1515,7 +1525,9 @@ void GPU::run(const uint8_t & cpuTickDiff)
             logger->trace("Rendering line lcd_y: 0x{0:x} -> {0:d}", lcd_y);
             renderLine();
             set_lcd_status_mode_flag(GPU_MODE_HBLANK);
-			ticks_accumulated = 0;
+			ticks_accumulated -= 172;
+
+            vram_dma_hblank_pending = cgb_dma_in_progress && cgb_dma_hblank_in_progress;
 		}
 		break;
 	}
