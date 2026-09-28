@@ -3,8 +3,8 @@
 #include <SDL3/SDL_stdinc.h>
 
 #include <algorithm>
+#include <format>
 
-#include <fmt/core.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <Util.h>
@@ -54,6 +54,14 @@ void SDLWindow::init()
         logger->error("SDL_Init() failed: {}", SDL_GetError());
         return;
     }
+
+    if (SDL_Init(SDL_INIT_GAMEPAD) == false)
+    {
+        logger->error("SDL_Init() failed: {}", SDL_GetError());
+        return;
+    }
+    // Support DirectInput controllers
+    SDL_SetHint(SDL_HINT_JOYSTICK_DIRECTINPUT, "1");
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -125,9 +133,13 @@ void SDLWindow::hookToEmulator(std::shared_ptr<GBCEmulator> emulator)
     // Set emulator display output to SDL screen
     emulator->setFrameUpdateMethod(std::bind(&SDLWindow::display, this, std::placeholders::_1));
 
-    // Get emulator joypad, hook up XInput joypad to emulator joypad
+    // Get emulator joypad
     joypad = emulator->get_Joypad();
-    joypadx = std::make_shared<JoypadXInput>(joypad);   // Joypad XInput support
+    // Hook up XInput/DirectInput joypad to emulator joypad
+#ifdef WIN32
+    joypadx = std::make_shared<JoypadXInput>(joypad);   // XInput support
+#endif
+    joypadg = std::make_shared<JoypadGeneric>(joypad);  // DirectInput support
 }
 
 void SDLWindow::display(std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame)
@@ -240,6 +252,17 @@ int SDLWindow::run(bool start_emu)
                 emu->changeCGBPalette();
                 break;
             }
+            case SDLK_F11:
+            {
+                if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)
+                {   // Toggle off fullscreen
+                    SDL_SetWindowFullscreen(window, false);
+                }
+                else
+                {   // Toggle fullscreen
+                    SDL_SetWindowFullscreen(window, true);
+                }
+            }
             } // end switch()
             break;
         } // end case SDL_KEYDOWN
@@ -260,14 +283,14 @@ int SDLWindow::run(bool start_emu)
             break;
         } // end case SDL_KEYUP
 
-        case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+        case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
         {
-            SDL_Log("JOYBUTTONDOWN %d", event.jbutton.button);
+            SDL_Log("GAMEPAD_BUTTON_DOWN %d", event.jbutton.button);
 
             switch (event.jbutton.button)
             {
-                case SDL_GAMEPAD_BUTTON_SOUTH:           emu->set_joypad_button(Joypad::BUTTON::A); break;
-                case SDL_GAMEPAD_BUTTON_EAST:           emu->set_joypad_button(Joypad::BUTTON::B); break;
+                case SDL_GAMEPAD_BUTTON_SOUTH:       emu->set_joypad_button(Joypad::BUTTON::A); break;
+                case SDL_GAMEPAD_BUTTON_EAST:        emu->set_joypad_button(Joypad::BUTTON::B); break;
                 case SDL_GAMEPAD_BUTTON_START:       emu->set_joypad_button(Joypad::BUTTON::START); break;
                 case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:emu->set_joypad_button(Joypad::BUTTON::SELECT); break;
                 case SDL_GAMEPAD_BUTTON_DPAD_UP:     emu->set_joypad_button(Joypad::BUTTON::UP); break;
@@ -283,9 +306,9 @@ int SDLWindow::run(bool start_emu)
             break;
         }
 
-        case SDL_EVENT_JOYSTICK_BUTTON_UP:
+        case SDL_EVENT_GAMEPAD_BUTTON_UP:
         {
-            SDL_Log("JOYBUTTONUP %d", event.jbutton.button);
+            SDL_Log("GAMEPAD_BUTTON_UP %d", event.jbutton.button);
 
             switch (event.jbutton.button)
             {
@@ -305,6 +328,12 @@ int SDLWindow::run(bool start_emu)
             break;
         }
 
+        case SDL_EVENT_GAMEPAD_REMOVED:
+        {
+            using_connected_controller = -1;
+            break;
+        }
+
         case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
         {
             std::lock_guard<std::mutex> lg(renderer_mutex);
@@ -319,6 +348,7 @@ int SDLWindow::run(bool start_emu)
 
         } // switch(event.type)
 
+
         if (joypadx)
         {   // Check if a controller has been selected/found yet
             if (using_connected_controller < 0)
@@ -326,6 +356,15 @@ int SDLWindow::run(bool start_emu)
                 using_connected_controller = joypadx->findControllers();
             }
             joypadx->refreshButtonStates(using_connected_controller);
+        }
+        if (joypadg)
+        {
+            // Check if a controller has been selected/found yet
+            if (using_connected_controller < 0)
+            {   // Select new controller to use
+                using_connected_controller = joypadg->findControllers();
+            }
+            joypadg->refreshButtonStates(using_connected_controller);
         }
 
         if (have_new_frame)
@@ -339,7 +378,7 @@ int SDLWindow::run(bool start_emu)
 #ifndef __ANDROID__
             if (emu)
             {
-                updateWindowTitle(fmt::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
+                updateWindowTitle(std::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
             }
 #endif
         }

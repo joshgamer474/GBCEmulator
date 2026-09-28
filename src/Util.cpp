@@ -23,9 +23,9 @@ std::string get_log_directory()
 #elif __ANDROID__
     return "/usr/var/log/";
 #elif __linux__
-    return "/usr/var/log/";
+    return "~/.cache/log/";
 #elif __unix__ // all unices not caught above
-    return "/usr/var/log/";
+    return "~/.cache/log/";
 #elif defined(_POSIX_VERSION)
     // POSIX
 #else

@@ -14,7 +14,7 @@ public:
     virtual ~AudioSquare();
     AudioSquare& operator=(const AudioSquare& rhs);
 
-    void setByte(const uint16_t & addr, const uint8_t & val);
+    void setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock);
     uint8_t readByte(const uint16_t & addr) const;
     void tick();
     void tickLengthCounter();
@@ -26,13 +26,14 @@ public:
     std::shared_ptr<spdlog::logger> logger;
     uint8_t duty_pos;
     uint8_t output_volume;
+    uint8_t sound_length_data;
     bool is_enabled;
     bool restart_sound;
 
 private:
     uint16_t calculateSweepFrequency();
     void initWaveDutyTable();
-    void parseRegister(const uint8_t & reg, const uint8_t & val);
+    void parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock);
     void reloadPeriod(uint8_t & period, const uint8_t & periodLoad);
 
     std::array<std::array<bool, 8>, 4> wave_duty_table;
@@ -50,9 +51,9 @@ private:
     uint16_t sweep_frequency_16;
     uint64_t timer;
     uint64_t period;
-    uint8_t sound_length_data;
     uint8_t sound_length_load;
     bool sweep_decrease;
+    bool sweep_decrease_used;
     bool sweep_running;
     bool envelope_increase;
     bool envelope_running;

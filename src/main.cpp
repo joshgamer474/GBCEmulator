@@ -1,9 +1,8 @@
-#define SDL_MAIN_HANDLED
+#include <SDL3/SDL_main.h>
 
 #include <GBCEmulator.h>
 
 #include <SDLWindow.h>
-#include <JoypadXInput.h>
 #include <Util.h>
 
 #include <memory>

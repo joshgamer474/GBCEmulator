@@ -24,6 +24,7 @@ AudioSquare::AudioSquare(const uint16_t & register_offset, std::shared_ptr<spdlo
     volume                      = 0;
     output_volume               = 0;
     sweep_decrease              = false;
+    sweep_decrease_used         = false;
     sweep_running               = false;
     envelope_increase           = false;
     envelope_running            = false;
@@ -59,6 +60,7 @@ AudioSquare& AudioSquare::operator=(const AudioSquare& rhs)
     volume              = rhs.volume;
     output_volume       = rhs.output_volume;
     sweep_decrease      = rhs.sweep_decrease;
+    sweep_decrease_used = rhs.sweep_decrease_used;
     sweep_running       = rhs.sweep_running;
     envelope_increase   = rhs.envelope_increase;
     envelope_running    = rhs.envelope_running;
@@ -70,13 +72,13 @@ AudioSquare& AudioSquare::operator=(const AudioSquare& rhs)
     return *this;
 }
 
-void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val)
+void AudioSquare::setByte(const uint16_t & addr, const uint8_t & val, const bool& extra_length_clock)
 {
     uint16_t useAddr = addr - reg_offset;
 
     if (useAddr <= 4)
     {
-        parseRegister(useAddr, val);
+        parseRegister(useAddr, val, extra_length_clock);
     }
     else
     {
@@ -129,14 +131,26 @@ uint8_t AudioSquare::readByte(const uint16_t & addr) const
 }
 
 
-void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
+void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val, const bool& extra_length_clock)
 {
+    bool was_length_enabled = false;
+    bool reload_length = false;
+    bool prev_sweep_decrease = false;
     switch (reg)
     {
     case 0:
+        prev_sweep_decrease = sweep_decrease;
+
         sweep_period_load   = (val >> 4) & 0x07;
         sweep_decrease      = val & BIT3;
         sweep_shift         = val & 0x07;
+
+        // Check if changed sweep from subtraction to addition
+        if (!sweep_decrease && prev_sweep_decrease && sweep_decrease_used)
+        {
+            // Disable the channel
+            is_enabled = false;
+        }
         break;
 
     case 1:
@@ -166,12 +180,27 @@ void AudioSquare::parseRegister(const uint8_t & reg, const uint8_t & val)
     case 4:
         frequency_16 &= 0x00FF;
         frequency_16 |= (static_cast<uint16_t>(val) & 0x07) << 8;
+        was_length_enabled = stop_output_when_sound_length_ends;
         stop_output_when_sound_length_ends = val & BIT6;
+
+        // Tick length counter at register write while between length ticks
+        if (!was_length_enabled && stop_output_when_sound_length_ends && extra_length_clock)
+        {
+            tickLengthCounter();
+        }
 
         restart_sound = val & BIT7;
         if (restart_sound)
         {
+            // Check if length counter should be reloaded after the above^ length counter tick
+            reload_length = sound_length_data == 0;
+
             reset();
+
+            if (reload_length && stop_output_when_sound_length_ends && extra_length_clock)
+            {
+                tickLengthCounter();
+            }
         }
         break;
     }
@@ -208,8 +237,8 @@ void AudioSquare::reset()
     reloadPeriod(sweep_period, sweep_period_load);
 
     // Check if Sweep is enabled
-    if (sweep_period != 0 || sweep_shift != 0)
-    //if (sweep_period_load != 0 || sweep_shift != 0)
+    //if (sweep_period != 0 || sweep_shift != 0)
+    if (sweep_period_load != 0 || sweep_shift != 0)
     {
         sweep_running = true;
     }
@@ -217,6 +246,9 @@ void AudioSquare::reset()
     {
         sweep_running = false;
     }
+
+    // Reset Sweep decreased flag
+    sweep_decrease_used = false;
 
     if (sweep_shift != 0)
     {   // Calculate frequency
@@ -350,18 +382,7 @@ void AudioSquare::tickSweep()
         }
 
         // Copy Square 1's frequency into sweep_frequency
-        sweep_frequency_16 = frequency_16;
-
-
-        // Check if sweep is running
-        if (sweep_period != 0 || sweep_shift != 0)
-        {
-           sweep_running = true;
-        }
-        else
-        {
-           sweep_running = false;
-        }
+        //sweep_frequency_16 = frequency_16;
 
         if (sweep_running && sweep_period_load > 0)
         {   // Calculate a new frequency post-sweep
@@ -390,6 +411,7 @@ uint16_t AudioSquare::calculateSweepFrequency()
     if (sweep_decrease)
     {
         freq = sweep_frequency_16 - freq;
+        sweep_decrease_used = true;
     }
     else
     {

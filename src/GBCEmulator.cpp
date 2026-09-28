@@ -16,7 +16,6 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     init_logging(logName);
 
     cartridgeReader = std::make_shared<CartridgeReader>(std::make_shared<spdlog::logger>("CartridgeReader", loggerSink), force_cgb_mode);
-    apu     = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink));
     joypad  = std::make_shared<Joypad>(std::make_shared<spdlog::logger>("Joypad", loggerSink));
     serial_transfer = std::make_shared<SerialTransfer>(std::make_shared<spdlog::logger>("SerialTransfer", loggerSink));
 
@@ -29,6 +28,7 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     read_rom(romName);
 
     // Initialize GPU and memory objects, link GB components together
+    init_apu(force_cgb_mode);
     init_gpu(force_cgb_mode);
     init_memory(force_cgb_mode);
 
@@ -50,6 +50,8 @@ GBCEmulator::GBCEmulator(const std::string romName, const std::string logName,
     // Set log levels
     set_logging_level(spdlog::level::err);
     //cpu->logger->set_level(spdlog::level::trace);
+    //gpu->logger->set_level(spdlog::level::trace);
+    //apu->logger->set_level(spdlog::level::trace);
 /*
     gpu->logger->set_level(spdlog::level::info);
     cpu->logger->set_level(spdlog::level::warn);
@@ -155,6 +157,12 @@ void GBCEmulator::init_gpu(const bool force_cgb_mode)
     }
 }
 
+void GBCEmulator::init_apu(const bool force_cgb_mode)
+{
+    const bool is_color_gb = cartridgeReader->isColorGB() || force_cgb_mode;
+    apu = std::make_shared<APU>(loggerSink, std::make_shared<spdlog::logger>("APU", loggerSink), is_color_gb);
+}
+
 void GBCEmulator::run()
 {
     stopRunning = false;
@@ -171,8 +179,34 @@ void GBCEmulator::run()
 
 void GBCEmulator::runNextInstruction()
 {
-    uint8_t ticksRan = cpu->runNextInstruction();
+    //uint8_t ticksRan = cpu->runNextInstruction();
+    uint8_t ticksRan = 4;
+    const uint8_t instruction = cpu->getInstruction(ticksRan);
 
+    // Update GPU, APU, and memory
+    tick(ticksRan);
+
+    ticksRan = cpu->runInstruction(instruction) - 4;
+
+#ifdef ENABLE_DEBUG_PRINT
+    cpu->printRegisters();
+#endif
+
+    // Update GPU, APU, and memory
+    tick(ticksRan);
+
+    if (logCounter % 1000 == 0)
+    {
+        logCounter = 0;
+        loggerSink->flush();
+    }
+    logCounter++;
+
+    ranInstruction = true;
+}
+
+void GBCEmulator::tick(uint8_t ticksRan)
+{
     // Check if Gameboy is in double speed mode
     if (memory->cgb_speed_mode & BIT7)
     {   // In double speed mode, divide tickDiff by 2 to simulate
@@ -269,15 +303,6 @@ void GBCEmulator::runNextInstruction()
         memory->cgb_speed_mode |= BIT7;
         memory->cgb_speed_mode &= 0xFE;    // Clear bit 0
     }
-
-    if (logCounter % 1000 == 0)
-    {
-        logCounter = 0;
-        loggerSink->flush();
-    }
-    logCounter++;
-
-    ranInstruction = true;
 }
 
 void GBCEmulator::runTo(uint16_t pc)

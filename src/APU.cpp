@@ -6,18 +6,20 @@
 #include <SDL3/SDL_audio.h>
 #include <chrono>
 
-APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger)
+APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std::shared_ptr<spdlog::logger> _logger, 
+    const bool is_color_gb)
     : SAMPLE_BUFFER_SIZE(1470)//1470
     , SAMPLE_OUTPUT_CHANNEL_SIZE(2)
     , SAMPLE_BUFFER_MEM_SIZE(SAMPLE_BUFFER_SIZE * SAMPLE_OUTPUT_CHANNEL_SIZE)
     , SAMPLE_BUFFER_MEM_SIZE_FLOAT(SAMPLE_BUFFER_MEM_SIZE * sizeof(float))
     , sample_timer_val(CLOCK_SPEED / SAMPLE_RATE)
     , frame_sequence_timer_val(CLOCK_SPEED / 512)
+    , is_color_gb(is_color_gb)
 {
     logger = _logger;
     sound_channel_1 = std::make_unique<AudioSquare>(0xFF10, std::make_shared<spdlog::logger>("APU.Channel.1", logger_sink));
     sound_channel_2 = std::make_unique<AudioSquare>(0xFF15, std::make_shared<spdlog::logger>("APU.Channel.2", logger_sink));
-    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink));
+    sound_channel_3 = std::make_unique<AudioWave>(0xFF1A,   std::make_shared<spdlog::logger>("APU.Channel.3", logger_sink), is_color_gb);
     sound_channel_4 = std::make_unique<AudioNoise>(0xFF20,  std::make_shared<spdlog::logger>("APU.Channel.4", logger_sink));
     frame_sequence_step     = 0;
     channel_control         = 0;
@@ -84,6 +86,7 @@ APU& APU::operator=(const APU& rhs)
     double_speed_mode           = rhs.double_speed_mode;
     send_samples_to_debugger    = rhs.send_samples_to_debugger;
     audio_device_id             = rhs.audio_device_id;
+    is_color_gb                 = rhs.is_color_gb;
 
     *sound_channel_1.get() = *rhs.sound_channel_1.get();
     *sound_channel_2.get() = *rhs.sound_channel_2.get();
@@ -148,10 +151,39 @@ void APU::initSDLAudio()
 
 void APU::setByte(const uint16_t & addr, const uint8_t & val)
 {
+    // Check if we're between length clocks
+    const bool extra_length_clock = (frame_sequence_step & 0x01) != 0;
+
+    // Check if we should skip over writing to channels when sound is disabled
     if (sound_on == false &&
-        addr < 0xFF26 &&
-        addr != 0xFF20) // NR41 can still be written to when off
+        addr < 0xFF26)// &&
+        //addr != 0xFF20) // NR41 can still be written to when off
     {
+        // DMG can write to channels when sound is disabled
+        // CGB cannot
+        if (!is_color_gb)
+        {
+            switch (addr)
+            {
+            case 0xFF11:
+                //sound_channel_1->setByte(addr, val, extra_length_clock);
+                // Don't update wave_pattern_duty when off
+                sound_channel_1->sound_length_data = 0x40 - (val & 0x3F);
+                break;
+            case 0xFF16:
+                //sound_channel_2->setByte(addr, val, extra_length_clock);
+                // Don't update wave_pattern_duty when off
+                sound_channel_2->sound_length_data = 0x40 - (val & 0x3F);
+                break;
+            case 0xFF1B:
+                sound_channel_3->setByte(addr, val, extra_length_clock);
+                break;
+            case 0xFF20:
+                sound_channel_4->setByte(addr, val, extra_length_clock);
+                break;
+            }
+        }
+
         logger->info("Tried to write to addr: 0x{0:x}, val 0x{1:x} but APU sound is disabled",
             addr,
             val);
@@ -164,23 +196,23 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
 
     if (addr >= 0xFF10 && addr <= 0xFF14)
     {   // Channel 1 - Square 1 - NR10-NR14
-        sound_channel_1->setByte(addr, val);
+        sound_channel_1->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF16 && addr <= 0xFF19)
     {   // Channel 2 - Square 2 - NR21-NR24
-        sound_channel_2->setByte(addr, val);
+        sound_channel_2->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF1A && addr <= 0xFF1E)
     {   // Channel 3 - Wave - NR30-NR34
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF20 && addr <= 0xFF23)
     {   // Channel 4 - Noise - NR41-NR44
-        sound_channel_4->setByte(addr, val);
+        sound_channel_4->setByte(addr, val, extra_length_clock);
     }
     else if (addr >= 0xFF30 && addr <= 0xFF3F)
     {   // Wave Pattern RAM
-        sound_channel_3->setByte(addr, val);
+        sound_channel_3->setByte(addr, val, extra_length_clock);
     }
 
     switch (addr)
@@ -202,11 +234,26 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         if (sound_on && (val & BIT7) == 0)
         {   // Disabling sound, reset APU
             logger->info("Turning APU off, zeroing out 0xFF10-0xFF25");
+
+            // Save sound lengths before overwritting with 0s
+            const uint8_t length1 = sound_channel_1->sound_length_data;
+            const uint8_t length2 = sound_channel_2->sound_length_data;
+            const uint16_t length3 = sound_channel_3->sound_length_data;
+            const uint8_t length4 = sound_channel_4->sound_length_data;
+
             // Write 0s to APU registers NR10-NR51 (0xFF10-0xFF25)
             for (uint16_t i = 0xFF10; i < 0xFF26; i++)
             {
                 setByte(i, 0);
             }
+
+            // Reload sound lengths for DMG only
+            sound_channel_1->sound_length_data = is_color_gb ? 0 : length1;
+            sound_channel_2->sound_length_data = is_color_gb ? 0 : length2;
+            sound_channel_3->sound_length_data = is_color_gb ? 0 : length3;
+            sound_channel_4->sound_length_data = is_color_gb ? 0 : length4;
+
+            // Disable channels
             sound_channel_1->is_enabled = false;
             sound_channel_2->is_enabled = false;
             sound_channel_3->is_enabled = false;
@@ -215,7 +262,15 @@ void APU::setByte(const uint16_t & addr, const uint8_t & val)
         else if (!sound_on && (val & BIT7))
         {   // Enabling sound
             logger->info("Turning APU on, resetting APU");
-            reset();
+
+            frame_sequence_step = 0;
+
+            // Reset channel positions
+            sound_channel_1->duty_pos = 0;
+            sound_channel_2->duty_pos = 0;
+            sound_channel_3->powerOn();
+
+            //reset();
         }
 
         sound_on = val & BIT7; // Only BIT7 is writable
@@ -284,7 +339,7 @@ void APU::reset()
     // Reset Wave RAM
     for (uint16_t i = 0xFF30; i < 0xFF3F; i++)
     {
-        sound_channel_3->setByte(i, 0);
+        sound_channel_3->setByte(i, 0, false);
     }
 
     sound_channel_1->reset();
@@ -312,44 +367,50 @@ void APU::run(const uint8_t & cpuTickDiff)
 
         if (frame_sequence_timer == 0)
         {
-            logger->trace("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
-                frame_sequence_step);
-            switch (frame_sequence_step)
+            if (sound_on)
             {
-            case 0:
-            case 4:
-                sound_channel_1->tickLengthCounter();
-                sound_channel_2->tickLengthCounter();
-                sound_channel_3->tickLengthCounter();
-                sound_channel_4->tickLengthCounter();
-                break;
-            case 2:
-            case 6:
-                sound_channel_1->tickLengthCounter();
-                sound_channel_2->tickLengthCounter();
-                sound_channel_3->tickLengthCounter();
-                sound_channel_4->tickLengthCounter();
-                sound_channel_1->tickSweep();
-                break;
-            case 7:
-                sound_channel_1->tickVolumeEnvelope();
-                sound_channel_2->tickVolumeEnvelope();
-                sound_channel_4->tickVolumeEnvelope();
-                break;
-            }
+                logger->trace("frame_sequnce_timer == 0, frame_sequence_step: 0x{0:x}",
+                    frame_sequence_step);
+                switch (frame_sequence_step)
+                {
+                case 0:
+                case 4:
+                    sound_channel_1->tickLengthCounter();
+                    sound_channel_2->tickLengthCounter();
+                    sound_channel_3->tickLengthCounter();
+                    sound_channel_4->tickLengthCounter();
+                    break;
+                case 2:
+                case 6:
+                    sound_channel_1->tickLengthCounter();
+                    sound_channel_2->tickLengthCounter();
+                    sound_channel_3->tickLengthCounter();
+                    sound_channel_4->tickLengthCounter();
+                    sound_channel_1->tickSweep();
+                    break;
+                case 7:
+                    sound_channel_1->tickVolumeEnvelope();
+                    sound_channel_2->tickVolumeEnvelope();
+                    sound_channel_4->tickVolumeEnvelope();
+                    break;
+                }
 
-            frame_sequence_step++;
-            frame_sequence_step &= 7; // Sequence can only be 0..7
+                frame_sequence_step++;
+                frame_sequence_step &= 7; // Sequence can only be 0..7
+            }
 
             // Reset frame_sequence_timer
             frame_sequence_timer = frame_sequence_timer_val;
         }
 
         // Tick sound channels
-        sound_channel_1->tick();
-        sound_channel_2->tick();
-        sound_channel_3->tick();
-        sound_channel_4->tick();
+        if (sound_on)
+        {
+            sound_channel_1->tick();
+            sound_channel_2->tick();
+            sound_channel_3->tick();
+            sound_channel_4->tick();
+        }
 
         // Tick sample_timer
         if (sample_timer > 0)
@@ -566,6 +627,7 @@ void APU::logSamples()
 void APU::initCGB()
 {
     double_speed_mode = true;
+    is_color_gb = true;
 
     sample_timer                = sample_timer_val;
     frame_sequence_timer        = frame_sequence_timer_val;

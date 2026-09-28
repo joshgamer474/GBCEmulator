@@ -1,7 +1,3 @@
-#ifndef SDL_MAIN_HANDLED
-#define SDL_MAIN_HANDLED
-#endif
-
 #ifndef GBCEMULATOR_H
 #define GBCEMULATOR_H
 
@@ -84,7 +80,9 @@ public:
     std::shared_ptr<spdlog::logger> logger;
 
 private:
+    void tick(uint8_t ticksRan);
     void read_rom(std::string filename);
+    void init_apu(const bool force_cgb_mode);
     void init_memory(const bool force_cgb_mode);
     void init_gpu(const bool force_cgb_mode);
     void init_logging(std::string logName);

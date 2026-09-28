@@ -279,18 +279,16 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
 	case 0x1000:
 
         // 0x0000 - 0x1FFF : Set RAM enable
-        if ((val & 0x0F) == 0x0A)
+        external_ram_enabled = (val & 0x0F) == 0x0A;
+        if (external_ram_enabled)
         {
-            external_ram_enabled = true;
-
             if (mbc_num == 3)
             {
                 rtc_timer_enabled = true;
             }
         }
-        else if (val == 0)
+        else
         {
-            external_ram_enabled = false;
             rtc_timer_enabled = false;
         }
 
@@ -421,10 +419,7 @@ void MBC::setByte(const uint16_t pos, uint8_t val)
                 curr_rom_bank++;
                 break;
             }*/
-            if (val <= 0x0F)
-            {
-                curr_ram_bank = val;
-            }
+            curr_ram_bank = val & 0x0F;
         }
 
         break;

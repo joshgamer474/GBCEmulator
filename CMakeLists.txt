@@ -1,21 +1,21 @@
-cmake_minimum_required(VERSION 3.6)
-
-PROJECT(GBCEmulator_bin)
+cmake_minimum_required(VERSION 3.16)
+project(GBCEmulator_bin VERSION 0.1.5 LANGUAGES CXX)
 
 set(LIB_NAME GBCEmulator)
 
 # Set cpp std
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+#include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
 
 # Find dependencies
+find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
 find_package(libzip REQUIRED)
 find_package(spdlog REQUIRED)
-find_package(zlib REQUIRED)
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+#find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
+find_package(SDL3 CONFIG REQUIRED)
 add_definitions(-DSDL_DRAW)
 
 set(GBC_HEADERS
@@ -30,6 +30,7 @@ set(GBC_HEADERS
   src/GetUniqueColorPalette.h
   src/GPU.h
   src/Joypad.h
+  src/JoypadGeneric.h
   src/JoypadInputInterface.h
   src/JoypadXInput.h
   src/MBC.h
@@ -53,6 +54,7 @@ set(GBC_SOURCE
   src/GetUniqueColorPalette.cpp
   src/GPU.cpp
   src/Joypad.cpp
+  src/JoypadGeneric.cpp
   src/JoypadXInput.cpp
   src/MBC.cpp
   src/Memory.cpp
@@ -69,7 +71,6 @@ set(DEPS_INCLUDES
   ${libzip_INCLUDE_DIRS}
   ${PNG_INCLUDE_DIRS}
   ${spdlog_INCLUDE_DIRS}
-  #${SDL2_INCLUDE_DIRS}
   ${SDL3_INCLUDE_DIRS}
   ${ZLIB_INCLUDE_DIRS})
 
@@ -118,17 +119,20 @@ include_directories(${CONAN_INCLUDE_DIRS}
 
 if(NOT BUILD_LIB_ONLY)
   # Create GBCEmulator executable
-  add_executable(${PROJECT_NAME} MACOSX_BUNDLE
+  add_executable(${PROJECT_NAME} WIN32 MACOSX_BUNDLE
     ${GBC_RUN_SOURCE})
 
   target_link_libraries(${PROJECT_NAME}
     ${LIB_NAME})
 
   if(WIN32)
-    message("************************************")
-    message("LINKING XINPUT")
-    target_link_libraries(${PROJECT_NAME}
-      XInput)
+    if(MINGW AND CMAKE_CROSSCOMPILING)
+      target_link_libraries(${LIB_NAME}
+        xinput1_4)
+    else()
+      target_link_libraries(${LIB_NAME}
+        xinput)
+    endif()
   endif(WIN32)
 
   # Rename GBCEmulator_bin to GBCEmulator
@@ -183,40 +187,71 @@ endif(BUILD_QT_GUI)
 # Install
 if (BUILD_LIB_ONLY)
   install(TARGETS ${LIB_NAME}
-    LIBRARY DESTINATION lib)
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin)
 else()
+  if(APPLE)
+    set(LIB_DEST "Applications/${LIB_NAME}.app/Contents/Frameworks")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+      INSTALL_RPATH "@executable_path/../Frameworks")
+  else()
+    set(LIB_DEST "lib")
+  endif()
+
+  # MinGW cross compile
+  set(RUNTIME_SEARCH_DIRECTORIES)
+  set(RUNTIME_LIB_EXCLUDES)
+  if(MINGW AND CMAKE_CROSSCOMPILING)
+    # Add runtime DLL paths
+    list(APPEND RUNTIME_SEARCH_DIRECTORIES
+      DIRECTORIES
+        "/usr/x86_64-w64-mingw32/bin")
+
+    # Exclude unneeded DLLs
+    list(APPEND RUNTIME_LIB_EXCLUDES
+      PRE_EXCLUDE_REGEXES
+        "^api-ms-win-.*"
+        "^ext-ms-win-.*"
+        "^(advapi32|gdi32|imm32|kernel32|oleaut32|setupapi|shell32|user32|version|winmm|bcrypt|ole32)\\.dll$"
+        "^xinput1_4\\.dll$")
+
+    # Fix cross compile cmake_install.cmake error
+    install(CODE [[
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM "windows+pe")
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "objdump")
+      set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND
+          "/usr/bin/x86_64-w64-mingw32-objdump")
+    ]])
+  endif()
+
+  # Install application and collect runtime dependencies.
   install(TARGETS ${PROJECT_NAME}
-    BUNDLE DESTINATION "Applications")
-
-  # Fix macos RPATH issues
-  set_target_properties(
-    ${PROJECT_NAME} PROPERTIES
-    INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib")
-    #INSTALL_RPATH "${CMAKE_INSTALL_RPATH};${CMAKE_INSTALL_PREFIX}/lib;${CMAKE_SOURCE_DIR}/path/to/shared/lib") 
-
-  # Install dependencies
-  install(TARGETS ${PROJECT_NAME} ${LIB_NAME}
-    #RUNTIME_DEPENDENCIES
     RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
     BUNDLE DESTINATION Applications
-    FRAMEWORK DESTINATION framework
     RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
+    FRAMEWORK DESTINATION ${LIB_DEST}
+    LIBRARY DESTINATION ${LIB_DEST}
   )
 
-  install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-deps
-    LIBRARY DESTINATION lib)
+  install(RUNTIME_DEPENDENCY_SET ${PROJECT_NAME}-dependencies
+    ${RUNTIME_SEARCH_DIRECTORIES}
+    ${RUNTIME_LIB_EXCLUDES}
+    RUNTIME DESTINATION bin
+    FRAMEWORK DESTINATION ${LIB_DEST}
+    LIBRARY DESTINATION ${LIB_DEST}
+  )
 
   if (WIN32)
     add_custom_command (
-        TARGET "${PROJECT_NAME}" POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-          "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
+      TARGET "${PROJECT_NAME}" POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+        "$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>" USES_TERMINAL COMMAND_EXPAND_LISTS)
   endif()
 
 endif()
 
 # Package
 if(NOT BUILD_LIB_ONLY)
-  #include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
+  include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
 endif()

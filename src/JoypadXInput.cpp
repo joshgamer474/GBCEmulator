@@ -2,8 +2,8 @@
 #include <Joypad.h>
 
 #ifdef _WIN32
-#include <Windows.h>
-#include <Xinput.h>
+#include <windows.h>
+#include <xinput.h>
 #endif // _WIN32
 
 JoypadXInput::JoypadXInput()
