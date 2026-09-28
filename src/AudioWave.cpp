@@ -171,12 +171,6 @@ uint8_t AudioWave::readByte(const uint16_t & addr) const
 {
     uint8_t ret = 0xFF;
 
-    logger->debug(
-        "Wave read: addr={:04x}, enabled={}, dac={}, "
-        "nibble={}, byte={}, timer={}, access={}",
-        addr, is_enabled, channel_is_enabled,
-        nibble_pos, byte_pos, timer, access_ticks);
-
     switch (addr)
     {
     case 0xFF1A:    // NR30

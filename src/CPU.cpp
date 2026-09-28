@@ -51,6 +51,11 @@ CPU& CPU::operator=(const CPU & rhs)
     return *this;
 }
 
+bool CPU::isHalted() const
+{
+    return is_halted;
+}
+
 uint8_t CPU::runNextInstruction()
 {
     uint8_t ticksRanInstr = 0;

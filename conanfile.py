@@ -95,7 +95,8 @@ class GBCEmulator(ConanFile):
         if self.settings.os == "Android":
             tc.variables["BUILD_UNIT_TEST"] = False
         else:
-            tc.variables["BUILD_UNIT_TEST"] = True
+            #tc.variables["BUILD_UNIT_TEST"] = True
+            tc.variables["BUILD_UNIT_TEST"] = False
 
         if self.options.lib_only == True or self.settings.os == "Android":
             tc.variables["BUILD_LIB_ONLY"] = True

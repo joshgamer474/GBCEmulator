@@ -575,13 +575,6 @@ void Memory::do_oam_dma_transfer(std::uint8_t start_address)
 	source_addr = (static_cast<std::uint16_t>(start_address) << 8);
 	dest_addr = 0xFE00;
 
-    if (gpu->gpu_mode == GPU::GPU_MODE::GPU_MODE_OAM ||
-        gpu->gpu_mode == GPU::GPU_MODE::GPU_MODE_VRAM)
-    {
-        logger->warn("Returning on OAM DMA, gpu_mode: {}", gpu->gpu_mode);
-        return;
-    }
-
     logger->info("Performing OAM DMA from starting source: {0:x}", source_addr);
 
 	// Copy memory from Source 0xZZ00 - 0xZZ9F to OAM memory (0xFE00 - 0xFE9F)
@@ -614,6 +607,7 @@ void Memory::do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t &
     // Transfer length is divided by 0x10, minus 1
     transfer_length = (transfer_length + 1) * 0x10;
 
+    /*
     logger->info("Performing HDMA5 DMA from starting source: {0:x}, dest source: {1:x}, length: {2:x}, DMA type: {3:b}",
         startAddress,
         destAddress,
@@ -641,17 +635,28 @@ void Memory::do_cgb_oam_dma_transfer(uint8_t & hdma1, uint8_t & hdma2, uint8_t &
             startAddress,
             destAddress,
             transfer_length);
-    }
+    }*/
 
     // Update HDMA registers
     hdma1 = startAddress >> 8;
     hdma2 = startAddress & 0x00FF;
     hdma3 = destAddress >> 8;
     hdma4 = destAddress & 0x00FF;
+
+    // Bit 7 reads as 0 while a transfer is active
+    hdma5 &= 0x7F;
+
+    gpu->cgb_dma_in_progress = true;
+    gpu->cgb_dma_hblank_in_progress = h_blank_dma;
 }
 
 void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma3, uint8_t & hdma4, uint8_t & hdma5)
 {
+    if (!gpu->cgb_dma_in_progress)
+    {
+        return;
+    }
+
     uint8_t val = 0;
     uint8_t length = hdma5 & 0x7F;
     uint16_t numBytesToTransfer = (length + 1) * 0x10;
@@ -663,7 +668,7 @@ void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma
         destAddress,
         numBytesToTransfer);
 
-    for (uint16_t i = 0; i < 0x10; i++)
+    for (uint8_t i = 0; i < 0x10; i++)
     {
         val = readByte(startAddress++, false);
         setByte(destAddress++, val, false);
@@ -679,15 +684,21 @@ void Memory::do_cgb_h_blank_dma(uint8_t & hdma1, uint8_t & hdma2, uint8_t & hdma
     hdma3 = destAddress >> 8;
     hdma4 = destAddress & 0x00FF;
 
-    // Update HDMA5 length remaining
-    hdma5 = length;
+    gpu->bg_tiles_updated = true;
 
-    if (hdma5 == 0xFF)
+    const bool lastBlock = (hdma5 & 0x7F) == 0;
+    const bool destAddressOverflow = destAddress >= 0xA000;
+
+    if (lastBlock || destAddressOverflow)
     {   // Transfer has completed, set HDMA5 to 0xFF
         logger->info("H-Blank DMA transfer complete");
-        gpu->bg_tiles_updated = true;
+        hdma5 = 0xFF;
         gpu->cgb_dma_in_progress = false;
         gpu->cgb_dma_hblank_in_progress = false;
+    }
+    else
+    {   // Update HDMA5 length remaining
+        hdma5 = (hdma5 - 1) & 0x7F;
     }
 }
 

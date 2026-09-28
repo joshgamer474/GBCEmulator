@@ -80,6 +80,8 @@ public:
     std::vector<std::vector<std::vector<Tile>>>& getBGTiles();
     const std::vector<int>& getUpdatedBGTileIndexes();
     void changeCGBPalette();
+    bool vramDMABlockReady(const bool cpuHalted) const;
+    void finishVRAMDMABlock();
 
     std::shared_ptr<Memory> memory;
     std::shared_ptr<spdlog::logger> logger;
@@ -138,6 +140,8 @@ private:
 
     uint8_t y_roll_over;
 
+    bool vram_dma_hblank_pending;
+
     /*
     LCD Registers
     */
@@ -157,6 +161,8 @@ private:
     std::array<unsigned char, CGB_PALETTE_DATA_SIZE_RAW> cgb_sprite_palette_data;
     std::array<bool, SCREEN_PIXEL_W> cgb_bg_to_oam_priority_array;
     std::array<ColorPalette *, SCREEN_PIXEL_W> cgb_bg_scanline_color_palettes;
+
+    std::array<unsigned char, SCREEN_PIXEL_W> bg_scanline_indices;
 
     // LCD Object Attribute Memory DMA Transfers
     unsigned char oam_dma;

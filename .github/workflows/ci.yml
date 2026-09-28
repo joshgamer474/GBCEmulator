@@ -1,0 +1,118 @@
+name: Build packages
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.flavor }} / amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [arch, debian, fedora, ubuntu, windows]
+
+    env:
+      IMAGE: gbcemulator:${{ matrix.flavor }}-amd64
+
+    steps:
+      - name: Get source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Read project version
+        id: version
+        shell: python
+        run: |
+          import os
+          import pathlib
+          import re
+
+          source = pathlib.Path("CMakeLists.txt").read_text()
+          match = re.search(r"project\s*\([^)]*\bVERSION\s+(\d+(?:\.\d+){0,3})\b", source, re.IGNORECASE)
+          if not match:
+              raise SystemExit("Cannot read project VERSION from CMakeLists.txt")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version={match.group(1)}\n")
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and package
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --load \
+            --progress plain \
+            --tag "$IMAGE" \
+            --file "docker/${{ matrix.flavor }}/Dockerfile" \
+            .
+
+      - name: Extract packages
+        shell: bash
+        run: |
+          mkdir -p export
+          cid=$(docker create "$IMAGE")
+          trap 'docker rm -f "$cid" >/dev/null' EXIT
+          docker cp "$cid:/export/." ./export/
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: gbcemulator-${{ steps.version.outputs.version }}-${{ matrix.flavor }}-amd64
+          path: export/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Preserve tagged packages
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: package-release-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: gbcemulator-*-*-amd64
+          path: artifacts
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          for flavor in arch debian fedora ubuntu windows; do
+            files=(artifacts/gbcemulator-*-"$flavor"-amd64/*)
+            for file in "${files[@]}"; do
+              test -f "$file"
+              cp "$file" "release-assets/${flavor}-amd64-$(basename "$file")"
+            done
+          done
+
+      - name: Publish packages to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --verify-tag --title "$RELEASE_TAG" --generate-notes
+          fi
