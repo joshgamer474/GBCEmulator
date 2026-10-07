@@ -104,6 +104,7 @@ private:
     const uint32_t sample_timer_val;
 
     SDL_AudioStream* audio_stream = nullptr;
+    bool audio_subsystem_initialized = false;
     SDL_AudioSpec desired_spec;
     SDL_AudioSpec obtained_spec;
     bool sound_on;

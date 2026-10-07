@@ -56,6 +56,43 @@ class PortableSettings {
     };
   }
 
+  /// A device joining a shared folder has no common baseline yet. Preserve
+  /// both histories without adding totals that may already include each other.
+  static void mergeInitial(
+    Map<String, dynamic> local,
+    Map<String, dynamic> remote,
+    String root,
+  ) {
+    final own = snapshot(local, root, remote['last_modified'] as String);
+    final merged = Map<String, dynamic>.from(remote);
+    for (final field in ['playtime_seconds', 'last_played']) {
+      final entries = Map<String, dynamic>.from(remote[field] as Map);
+      for (final entry in (own[field] as Map).entries) {
+        final previous = entries[entry.key];
+        if (previous == null ||
+            (field == 'playtime_seconds'
+                ? (entry.value as num) > (previous as num)
+                : date(entry.value).isAfter(date(previous)))) {
+          entries[entry.key as String] = entry.value;
+        }
+      }
+      merged[field] = entries;
+    }
+    import(local, merged, root);
+  }
+
+  /// Retain every replaced snapshot so accidental resets can be recovered.
+  static void writeShared(File file, Map<String, dynamic> data) {
+    if (file.existsSync()) {
+      final backup = File(
+        '${file.path}.backup-${DateTime.now().toUtc().microsecondsSinceEpoch}',
+      );
+      backup.createSync(exclusive: true);
+      file.copySync(backup.path);
+    }
+    write(file, data);
+  }
+
   static Map<String, dynamic> read(File file) {
     final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
     if (data['version'] != 1 ||

@@ -49,8 +49,11 @@ APU::APU(std::shared_ptr<spdlog::sinks::rotating_file_sink_st> logger_sink, std:
     {
         logger->error("SDL_Init(SDL_INIT_AUDIO) failed: {0:s}", SDL_GetError());
     }
-
-    initSDLAudio();
+    else
+    {
+        initialized = true;
+        initSDLAudio();
+    }
 
     // Initialize double sample buffer
     double_sample_buffer[0].resize(SAMPLE_BUFFER_SIZE);
@@ -63,9 +66,14 @@ APU::~APU()
     audioFileOut->close();
 #endif // WRITE_AUDIO_OUT
 
+    if (audio_stream)
+    {
+        SDL_DestroyAudioStream(audio_stream);
+        audio_stream = nullptr;
+    }
     if (initialized)
     {
-        SDL_CloseAudioDevice(audio_device_id);
+        SDL_QuitSubSystem(SDL_INIT_AUDIO);
     }
 }
 

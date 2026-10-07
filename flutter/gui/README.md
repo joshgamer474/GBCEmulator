@@ -1,4 +1,4 @@
-﻿
+
 ## Build with Flutter (Windows)
 
 From `flutter/gui`, run:
@@ -103,8 +103,58 @@ https://docs.flutter.dev/platform-integration/windows/building
 This produces a portable ZIP, not an installer or signed binary. Test it on a clean
 Windows machine before distributing broadly. It does not install the VC runtime.
 
-For macOS and Linux, build on the matching host with `flutter build macos --release`
-or `flutter build linux --release` plus a matching-architecture native FFI library.
-Their native dependency bundling, loader paths, and (macOS) signing/notarization
-still need platform-specific packaging; this script handles Windows x64 only.
+## Build with Flutter (macOS)
 
+From `flutter/gui`, run `flutter build macos --release`. The Runner builds the
+native Release core on every build (including debug/profile), bundles the FFI
+library and its transitive dylib dependencies in `Contents/Frameworks`, rewrites
+native library references to `@loader_path`, and signs the copied libraries with
+the app's signing identity. System libraries are left on the system. The loader
+finds the FFI library relative to the app executable, independent of the working
+directory. No native library entries are needed in `pubspec.yaml`.
+
+First configure the native build **from the repository root**. On a Mac with
+Homebrew dependencies:
+
+```sh
+brew install cmake sdl3 spdlog libpng libzip
+cmake -S . -B build/flutter-ffi -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
+  -DBUILD_FLUTTER_FFI=ON -DBUILD_LIB_ONLY=ON -DBUILD_UNIT_TEST=OFF \
+  -DBUILD_SHARED_LIBS=OFF
+```
+
+Alternatively use matching Release Conan dependencies and pass their generated
+`conan_toolchain.cmake` with `-DCMAKE_TOOLCHAIN_FILE=...`. Use CMake 3.23 or newer
+for the native build and bundling. Dependency installation and native
+configuration are one-time prerequisites; the Xcode phase does not download
+dependencies.
+
+The core's libc++ formatting requires macOS 13.3 or newer. Set the native
+deployment target explicitly so Xcode's environment cannot change it during
+regeneration. Third-party dylibs can require a newer macOS version; build those
+dependencies for your intended minimum OS when distributing the app.
+
+Set `GBC_NATIVE_BUILD_DIR` to an absolute path to use another configured native
+build. The bundler supports dylib dependencies; configure third-party native
+framework dependencies as dylibs. Flutter/plugin frameworks retain their normal
+Flutter embedding process.
+
+All native dependencies must contain every architecture requested by Xcode.
+Homebrew libraries normally contain only the host architecture, so the Runner
+defaults to that architecture (mapping ARM hosts to Flutter's `arm64` slice) in
+`macos/Runner/Configs/AppInfo.xcconfig`. For a universal app, set `ARCHS` to
+`arm64 x86_64` there, use universal dependencies, and configure the native build
+with `-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`. The bundler reports architecture
+mismatches instead of producing an app that cannot load its core.
+
+This integration handles native building, loading, bundling, and library signing.
+The macOS entitlements allow read/write access to user-selected ROM folders and
+outgoing internet connections for box art. Selected folders get device-local
+security-scoped bookmarks, restored before settings sync and scanning on startup.
+Folders added before bookmark support must be selected once again with Add ROM
+Folder. Reconnect unavailable network drives before starting the app. Distribution
+notarization still needs to be configured separately. Distribute the complete
+`.app`, rather than its executable alone.
+
+Linux still needs its own runner and native dependency packaging.

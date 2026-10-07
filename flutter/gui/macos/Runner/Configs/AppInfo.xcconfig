@@ -7,6 +7,16 @@
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = gbcemulator
 
+// Match the default native build and Homebrew dependencies on this machine.
+// Override ARCHS in Xcode for universal builds with universal native libraries.
+GBC_HOST_ARCH_arm64 = arm64
+GBC_HOST_ARCH_arm64e = arm64
+GBC_HOST_ARCH_x86_64 = x86_64
+ARCHS = $(GBC_HOST_ARCH_$(NATIVE_ARCH_ACTUAL))
+
+// The native core uses libc++ floating-point formatting available from 13.3.
+MACOSX_DEPLOYMENT_TARGET = 13.3
+
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.example.gbcemulator
 

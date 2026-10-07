@@ -6,6 +6,54 @@ import 'package:gui/folder_settings.dart';
 
 void main() {
   test(
+    'background checkpoints serialize and final stop does not double count',
+    () async {
+      final root = Directory.systemTemp.createTempSync('gbc-background-');
+      try {
+        final store = FolderSettings(file: File('${root.path}/settings.json'));
+        await store.save([RomFolder(root.path, shareSettings: true)]);
+        final rom = '${root.path}/game.gb';
+        final tracker = PlaytimeTracker(store, rom);
+        await tracker.startAsync();
+        await Future<void>.delayed(const Duration(milliseconds: 1100));
+        await Future.wait([
+          tracker.checkpointAsync(),
+          tracker.stopAsync(),
+          tracker.stopAsync(),
+        ]);
+        final (times, recent) = await store.historyAsync();
+        expect(times[folderKey(rom)], 1);
+        expect(recent, [rom]);
+        await store.resetPlaytimeAsync(rom);
+        expect((await store.historyAsync()).$1, isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'background settings queue continues after a failed operation',
+    () async {
+      final root = Directory.systemTemp.createTempSync('gbc-background-error-');
+      try {
+        final store = FolderSettings(file: File('${root.path}/settings.json'));
+        await store.save([RomFolder(root.path)]);
+        final failed = store.addPlaytimeAsync('${root.path}/game.gb', -1);
+        final next = store.addPlaytimeAsync('${root.path}/game.gb', 5);
+        await expectLater(failed, throwsArgumentError);
+        await next;
+        expect(
+          (await store.historyAsync()).$1[folderKey('${root.path}/game.gb')],
+          5,
+        );
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
     'playtime accumulates without duplicate checkpoints and preserves folders',
     () async {
       final directory = await Directory.systemTemp.createTemp('gbc-playtime-');

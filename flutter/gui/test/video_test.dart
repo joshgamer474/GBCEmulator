@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ffi';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -7,6 +8,47 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gui/emulator_session.dart';
 
 void main() {
+  test(
+    'repeated sessions deliver video and release their SDL audio subsystem',
+    () async {
+      final library = DynamicLibrary.open(Platform.environment['GBC_LIBRARY']!);
+      final wasInit = library
+          .lookupFunction<Uint32 Function(Uint32), int Function(int)>(
+            'SDL_WasInit',
+          );
+      const audio = 0x10; // SDL_INIT_AUDIO
+      expect(wasInit(audio), 0);
+      for (var cycle = 0; cycle < 3; cycle++) {
+        final frame = Completer<void>();
+        final session = EmulatorSession(
+          (_) {
+            if (!frame.isCompleted) frame.complete();
+          },
+          (error) {
+            if (!frame.isCompleted) frame.completeError(StateError(error));
+          },
+        );
+        try {
+          await session.start(
+            Platform.environment['GBC_LIBRARY']!,
+            Platform.environment['GBC_ROM']!,
+          );
+          session.next();
+          await frame.future.timeout(const Duration(seconds: 5));
+        } finally {
+          await session.stop().timeout(const Duration(seconds: 5));
+        }
+        expect(
+          wasInit(audio),
+          0,
+          reason: 'Audio must be released after cycle $cycle',
+        );
+      }
+    },
+    skip:
+        Platform.environment['GBC_LIBRARY'] == null ||
+        Platform.environment['GBC_ROM'] == null,
+  );
   test(
     'continuous worker can stop without any display requests',
     () async {

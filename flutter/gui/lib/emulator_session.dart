@@ -96,7 +96,7 @@ class EmulatorSession {
       await _ready.future;
       if (!_stopping && _controllers != null) {
         _controllerTimer = Timer.periodic(
-          const Duration(milliseconds: 1),
+          const Duration(milliseconds: 8),
           (_) => _pollControllers(),
         );
       }

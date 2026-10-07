@@ -14,6 +14,7 @@ import 'boxart_catalog.dart';
 import 'folder_settings.dart';
 import 'keyboard_scroll_area.dart';
 import 'native_library_path.dart';
+import 'rom_folder_access.dart';
 import 'boxart_image.dart';
 
 Future<void> main() async {
@@ -64,6 +65,7 @@ class MyApp extends StatelessWidget {
       child: child!,
     ),
     theme: ThemeData(
+      appBarTheme: const AppBarTheme(centerTitle: false),
       colorScheme: ColorScheme.fromSeed(
         seedColor: Colors.indigo,
         brightness: Brightness.dark,
@@ -89,15 +91,21 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
   List<String> _recent = [];
   Map<String, int> _playtimes = {};
 
-  void _loadRecent() {
+  Future<void> _loadRecent() async {
     try {
-      _recent = _settings.recentlyPlayed();
-      _playtimes = _settings.playtimes();
-      if (_settings.syncWarnings.isNotEmpty) {
-        _error = _settings.syncWarnings.values.join('\n');
-      }
+      final (playtimes, recent) = await _settings.historyAsync();
+      if (!mounted) return;
+      setState(() {
+        _recent = recent;
+        _playtimes = playtimes;
+        if (_settings.syncWarnings.isNotEmpty) {
+          _error = _settings.syncWarnings.values.join('\n');
+        }
+      });
     } catch (error) {
-      _error = 'Could not load recently played games: $error';
+      if (mounted) {
+        setState(() => _error = 'Could not load recently played games: $error');
+      }
     }
   }
 
@@ -168,6 +176,12 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
 
   Future<void> _restore() async {
     try {
+      // Restore sandbox access before load(), which also synchronizes shared
+      // folder settings, and before the first directory scan.
+      final accessWarnings = await RomFolderAccess.restore();
+      if (accessWarnings.isNotEmpty && mounted) {
+        setState(() => _error = accessWarnings.join('\n'));
+      }
       final folders = await _settings.load();
       if (!mounted) return;
       _folders = folders;
@@ -198,7 +212,16 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
           games.putIfAbsent(folderKey(game), () => game);
         }
       } catch (error) {
-        errors.add('${folder.path}: $error');
+        if (Platform.isMacOS &&
+            error is FileSystemException &&
+            error.osError?.errorCode == 1) {
+          errors.add(
+            '${folder.path}: Access denied. Select this folder again with '
+            'Add ROM Folder to restore permission.',
+          );
+        } else {
+          errors.add('${folder.path}: $error');
+        }
       }
     }
     if (!mounted) return;
@@ -209,11 +232,11 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
       );
     setState(() {
       _games = sorted;
-      _loadRecent();
       _filterGames();
       _loading = false;
       if (errors.isNotEmpty) _error = 'Could not scan: ${errors.join('; ')}';
     });
+    await _loadRecent();
   }
 
   Future<void> _addPath(String path) async {
@@ -253,7 +276,10 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
       final folder = await getDirectoryPath(
         confirmButtonText: 'Add ROM folder',
       );
-      if (mounted && folder != null) await _addPath(folder);
+      if (mounted && folder != null) {
+        await RomFolderAccess.remember(folder);
+        await _addPath(folder);
+      }
     } catch (error) {
       if (mounted) {
         setState(() => _error = 'Could not open folder picker: $error');
@@ -356,8 +382,8 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
     if (mounted) {
       setState(() {
         _opening = false;
-        _loadRecent();
       });
+      await _loadRecent();
     }
   }
 
@@ -392,8 +418,8 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
     );
     if (reset != true || !mounted) return;
     try {
-      _settings.resetPlaytime(rom);
-      setState(_loadRecent);
+      await _settings.resetPlaytimeAsync(rom);
+      await _loadRecent();
     } catch (error) {
       setState(() => _error = 'Could not reset time played: $error');
     }

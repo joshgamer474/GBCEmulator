@@ -58,7 +58,7 @@ class _EmulationPageState extends State<EmulationPage> {
     _lifecycle = AppLifecycleListener(
       onExitRequested: () async {
         try {
-          _playtime.checkpoint();
+          await _playtime.checkpointAsync();
           await _shutdown();
           return ui.AppExitResponse.exit;
         } catch (error) {
@@ -73,7 +73,15 @@ class _EmulationPageState extends State<EmulationPage> {
         _checkpoint();
       },
     );
-    unawaited(_start());
+    // Let the route paint its controls before native controller initialization
+    // and the first image upload begin.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Cocoa controller setup can process native callbacks. Run it after
+      // Flutter has left its frame callback, rather than re-entering a draw.
+      Timer.run(() {
+        if (mounted && !_leaving) unawaited(_start());
+      });
+    });
   }
 
   Future<void> _start() async {
@@ -123,7 +131,7 @@ class _EmulationPageState extends State<EmulationPage> {
               'W A S D: Move   Z/X: A/B   M/N: Start/Select   Esc: Library';
         });
         try {
-          _playtime.start();
+          unawaited(_playtime.startAsync().catchError(_saveError));
         } catch (error) {
           _saveError(error);
         }
@@ -148,25 +156,21 @@ class _EmulationPageState extends State<EmulationPage> {
   }
 
   void _checkpoint() {
-    try {
-      _playtime.checkpoint();
-    } catch (error) {
-      _saveError(error);
-    }
+    unawaited(_playtime.checkpointAsync().catchError(_saveError));
   }
 
   Future<void> _shutdown() {
+    if (_stopped != null) return _stopped!;
     _controllerFocus?.dispose();
     _controllerFocus = null;
     _saveTimer?.cancel();
-    try {
-      _playtime.stop();
-    } catch (error) {
-      _saveError(error);
-    }
+    final saved = _playtime.stopAsync().catchError(_saveError);
     final session = _session;
     _session = null;
-    return _stopped ??= session?.stop() ?? Future<void>.value();
+    return _stopped = Future.wait<void>([
+      saved,
+      session?.stop() ?? Future<void>.value(),
+    ]).then((_) {});
   }
 
   Future<void> _leave() async {
@@ -194,8 +198,13 @@ class _EmulationPageState extends State<EmulationPage> {
       }
       final previous = _image;
       setState(() => _image = image);
-      WidgetsBinding.instance.addPostFrameCallback((_) => previous?.dispose());
-      session.next();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        previous?.dispose();
+        // Keep at most one decoded image waiting for presentation. Native
+        // emulation continues independently while Flutter renders this frame.
+        if (mounted && !_leaving && identical(_session, session))
+          session.next();
+      });
     });
   }
 
@@ -266,7 +275,8 @@ class _EmulationPageState extends State<EmulationPage> {
                   Text(
                     shortRomName(widget.rom),
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   SelectableText(
@@ -279,7 +289,10 @@ class _EmulationPageState extends State<EmulationPage> {
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('RGB LCD filter', style: TextStyle(fontWeight: FontWeight.bold)),
+                    title: const Text(
+                      'RGB LCD filter',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     value: _lcdEnabled,
                     onChanged: (enabled) =>
                         setState(() => _lcdEnabled = enabled),
@@ -319,8 +332,15 @@ class _EmulationPageState extends State<EmulationPage> {
             children: [
               Column(
                 children: [
-                  //Text(_status, maxLines: 3, overflow: TextOverflow.ellipsis),
-                  //const SizedBox(height: 12),
+                  if (!_playing)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(60, 16, 16, 12),
+                      child: Text(
+                        _status,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   Expanded(
                     child: GameKeyboard(
                       enabled: _playing && !_drawerOpen,
@@ -358,10 +378,7 @@ class _EmulationPageState extends State<EmulationPage> {
                       onPressed: _leaving
                           ? null
                           : () => _scaffoldKey.currentState?.openDrawer(),
-                      icon: Icon(
-                        Icons.menu,
-                        color: Colors.white,
-                      ),
+                      icon: Icon(Icons.menu, color: Colors.white),
                     ),
                   ),
                 ),

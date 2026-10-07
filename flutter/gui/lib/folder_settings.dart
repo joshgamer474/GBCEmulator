@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'portable_settings.dart';
 
@@ -32,9 +33,36 @@ class FolderSettings {
           );
   final File file;
   final Map<String, String> syncWarnings = {};
+  Future<void> _pending = Future<void>.value();
 
-  Future<List<RomFolder>> load() async {
-    if (!await file.exists()) return [];
+  Future<T> _background<T>(String operation, [Object? argument]) {
+    final request = (file.path, operation, argument);
+    final result = _pending.then((_) => _runSettingsTask(request)).then((
+      reply,
+    ) {
+      syncWarnings
+        ..clear()
+        ..addAll(reply.$2);
+      return reply.$1 as T;
+    });
+    // Keep operations serialized even when an earlier write fails. The caller
+    // still receives the error and can retry without losing its checkpoint.
+    _pending = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
+
+  Future<(Map<String, int>, List<String>)> historyAsync() =>
+      _background('history');
+
+  Future<void> addPlaytimeAsync(String rom, int seconds) =>
+      _background('playtime', (rom, seconds));
+
+  Future<void> resetPlaytimeAsync(String rom) => _background('reset', rom);
+
+  Future<List<RomFolder>> load() => _background('load');
+
+  List<RomFolder> _loadSync() {
+    if (!file.existsSync()) return [];
     final data = _read();
     if (data['version'] != 1) {
       throw const FormatException('Unsupported settings version');
@@ -74,6 +102,7 @@ class FolderSettings {
     final revisions = Map<String, dynamic>.from(
       data['folder_modified'] as Map? ?? {},
     );
+    revisions.removeWhere((key, _) => !shared.contains(key));
     for (final row in data['rom_folders'] as List? ?? []) {
       if (row['share_settings'] != true) continue;
       final root = row['path'] as String;
@@ -93,7 +122,26 @@ class FolderSettings {
           }
         }
         final revision = revisions[key] ?? baseline.toIso8601String();
-        if (remote != null &&
+        if (remote != null && revisions[key] == null) {
+          PortableSettings.mergeInitial(data, remote, root);
+          final merged = PortableSettings.snapshot(
+            data,
+            root,
+            remote['last_modified'] as String,
+          );
+          final changed = ['playtime_seconds', 'last_played'].any(
+            (field) => jsonEncode(merged[field]) != jsonEncode(remote[field]),
+          );
+          revisions[key] = changed
+              ? PortableSettings.nextTimestamp(
+                  PortableSettings.date(
+                        revision,
+                      ).isAfter(PortableSettings.date(remote['last_modified']))
+                      ? revision
+                      : remote['last_modified'],
+                )
+              : remote['last_modified'];
+        } else if (remote != null &&
             PortableSettings.date(remote['last_modified'])
                 .isAfter(PortableSettings.date(revision))) {
           PortableSettings.import(data, remote, root);
@@ -111,13 +159,12 @@ class FolderSettings {
         // Commit locally first. A failed mirror write must not cause a playtime
         // checkpoint retry to count the same elapsed seconds twice.
         PortableSettings.write(file, data);
-        final snapshot = PortableSettings.snapshot(
-          data,
-          root,
-          revisions[key] as String,
-        );
+        final snapshot = {
+          ...?remote,
+          ...PortableSettings.snapshot(data, root, revisions[key] as String),
+        };
         if (remote == null || jsonEncode(remote) != jsonEncode(snapshot)) {
-          PortableSettings.write(copy, snapshot);
+          PortableSettings.writeShared(copy, snapshot);
         }
         syncWarnings.remove(key);
       } catch (error) {
@@ -136,8 +183,28 @@ class FolderSettings {
 
   // Synchronous read-modify-write keeps settings updates serialized on the UI
   // isolate and lets the final checkpoint complete during window teardown.
-  Future<void> save(List<RomFolder> folders) async {
+  Future<void> save(List<RomFolder> folders) => _background('save', [
+    for (final folder in folders)
+      RomFolder(
+        folder.path,
+        enabled: folder.enabled,
+        shareSettings: folder.shareSettings,
+      ),
+  ]);
+
+  void _saveSync(List<RomFolder> folders) {
     final data = _read();
+    final previouslyShared = {
+      for (final row in data['rom_folders'] as List? ?? [])
+        if (row['share_settings'] == true) folderKey(row['path'] as String),
+    };
+    final revisions = Map<String, dynamic>.from(
+      data['folder_modified'] as Map? ?? {},
+    );
+    // Older app versions assigned revisions even before sharing was enabled.
+    // Those timestamps are not a baseline agreed with the shared folder.
+    revisions.removeWhere((key, _) => !previouslyShared.contains(key));
+    data['folder_modified'] = revisions;
     data['rom_folders'] = [
       for (final folder in folders)
         {
@@ -219,6 +286,7 @@ class FolderSettings {
       data['folder_modified'] as Map? ?? {},
     );
     for (final row in data['rom_folders'] as List? ?? []) {
+      if (row['share_settings'] != true) continue;
       final root = row['path'] as String;
       if (PortableSettings.relative(root, path) != null) {
         revisions[folderKey(root)] = PortableSettings.nextTimestamp(
@@ -230,6 +298,35 @@ class FolderSettings {
   }
 }
 
+// A top-level helper keeps widget state and queued Futures out of the isolate
+// closure. Sandbox folder permissions apply to all isolates in this process.
+Future<(Object?, Map<String, String>)> _runSettingsTask(
+  (String, String, Object?) request,
+) => Isolate.run(() => _settingsTask(request));
+
+(Object?, Map<String, String>) _settingsTask(
+  (String, String, Object?) request,
+) {
+  final store = FolderSettings(file: File(request.$1));
+  Object? value;
+  switch (request.$2) {
+    case 'load':
+      value = store._loadSync();
+    case 'save':
+      store._saveSync(request.$3 as List<RomFolder>);
+    case 'playtime':
+      final (rom, seconds) = request.$3 as (String, int);
+      store.addPlaytime(rom, seconds);
+    case 'history':
+      value = (store.playtimes(), store.recentlyPlayed());
+    case 'reset':
+      store.resetPlaytime(request.$3 as String);
+    default:
+      throw ArgumentError('Unknown settings operation: ${request.$2}');
+  }
+  return (value, store.syncWarnings);
+}
+
 /// Saves only the elapsed whole seconds not already checkpointed this session.
 class PlaytimeTracker {
   PlaytimeTracker(this.settings, this.rom);
@@ -238,6 +335,34 @@ class PlaytimeTracker {
   final Stopwatch _clock = Stopwatch();
   int _savedSeconds = 0;
   bool _started = false;
+  Future<void> _pending = Future<void>.value();
+
+  Future<void> startAsync() {
+    if (_started) return _pending;
+    _started = true;
+    _clock.start();
+    return _checkpointAsync(0, recordStart: true);
+  }
+
+  Future<void> checkpointAsync() => _started
+      ? _checkpointAsync(_clock.elapsed.inSeconds)
+      : Future<void>.value();
+
+  Future<void> stopAsync() {
+    _clock.stop();
+    return checkpointAsync();
+  }
+
+  Future<void> _checkpointAsync(int seconds, {bool recordStart = false}) {
+    final result = _pending.then((_) async {
+      final delta = seconds - _savedSeconds;
+      if (delta <= 0 && !recordStart) return;
+      await settings.addPlaytimeAsync(rom, delta);
+      _savedSeconds = seconds;
+    });
+    _pending = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    return result;
+  }
 
   void start() {
     if (_started) return;

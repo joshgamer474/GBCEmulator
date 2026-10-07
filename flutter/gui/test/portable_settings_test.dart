@@ -11,6 +11,55 @@ void main() {
   tearDown(() => temp.deleteSync(recursive: true));
 
   test(
+    'joining with newer partial history preserves the shared snapshot',
+    () async {
+      final root = Directory('${temp.path}/network')..createSync();
+      final copy = PortableSettings.copyFile(root.path);
+      final original = {
+        'version': 1,
+        'kind': 'gbcemulator_rom_folder',
+        'last_modified': '2020-01-01T00:00:00Z',
+        'playtime_seconds': {'Old.gb': 120, 'Game.gb': 60},
+        'last_played': {'Old.gb': '2020-01-01T00:00:00Z'},
+        'future_metadata': {'keep': true},
+      };
+      PortableSettings.write(copy, original);
+      final originalText = copy.readAsStringSync();
+      final store = FolderSettings(
+        file: File('${temp.path}/local/settings.json'),
+      );
+      await store.save([RomFolder(root.path)]);
+      store.addPlaytime('${root.path}/Game.gb', 5);
+      // Existing installations can contain revisions assigned by the old app
+      // before this folder ever participated in shared synchronization.
+      final legacy =
+          jsonDecode(store.file.readAsStringSync()) as Map<String, dynamic>;
+      legacy['folder_modified'] = {
+        folderKey(root.path): '2099-01-01T00:00:00Z',
+      };
+      PortableSettings.write(store.file, legacy);
+      await store.save([RomFolder(root.path, shareSettings: true)]);
+      expect(store.playtimes()[folderKey('${root.path}/Old.gb')], 120);
+      expect(store.playtimes()[folderKey('${root.path}/Game.gb')], 60);
+      var shared = PortableSettings.read(copy);
+      expect(shared['future_metadata'], {'keep': true});
+      final backups = copy.parent.listSync().whereType<File>().where(
+        (file) => file.path.startsWith('${copy.path}.backup-'),
+      );
+      expect(
+        backups.map((file) => file.readAsStringSync()),
+        contains(originalText),
+      );
+      store.addPlaytime('${root.path}/Game.gb', 10);
+      shared = PortableSettings.read(copy);
+      expect(shared['playtime_seconds'], {'Old.gb': 120, 'Game.gb': 70});
+      expect(shared['future_metadata'], {'keep': true});
+      store.resetPlaytime('${root.path}/Game.gb');
+      expect(PortableSettings.read(copy)['playtime_seconds'], {'Old.gb': 120});
+    },
+  );
+
+  test(
     'multiple folders stay independent and disabling sharing stops updates',
     () async {
       final a = Directory('${temp.path}/a')..createSync();

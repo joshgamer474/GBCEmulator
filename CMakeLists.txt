@@ -112,17 +112,29 @@ if(BUILD_FLUTTER_FFI)
     flutter/gbcemulator/src/controller_input.cpp)
   target_compile_definitions(gbcemulator_ffi PRIVATE GBC_FFI_BUILD)
   target_link_libraries(gbcemulator_ffi PRIVATE ${LIB_NAME})
+
+  # MacOS
+  if(APPLE)
+    target_link_options(gbcemulator_ffi PRIVATE "-Wl,-headerpad_max_install_names")
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/gbc-ffi-$<CONFIG>.txt"
+      CONTENT "$<TARGET_FILE:gbcemulator_ffi>\n")
+  endif()
+
+  # Windows
   if(WIN32)
     if(MINGW AND CMAKE_CROSSCOMPILING)
       target_link_libraries(gbcemulator_ffi PRIVATE xinput1_4)
     else()
       target_link_libraries(gbcemulator_ffi PRIVATE xinput)
     endif()
+
     add_custom_command(TARGET gbcemulator_ffi POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:gbcemulator_ffi>"
         "$<TARGET_RUNTIME_DLLS:gbcemulator_ffi>"
       COMMAND_EXPAND_LISTS)
   endif()
+
+  # Install options
   install(TARGETS gbcemulator_ffi
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
@@ -289,5 +301,4 @@ endif()
 if(NOT BUILD_LIB_ONLY)
   include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
 endif()
-
 
