@@ -1,0 +1,562 @@
+[2026-09-29 23:54:25.936] [CartridgeReader] [info] Is file .zip: false
+[2026-09-29 23:54:25.936] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-29 23:54:25.940] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-29 23:54:25.942] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-29 23:54:25.942] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-29 23:54:25.942] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-29 23:54:25.958] [APU] [error] Failed to get audio format requested
+[2026-09-29 23:54:25.959] [MBC] [info] Using MBC: 1
+[2026-09-29 23:54:25.959] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-29 23:54:25.959] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-29 23:54:25.959] [APU] [info] Turning APU on, resetting APU
+[2026-09-29 23:54:25.959] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-29 23:54:25.959] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-29 23:54:25.959] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-29 23:54:25.959] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-29 23:54:25.960] [GBCEmulator] [info] Destructing
+[2026-09-29 23:54:25.960] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:08:12.042] [CartridgeReader] [info] Is file .zip: false
+[2026-09-30 00:08:12.042] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:08:12.042] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-30 00:08:12.044] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:08:12.044] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-30 00:08:12.044] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-30 00:08:12.060] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:08:12.061] [MBC] [info] Using MBC: 1
+[2026-09-30 00:08:12.061] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:08:12.061] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:08:12.061] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:08:12.061] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:08:12.061] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:08:12.061] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:08:12.061] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-30 00:08:12.062] [GBCEmulator] [info] Destructing
+[2026-09-30 00:08:12.062] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:08:24.718] [CartridgeReader] [info] Is file .zip: false
+[2026-09-30 00:08:24.718] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:08:24.718] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-30 00:08:24.720] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:08:24.720] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-30 00:08:24.720] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-30 00:08:24.735] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:08:24.735] [MBC] [info] Using MBC: 1
+[2026-09-30 00:08:24.735] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:08:24.735] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:24.735] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:08:24.736] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:08:24.736] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:08:24.736] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:08:24.736] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:08:24.736] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-30 00:08:24.737] [GBCEmulator] [info] Destructing
+[2026-09-30 00:08:24.737] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:09:50.358] [CartridgeReader] [info] Is file .zip: true
+[2026-09-30 00:09:50.358] [CartridgeReader] [info] Attempting to open .zip..
+[2026-09-30 00:09:50.358] [CartridgeReader] [info] Attempting to open .zip C:\Users\childers\Downloads\Legend of Zelda, The - Oracle of Seasons (U) [C][!].zip
+[2026-09-30 00:09:50.365] [CartridgeReader] [info] Number of entries in .zip: 1, parsing entries..
+[2026-09-30 00:09:50.365] [CartridgeReader] [info] Entry 0, name: Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc, size: 1048576, valid: 255, mtime: 989801888
+[2026-09-30 00:09:50.370] [CartridgeReader] [info] Done reading .zip entry Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc, read 1048576 bytes, uncompressed_out.size(): 1048576
+[2026-09-30 00:09:50.371] [CartridgeReader] [info] Parsed cartridge, game_title: ZELDA DINออออออ, game_title_hash: 107, game_title_hash_16: 619, old_licensee_code: 51, header_checksum: 238
+[2026-09-30 00:09:50.371] [CartridgeReader] [info] Finished reading in ZELDA DINออออออ, file size: 1048576
+[2026-09-30 00:09:50.387] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:09:50.388] [MBC] [info] Using MBC: 5
+[2026-09-30 00:09:50.388] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:09:50.388] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:09:50.388] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:09:50.388] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:09:50.388] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:09:50.388] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:09:50.388] [MBC] [info] MBC5 does not support RTC clock
+[2026-09-30 00:09:50.391] [GBCEmulator] [info] Destructing
+[2026-09-30 00:09:50.391] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:10:03.954] [CartridgeReader] [info] Is file .zip: true
+[2026-09-30 00:10:03.954] [CartridgeReader] [info] Attempting to open .zip..
+[2026-09-30 00:10:03.954] [CartridgeReader] [info] Attempting to open .zip C:\Users\childers\Downloads\Legend of Zelda, The - Oracle of Seasons (U) [C][!].zip
+[2026-09-30 00:10:03.954] [CartridgeReader] [info] Number of entries in .zip: 1, parsing entries..
+[2026-09-30 00:10:03.954] [CartridgeReader] [info] Entry 0, name: Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc, size: 1048576, valid: 255, mtime: 989801888
+[2026-09-30 00:10:03.960] [CartridgeReader] [info] Done reading .zip entry Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc, read 1048576 bytes, uncompressed_out.size(): 1048576
+[2026-09-30 00:10:03.960] [CartridgeReader] [info] Parsed cartridge, game_title: ZELDA DINออออออ, game_title_hash: 107, game_title_hash_16: 619, old_licensee_code: 51, header_checksum: 238
+[2026-09-30 00:10:03.960] [CartridgeReader] [info] Finished reading in ZELDA DINออออออ, file size: 1048576
+[2026-09-30 00:10:03.977] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:10:03.978] [MBC] [info] Using MBC: 5
+[2026-09-30 00:10:03.978] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:10:03.978] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:10:03.978] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:10:03.978] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:10:03.978] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:10:03.978] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:10:03.978] [MBC] [info] MBC5 does not support RTC clock
+[2026-09-30 00:10:26.088] [GBCEmulator] [info] Destructing
+[2026-09-30 00:10:26.088] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:31:31.904] [CartridgeReader] [info] Is file .zip: false
+[2026-09-30 00:31:31.904] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:31:31.904] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-30 00:31:31.906] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:31:31.906] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-30 00:31:31.906] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-30 00:31:31.921] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:31:31.922] [MBC] [info] Using MBC: 1
+[2026-09-30 00:31:31.922] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:31:31.922] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:31:31.922] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:31:31.922] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:31:31.922] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:31:31.922] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:31:31.922] [MBC] [info] Reading in save file
+[2026-09-30 00:31:31.923] [MBC] [info] Finished reading in save file
+[2026-09-30 00:31:31.923] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-30 00:31:31.926] [GBCEmulator] [info] Destructing
+[2026-09-30 00:31:31.926] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-09-30 00:50:33.560] [CartridgeReader] [info] Is file .zip: false
+[2026-09-30 00:50:33.560] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:50:33.564] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-30 00:50:33.566] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:50:33.566] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-30 00:50:33.566] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-30 00:50:33.582] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:50:33.583] [MBC] [info] Using MBC: 1
+[2026-09-30 00:50:33.583] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:50:33.583] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:50:33.583] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:50:33.583] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:50:33.583] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:50:33.583] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:50:33.587] [MBC] [info] Reading in save file
+[2026-09-30 00:50:33.587] [MBC] [info] Finished reading in save file
+[2026-09-30 00:50:33.587] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-30 00:50:33.728] [GBCEmulator] [info] Destructing
+[2026-09-30 00:50:33.729] [GBCEmulator] [info] Last frame hash: 96239606146560
+[2026-09-30 00:50:33.786] [CartridgeReader] [info] Is file .zip: false
+[2026-09-30 00:50:33.786] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:50:33.786] [CartridgeReader] [info] File size is 32768 bytes
+[2026-09-30 00:50:33.788] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-09-30 00:50:33.788] [CartridgeReader] [info] Parsed cartridge, game_title: อออออออออออออออ, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-09-30 00:50:33.788] [CartridgeReader] [info] Finished reading in อออออออออออออออ, file size: 32768
+[2026-09-30 00:50:33.788] [APU] [error] Failed to get audio format requested
+[2026-09-30 00:50:33.789] [MBC] [info] Using MBC: 1
+[2026-09-30 00:50:33.789] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-09-30 00:50:33.789] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-09-30 00:50:33.789] [APU] [info] Turning APU on, resetting APU
+[2026-09-30 00:50:33.789] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-09-30 00:50:33.789] [GPU] [info] Turned off Window rendering while drawing mid-frame, lcd_y: 0
+[2026-09-30 00:50:33.789] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-09-30 00:50:33.789] [MBC] [info] Reading in save file
+[2026-09-30 00:50:33.790] [MBC] [info] Finished reading in save file
+[2026-09-30 00:50:33.790] [MBC] [info] MBC1 does not support RTC clock
+[2026-09-30 00:50:33.791] [GBCEmulator] [info] Destructing
+[2026-09-30 00:50:33.791] [GBCEmulator] [info] Last frame hash: 79552900108800
+[2026-10-01 00:29:20.787] [CartridgeReader] [info] Is file .zip: false
+[2026-10-01 00:29:20.787] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:29:20.791] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-01 00:29:20.792] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:29:20.792] [CartridgeReader] [info] Parsed cartridge, game_title: , game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-01 00:29:20.792] [CartridgeReader] [info] Finished reading in , file size: 32768
+[2026-10-01 00:29:21.209] [APU] [error] Failed to get audio format requested
+[2026-10-01 00:29:21.209] [MBC] [info] Using MBC: 1
+[2026-10-01 00:29:21.209] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-01 00:29:21.209] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-01 00:29:21.209] [APU] [info] Turning APU on, resetting APU
+[2026-10-01 00:29:21.209] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-01 00:29:21.209] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-01 00:29:21.217] [MBC] [info] Reading in save file
+[2026-10-01 00:29:21.217] [MBC] [info] Finished reading in save file
+[2026-10-01 00:29:21.217] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-01 00:29:21.445] [GBCEmulator] [info] Destructing
+[2026-10-01 00:29:21.445] [GBCEmulator] [info] Last frame hash: 95262172706304
+[2026-10-01 00:29:21.501] [CartridgeReader] [info] Is file .zip: false
+[2026-10-01 00:29:21.501] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:29:21.501] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-01 00:29:21.502] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:29:21.502] [CartridgeReader] [info] Parsed cartridge, game_title: , game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-01 00:29:21.502] [CartridgeReader] [info] Finished reading in , file size: 32768
+[2026-10-01 00:29:21.502] [APU] [error] Failed to get audio format requested
+[2026-10-01 00:29:21.502] [MBC] [info] Using MBC: 1
+[2026-10-01 00:29:21.502] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-01 00:29:21.502] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-01 00:29:21.502] [APU] [info] Turning APU on, resetting APU
+[2026-10-01 00:29:21.502] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-01 00:29:21.502] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-01 00:29:21.502] [MBC] [info] Reading in save file
+[2026-10-01 00:29:21.502] [MBC] [info] Finished reading in save file
+[2026-10-01 00:29:21.502] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-01 00:29:21.503] [GBCEmulator] [info] Destructing
+[2026-10-01 00:29:21.503] [GBCEmulator] [info] Last frame hash: 64234210810
+[2026-10-01 00:36:52.649] [CartridgeReader] [info] Is file .zip: false
+[2026-10-01 00:36:52.649] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:36:52.649] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-01 00:36:52.650] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:36:52.650] [CartridgeReader] [info] Parsed cartridge, game_title: p, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-01 00:36:52.650] [CartridgeReader] [info] Finished reading in p, file size: 32768
+[2026-10-01 00:36:53.066] [APU] [error] Failed to get audio format requested
+[2026-10-01 00:36:53.066] [MBC] [info] Using MBC: 1
+[2026-10-01 00:36:53.066] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-01 00:36:53.066] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-01 00:36:53.066] [APU] [info] Turning APU on, resetting APU
+[2026-10-01 00:36:53.066] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-01 00:36:53.066] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-01 00:36:53.066] [MBC] [info] Reading in save file
+[2026-10-01 00:36:53.067] [MBC] [info] Finished reading in save file
+[2026-10-01 00:36:53.067] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-01 00:36:53.293] [GBCEmulator] [info] Destructing
+[2026-10-01 00:36:53.293] [GBCEmulator] [info] Last frame hash: 95262172706304
+[2026-10-01 00:36:53.350] [CartridgeReader] [info] Is file .zip: false
+[2026-10-01 00:36:53.350] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:36:53.350] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-01 00:36:53.351] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-01 00:36:53.351] [CartridgeReader] [info] Parsed cartridge, game_title: , game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-01 00:36:53.351] [CartridgeReader] [info] Finished reading in , file size: 32768
+[2026-10-01 00:36:53.351] [APU] [error] Failed to get audio format requested
+[2026-10-01 00:36:53.351] [MBC] [info] Using MBC: 1
+[2026-10-01 00:36:53.351] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-01 00:36:53.351] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-01 00:36:53.351] [APU] [info] Turning APU on, resetting APU
+[2026-10-01 00:36:53.351] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-01 00:36:53.351] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-01 00:36:53.351] [MBC] [info] Reading in save file
+[2026-10-01 00:36:53.351] [MBC] [info] Finished reading in save file
+[2026-10-01 00:36:53.351] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-01 00:36:53.352] [GBCEmulator] [info] Destructing
+[2026-10-01 00:36:53.352] [GBCEmulator] [info] Last frame hash: 4210482768912
+[2026-10-03 15:41:04.729] [CartridgeReader] [info] Is file .zip: false
+[2026-10-03 15:41:04.729] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-03 15:41:04.734] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-03 15:41:04.734] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-03 15:41:04.734] [CartridgeReader] [info] Parsed cartridge, game_title: T, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-03 15:41:04.734] [CartridgeReader] [info] Finished reading in T, file size: 32768
+[2026-10-03 15:41:04.750] [APU] [error] Failed to get audio format requested
+[2026-10-03 15:41:04.750] [MBC] [info] Using MBC: 1
+[2026-10-03 15:41:04.750] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-03 15:41:04.750] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-03 15:41:04.750] [APU] [info] Turning APU on, resetting APU
+[2026-10-03 15:41:04.750] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-03 15:41:04.750] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-03 15:41:04.754] [MBC] [info] Reading in save file
+[2026-10-03 15:41:04.754] [MBC] [info] Finished reading in save file
+[2026-10-03 15:41:04.754] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-03 15:41:04.899] [GBCEmulator] [info] Destructing
+[2026-10-03 15:41:04.899] [GBCEmulator] [info] Last frame hash: 95262172706304
+[2026-10-03 15:41:04.955] [CartridgeReader] [info] Is file .zip: false
+[2026-10-03 15:41:04.956] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-03 15:41:04.956] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-03 15:41:04.956] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-03 15:41:04.956] [CartridgeReader] [info] Parsed cartridge, game_title: , game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-03 15:41:04.956] [CartridgeReader] [info] Finished reading in , file size: 32768
+[2026-10-03 15:41:04.956] [APU] [error] Failed to get audio format requested
+[2026-10-03 15:41:04.956] [MBC] [info] Using MBC: 1
+[2026-10-03 15:41:04.956] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-03 15:41:04.956] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-03 15:41:04.956] [APU] [info] Turning APU on, resetting APU
+[2026-10-03 15:41:04.956] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-03 15:41:04.956] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-03 15:41:04.956] [MBC] [info] Reading in save file
+[2026-10-03 15:41:04.956] [MBC] [info] Finished reading in save file
+[2026-10-03 15:41:04.956] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-03 15:41:04.957] [GBCEmulator] [info] Destructing
+[2026-10-03 15:41:04.957] [GBCEmulator] [info] Last frame hash: 0
+[2026-10-06 02:02:11.465] [CartridgeReader] [info] Is file .zip: false
+[2026-10-06 02:02:11.465] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-06 02:02:11.468] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-06 02:02:11.469] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-06 02:02:11.469] [CartridgeReader] [info] Parsed cartridge, game_title: T, game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-06 02:02:11.469] [CartridgeReader] [info] Finished reading in T, file size: 32768
+[2026-10-06 02:02:11.485] [APU] [error] Failed to get audio format requested
+[2026-10-06 02:02:11.485] [MBC] [info] Using MBC: 1
+[2026-10-06 02:02:11.485] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-06 02:02:11.485] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-06 02:02:11.485] [APU] [info] Turning APU on, resetting APU
+[2026-10-06 02:02:11.485] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-06 02:02:11.485] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-06 02:02:11.490] [MBC] [info] Reading in save file
+[2026-10-06 02:02:11.490] [MBC] [info] Finished reading in save file
+[2026-10-06 02:02:11.490] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-06 02:02:11.634] [GBCEmulator] [info] Destructing
+[2026-10-06 02:02:11.634] [GBCEmulator] [info] Last frame hash: 95262172706304
+[2026-10-06 02:02:11.691] [CartridgeReader] [info] Is file .zip: false
+[2026-10-06 02:02:11.691] [CartridgeReader] [info] Reading in file C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-06 02:02:11.691] [CartridgeReader] [info] File size is 32768 bytes
+[2026-10-06 02:02:11.692] [CartridgeReader] [info] Finished reading in C:/Users/childers/Documents/Git/GBCEmulator/build/flutter-ffi/smoke.gb
+[2026-10-06 02:02:11.692] [CartridgeReader] [info] Parsed cartridge, game_title: , game_title_hash: 0, game_title_hash_16: 0, old_licensee_code: 0, header_checksum: 98
+[2026-10-06 02:02:11.692] [CartridgeReader] [info] Finished reading in , file size: 32768
+[2026-10-06 02:02:11.692] [APU] [error] Failed to get audio format requested
+[2026-10-06 02:02:11.692] [MBC] [info] Using MBC: 1
+[2026-10-06 02:02:11.692] [Memory] [info] Initializing memory, is_color_gb: true, num_working_ram_banks: 8
+[2026-10-06 02:02:11.692] [CPU] [info] Did not provide BIOS, initializing registers post-BIOS
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff10, val 0x80 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff11, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff12, val 0xf3 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff14, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff16, val 0x3f but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff17, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff19, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff1a, val 0x7f but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff1b, val 0xff but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff1c, val 0x9f but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff1e, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff20, val 0xff but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff21, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff22, val 0x0 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff23, val 0xbf but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff24, val 0x77 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Tried to write to addr: 0xff25, val 0xf3 but APU sound is disabled
+[2026-10-06 02:02:11.692] [APU] [info] Turning APU on, resetting APU
+[2026-10-06 02:02:11.692] [GPU] [info] Turning display on, setting lcd_y to 0, old_lcd_display_enable: 0, lcd_display_enable: 1
+[2026-10-06 02:02:11.693] [Memory] [info] Writing 0x0 to interrupt_enable
+[2026-10-06 02:02:11.693] [MBC] [info] Reading in save file
+[2026-10-06 02:02:11.693] [MBC] [info] Finished reading in save file
+[2026-10-06 02:02:11.693] [MBC] [info] MBC1 does not support RTC clock
+[2026-10-06 02:02:11.694] [GBCEmulator] [info] Destructing
+[2026-10-06 02:02:11.694] [GBCEmulator] [info] Last frame hash: 4193774503956

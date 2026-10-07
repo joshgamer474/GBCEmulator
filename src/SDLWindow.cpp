@@ -39,6 +39,8 @@ SDLWindow::~SDLWindow()
     SDL_GL_DestroyContext(glContext);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    joypadg.reset();
+    joypadx.reset();
     SDL_Quit();
     logger->flush();
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+﻿cmake_minimum_required(VERSION 3.16)
 project(GBCEmulator_bin VERSION 0.2.0 LANGUAGES CXX)
 
 set(LIB_NAME GBCEmulator)
@@ -82,6 +82,7 @@ set(DEPS_LIBRARIES
   ZLIB::ZLIB)
 
 # Create GBCEmulator lib
+option(BUILD_FLUTTER_FFI "Build the C API shared library for Dart FFI" OFF)
 if(BUILD_SHARED_LIBS)
   message("Building as SHARED")
   add_library(${LIB_NAME} SHARED)
@@ -103,6 +104,30 @@ target_include_directories(${LIB_NAME} PUBLIC
 
 target_link_libraries(${LIB_NAME}
   ${DEPS_LIBRARIES})
+
+if(BUILD_FLUTTER_FFI)
+  set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  add_library(gbcemulator_ffi SHARED
+    flutter/gbcemulator/src/gbcemulator.cpp
+    flutter/gbcemulator/src/controller_input.cpp)
+  target_compile_definitions(gbcemulator_ffi PRIVATE GBC_FFI_BUILD)
+  target_link_libraries(gbcemulator_ffi PRIVATE ${LIB_NAME})
+  if(WIN32)
+    if(MINGW AND CMAKE_CROSSCOMPILING)
+      target_link_libraries(gbcemulator_ffi PRIVATE xinput1_4)
+    else()
+      target_link_libraries(gbcemulator_ffi PRIVATE xinput)
+    endif()
+    add_custom_command(TARGET gbcemulator_ffi POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:gbcemulator_ffi>"
+        "$<TARGET_RUNTIME_DLLS:gbcemulator_ffi>"
+      COMMAND_EXPAND_LISTS)
+  endif()
+  install(TARGETS gbcemulator_ffi
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib)
+endif()
 
 # Add std::experimental::filesystem
 if(UNIX AND NOT APPLE)
@@ -174,6 +199,15 @@ endif()
 
 # Enable unit testing
 enable_testing()
+
+option(BUILD_CONTROLLER_TEST "Build SDL virtual-gamepad regression test" OFF)
+if(BUILD_CONTROLLER_TEST)
+  add_executable(controller_input_test
+    flutter/gbcemulator/test/controller_input_test.cpp
+    flutter/gbcemulator/src/controller_input.cpp)
+  target_link_libraries(controller_input_test PRIVATE ${LIB_NAME})
+  add_test(NAME controller_input COMMAND controller_input_test)
+endif()
 
 if(BUILD_UNIT_TEST)
   # Add unit tests
@@ -255,3 +289,5 @@ endif()
 if(NOT BUILD_LIB_ONLY)
   include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
 endif()
+
+

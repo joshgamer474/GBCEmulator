@@ -1,4 +1,4 @@
-#include <JoypadXInput.h>
+﻿#include <JoypadXInput.h>
 #include <Joypad.h>
 
 #ifdef _WIN32
@@ -34,6 +34,39 @@ void JoypadXInput::init()
 #endif // _WIN32
 }
 
+uint32_t JoypadXInput::pollButtons(int controller, bool& connected)
+{
+  connected = false;
+  uint32_t mask = 0;
+#ifdef _WIN32
+  if (controller < 0 || controller >= XUSER_MAX_COUNT)
+  {
+    return 0;
+  }
+
+  XINPUT_STATE state{};
+  if (XInputGetState(controller, &state) != ERROR_SUCCESS)
+  {
+    return 0;
+  }
+  connected = true;
+  const XINPUT_GAMEPAD& pad = state.Gamepad;
+  auto button = [&](Joypad::BUTTON bit, bool pressed)
+  {
+    if (pressed) mask |= 1u << bit;
+  };
+  button(Joypad::DOWN, (pad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) || pad.sThumbLY < -12000);
+  button(Joypad::UP, (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) || pad.sThumbLY > 12000);
+  button(Joypad::LEFT, (pad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) || pad.sThumbLX < -12000);
+  button(Joypad::RIGHT, (pad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) || pad.sThumbLX > 12000);
+  button(Joypad::START, pad.wButtons & XINPUT_GAMEPAD_START);
+  button(Joypad::SELECT, pad.wButtons & (XINPUT_GAMEPAD_BACK | XINPUT_GAMEPAD_LEFT_SHOULDER));
+  button(Joypad::B, pad.wButtons & (XINPUT_GAMEPAD_B | XINPUT_GAMEPAD_X));
+  button(Joypad::A, pad.wButtons & XINPUT_GAMEPAD_A);
+#endif
+  return mask;
+}
+
 int JoypadXInput::findControllers()
 {
     int numControllersConnected = -1;
@@ -54,48 +87,31 @@ int JoypadXInput::findControllers()
 
 void JoypadXInput::refreshButtonStates(const int & controller)
 {
-#ifdef _WIN32
-    if (controller < 0 ||
-        controller > XUSER_MAX_COUNT)
+  bool connected = false;
+  const uint32_t current = pollButtons(controller, connected);
+  const uint32_t changed = current ^ applied_buttons;
+  if (joypad)
+  {
+    for (int i = Joypad::DOWN; i <= Joypad::A; ++i)
     {
-        return;
+      if (!(changed & (1u << i)))
+      {
+        continue;
+      }
+
+      const Joypad::BUTTON button = static_cast<Joypad::BUTTON>(i);
+      if (current & (1u << i))
+      {
+        joypad->set_joypad_button(button);
+      }
+      else
+      {
+        joypad->release_joypad_button(button);
+      }
     }
-
-    if (!isConnected(controller))
-    {   // Controller not connected!
-        return;
-    }
-
-    // Get gamepad state
-    XINPUT_STATE controller_state;
-    XInputGetState(controller, &controller_state);
-
-    // Get gamepad button WORD
-    const auto & buttons = controller_state.Gamepad.wButtons;
-
-    for (auto & pair : prev_button_states)
-    {   // int mask (first), bool state (second)
-        const bool & currState = buttons & pair.first;
-        if (currState != pair.second)
-        {
-            const int joypadButton = (getJoypadButtonFromMask(pair.first));
-            if (joypad && joypadButton >= 0)
-            {
-                if (currState)
-                {   // Button is now pressed
-                    joypad->set_joypad_button(static_cast<Joypad::BUTTON>(joypadButton));
-                }
-                else
-                {   // Button is now let go
-                    joypad->release_joypad_button(static_cast<Joypad::BUTTON>(joypadButton));
-                }
-            }
-            pair.second = currState;
-        }
-    }
-#endif // _WIN32
+  }
+  applied_buttons = current;
 }
-
 std::unordered_map<int, bool> JoypadXInput::initButtonStatesMap() const
 {
     return std::unordered_map<int, bool>
@@ -153,3 +169,4 @@ bool JoypadXInput::isConnected(int controller) const
     return false;
 #endif // _WIN32
 }
+

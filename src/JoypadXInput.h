@@ -2,6 +2,7 @@
 
 #include <JoypadInputInterface.h>
 #include <memory>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
@@ -18,6 +19,9 @@ public:
     void refreshButtonStates(const int & controller);
     int findControllers();
 
+    // Snapshot bits use Joypad::BUTTON; does not mutate the emulator.
+    static uint32_t pollButtons(int controller, bool& connected);
+
 private:
     void init();
     std::unordered_map<int, bool> initButtonStatesMap() const;
@@ -25,5 +29,6 @@ private:
     bool isConnected(int controller) const;
 
     std::unordered_map<int, bool> prev_button_states;
+    uint32_t applied_buttons = 0;
     std::shared_ptr<Joypad> joypad;
 };

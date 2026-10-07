@@ -16,7 +16,10 @@ JoypadGeneric::JoypadGeneric(std::shared_ptr<Joypad> _joypad)
 
 JoypadGeneric::~JoypadGeneric()
 {
-
+  if (gamepad)
+  {
+    SDL_CloseGamepad(gamepad);
+  }
 }
 
 void JoypadGeneric::setJoypad(std::shared_ptr<Joypad> _joypad)
@@ -31,75 +34,99 @@ void JoypadGeneric::init()
 
 int JoypadGeneric::findControllers()
 {
-  int numControllersConnected = -1;
-
-  if (!SDL_HasGamepad())
+  if (gamepad && SDL_GamepadConnected(gamepad))
   {
-    return numControllersConnected;
+    return SDL_GetGamepadID(gamepad);
   }
-
-  // Check for gamepads connected
-  SDL_JoystickID *ids = SDL_GetGamepads(&numControllersConnected);
-  int id = -1;
-
-  // Initialize gamepad
-  SDL_Gamepad* gamepad = NULL;
-  for (int i = 0; i < numControllersConnected; i++)
+  if (gamepad)
   {
-    id = ids[i];
-    SDL_Gamepad* gp = SDL_OpenGamepad(id);
-    if (gp != nullptr)
-    {
-      gamepad = gp;
-    }
-
-    if (i > 0)
-    {
-      SDL_CloseGamepad(gp);
-    }
+    SDL_CloseGamepad(gamepad);
   }
-
-  return id;
+  gamepad = nullptr;
+  int count = 0;
+  auto ids = SDL_GetGamepads(&count);
+  for (int i = 0; i < count && !gamepad; ++i)
+  {
+    gamepad = SDL_OpenGamepad(ids[i]);
+  }
+  SDL_free(ids);
+  return gamepad ? static_cast<int>(SDL_GetGamepadID(gamepad)) : -1;
 }
 
+uint32_t JoypadGeneric::mapButtons(uint32_t physical, int x, int y)
+{
+  uint32_t mask = 0;
+  for (int i = 0; i < SDL_GAMEPAD_BUTTON_COUNT; ++i)
+  {
+    const auto button = mapButton(i);
+    if (button >= 0 && (physical & (1u << i)))
+    {
+      mask |= 1u << button;
+    }
+  }
+  if (x < -12000)
+  {
+    mask |= 1u << Joypad::LEFT;
+  }
+  if (x > 12000)
+  {
+    mask |= 1u << Joypad::RIGHT;
+  }
+  if (y < -12000)
+  {
+    mask |= 1u << Joypad::UP;
+  }
+  if (y > 12000)
+  {
+    mask |= 1u << Joypad::DOWN;
+  }
+  return mask;
+}
+
+uint32_t JoypadGeneric::pollButtons(SDL_Gamepad* pad)
+{
+  if (!pad || !SDL_GamepadConnected(pad))
+  {
+    return 0;
+  }
+  uint32_t physical = 0;
+  for (int i = 0; i < SDL_GAMEPAD_BUTTON_COUNT; ++i)
+  {
+    if (SDL_GetGamepadButton(pad, static_cast<SDL_GamepadButton>(i)))
+    {
+      physical |= 1u << i;
+    }
+  }
+  return mapButtons(physical, SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX),
+    SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY));
+}
 void JoypadGeneric::refreshButtonStates(const int & controller)
 {
-  if (controller < 0 ||
-    controller > 4)
+  const auto current = controller >= 0 && gamepad &&
+      SDL_GetGamepadID(gamepad) == static_cast<SDL_JoystickID>(controller)
+      ? pollButtons(gamepad) : 0;
+  const auto changed = current ^ applied_buttons;
+  if (joypad)
   {
-    return;
-  }
-
-  if (!isConnected(controller))
-  {   // Controller not connected!
-    return;
-  }
-
-  // Get gamepad
-  SDL_Gamepad* gamepad = SDL_GetGamepadFromID(static_cast<SDL_JoystickID>(controller));
-
-  for (auto& pair : prev_button_states)
-  {
-    const bool currState = SDL_GetGamepadButton(gamepad, static_cast<SDL_GamepadButton>(pair.first));
-    if (currState != pair.second)
+    for (int i = Joypad::DOWN; i <= Joypad::A; ++i)
     {
-      const int joypadButton = (getJoypadButtonFromMask(pair.first));
-      if (joypad && joypadButton >= 0)
+      if (!(changed & (1u << i)))
       {
-        if (currState)
-        {   // Button is now pressed
-          joypad->set_joypad_button(static_cast<Joypad::BUTTON>(joypadButton));
-        }
-        else
-        {   // Button is now let go
-          joypad->release_joypad_button(static_cast<Joypad::BUTTON>(joypadButton));
-        }
+        continue;
       }
-      pair.second = currState;
+      const auto button = static_cast<Joypad::BUTTON>(i);
+      if (current & (1u << i))
+      {
+        joypad->set_joypad_button(button);
+      }
+      else
+      {
+        joypad->release_joypad_button(button);
+      }
     }
   }
+  applied_buttons = current;
 }
-
 std::unordered_map<int, bool> JoypadGeneric::initButtonStatesMap() const
 {
   return std::unordered_map<int, bool>
@@ -121,7 +148,7 @@ std::unordered_map<int, bool> JoypadGeneric::initButtonStatesMap() const
   };
 }
 
-int JoypadGeneric::getJoypadButtonFromMask(const int & mask) const
+int JoypadGeneric::mapButton(int mask)
 {
   switch (mask)
   {
@@ -132,6 +159,7 @@ int JoypadGeneric::getJoypadButtonFromMask(const int & mask) const
     case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:    return Joypad::BUTTON::RIGHT;
     case SDL_GAMEPAD_BUTTON_DPAD_UP:       return Joypad::BUTTON::UP;
     case SDL_GAMEPAD_BUTTON_DPAD_DOWN:     return Joypad::BUTTON::DOWN;
+    case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:
     case SDL_GAMEPAD_BUTTON_BACK:          return Joypad::BUTTON::SELECT;
     case SDL_GAMEPAD_BUTTON_START:         return Joypad::BUTTON::START;
     default:
@@ -139,8 +167,14 @@ int JoypadGeneric::getJoypadButtonFromMask(const int & mask) const
   }
 }
 
+int JoypadGeneric::getJoypadButtonFromMask(const int & mask) const
+{
+  return mapButton(mask);
+}
+
 bool JoypadGeneric::isConnected(int controller) const
 {
-  SDL_Gamepad* gp = SDL_OpenGamepad(controller);
-  return SDL_GamepadConnected(gp);
+  return gamepad && controller >= 0 &&
+    SDL_GetGamepadID(gamepad) == static_cast<SDL_JoystickID>(controller) &&
+    SDL_GamepadConnected(gamepad);
 }
