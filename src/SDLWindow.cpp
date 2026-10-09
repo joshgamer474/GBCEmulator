@@ -3,7 +3,9 @@
 #include <SDL3/SDL_stdinc.h>
 
 #include <algorithm>
-#include <format>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -380,7 +382,11 @@ int SDLWindow::run(bool start_emu)
 #ifndef __ANDROID__
             if (emu)
             {
-                updateWindowTitle(std::format("{:.2f}", emu->frameShowTimeMicro.count() / 1000.0));    // Turn microseconds into milliseconds
+                std::ostringstream frameTime;
+                frameTime.imbue(std::locale::classic());
+                frameTime << std::fixed << std::setprecision(2)
+                          << emu->frameShowTimeMicro.count() / 1000.0;
+                updateWindowTitle(frameTime.str());    // Turn microseconds into milliseconds
             }
 #endif
         }

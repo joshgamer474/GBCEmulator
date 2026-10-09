@@ -7,6 +7,13 @@ import 'package:ffi/ffi.dart';
 DynamicLibrary openLibrary(String path) {
   final file = File(path).absolute;
   if (!file.existsSync()) {
+    if (Platform.isIOS) {
+      throw StateError(
+        'The iOS native emulator is missing: ${file.path}. '
+        'Build gbcemulator_ffi and its dependencies for iOS and embed the '
+        'framework in Runner. A macOS dylib cannot be used on iOS.',
+      );
+    }
     throw ArgumentError('Native library does not exist: ${file.path}');
   }
 

@@ -17,6 +17,9 @@ class EmulatorSession {
   final void Function(String) onError;
   SendPort? _commands;
   bool _stopping = false;
+  int? nativeFrames;
+  double? nativeFps;
+  double _nativeSampleTime = 0;
   GBCControllers? _controllers;
   Timer? _controllerTimer;
   bool _controllersEnabled = true;
@@ -59,6 +62,7 @@ class EmulatorSession {
   }
 
   Future<void> start(String library, String rom) async {
+    String? startupError;
     // Initialize SDL here on Flutter's root/platform thread, before the worker
     // creates the emulator and initializes SDL audio.
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -75,13 +79,25 @@ class EmulatorSession {
         if (_stopping) event.send('stop');
       } else if (event is TransferableTypedData) {
         if (!_stopping) onFrame(event.materialize().asUint8List());
+      } else if (event is (String, int?, double) && event.$1 == 'frames') {
+        if (event.$2 != null &&
+            nativeFrames != null &&
+            event.$3 > _nativeSampleTime) {
+          nativeFps =
+              (event.$2! - nativeFrames!) / (event.$3 - _nativeSampleTime);
+        }
+        nativeFrames = event.$2;
+        _nativeSampleTime = event.$3;
       } else if (event is String) {
+        if (!_ready.isCompleted) startupError = event;
         onError(event);
       } else if (event == null) {
         _closeControllers();
         _stopping = true;
         if (!_ready.isCompleted) {
-          _ready.completeError(StateError('Emulator failed to start'));
+          _ready.completeError(
+            StateError(startupError ?? 'Emulator failed to start'),
+          );
         }
         if (!_closed.isCompleted) _closed.complete();
         _events.close();
@@ -116,6 +132,10 @@ class EmulatorSession {
     if (!_stopping) _commands?.send('frame');
   }
 
+  void touchButton(Button button, bool pressed) {
+    if (!_stopping) _input.touch(button, pressed);
+  }
+
   Future<void> stop() async {
     _controllerTimer?.cancel();
     _input.release();
@@ -129,6 +149,7 @@ void _run((String, String, SendPort) args) async {
   final (library, rom, output) = args;
   GBCEmulator? emulator;
   final commands = ReceivePort();
+  Timer? statistics;
   try {
     emulator = GBCEmulator.create(rom, library: openLibrary(library));
     final active = emulator;
@@ -142,6 +163,14 @@ void _run((String, String, SendPort) args) async {
     });
     emulator.run();
     output.send(commands.sendPort);
+    final clock = Stopwatch()..start();
+    statistics = Timer.periodic(const Duration(seconds: 1), (_) {
+      output.send((
+        'frames',
+        active.producedFrames,
+        clock.elapsedMicroseconds / 1000000,
+      ));
+    });
 
     await for (final command in commands) {
       if (command == 'stop') break;
@@ -160,6 +189,7 @@ void _run((String, String, SendPort) args) async {
   } catch (error) {
     output.send(error.toString());
   } finally {
+    statistics?.cancel();
     emulator?.destroy();
     commands.close();
   }

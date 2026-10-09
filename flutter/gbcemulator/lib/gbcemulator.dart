@@ -38,7 +38,13 @@ class GBCEmulator {
     try {
       final handle = bindings.create(name.cast<Char>());
       if (handle == nullptr) {
-        throw StateError('Could not create emulator for "$rom"');
+        final error = bindings.last_error?.call();
+        final detail = error != null && error != nullptr
+            ? error.cast<Utf8>().toDartString()
+            : '';
+        throw StateError(
+          'Could not create emulator for "$rom"${detail.isEmpty ? '' : ': $detail'}',
+        );
       }
       try {
         return GBCEmulator._(bindings, handle, calloc<Uint8>(frame_bytes));
@@ -137,5 +143,10 @@ class GBCEmulator {
       _bindings.get_frame(_handle, _frame, frame_bytes),
     );
     return Uint8List.fromList(_frame.asTypedList(frame_bytes));
+  }
+
+  int? get producedFrames {
+    _check_alive();
+    return _bindings.frameCount(_handle);
   }
 }

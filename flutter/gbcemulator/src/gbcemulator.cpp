@@ -6,6 +6,30 @@
 #include <thread>
 
 #include "../../../src/GBCEmulator.h"
+#include "../../../src/Util.h"
+
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#if TARGET_OS_IPHONE
+#define SDL_MAIN_HANDLED
+#include <SDL3/SDL_main.h>
+#include <dispatch/dispatch.h>
+#include <pthread.h>
+#endif
+#endif
+
+namespace {
+thread_local std::string creation_error;
+
+std::string ffi_log_path(const char* rom_name)
+{
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+  return generate_log_path(rom_name);
+#else
+  return "log.txt";
+#endif
+}
+}
 
 struct gbc_handle
 {
@@ -14,6 +38,7 @@ struct gbc_handle
   std::mutex frame_mutex;
   std::array<SDL_Color, SCREEN_PIXEL_TOTAL> frame{};
   std::atomic<uint32_t> input_buttons{0};
+  std::atomic<uint64_t> produced_frames{0};
   uint32_t applied_buttons = 0;
   std::atomic<bool> stopping{false};
   std::atomic<bool> failed{false};
@@ -21,10 +46,11 @@ struct gbc_handle
   gbc_frame_callback callback = nullptr;
   bool frame_requested = false;
 
-  explicit gbc_handle(const char* rom_name) : emulator(rom_name)
+  explicit gbc_handle(const char* rom_name) : emulator(rom_name, ffi_log_path(rom_name))
   {
     emulator.setFrameUpdateMethod([this](auto completed_frame)
     {
+      produced_frames.fetch_add(1, std::memory_order_relaxed);
       std::lock_guard lock(frame_mutex);
       frame = completed_frame;
       if (callback && frame_requested)
@@ -68,15 +94,45 @@ int32_t invoke(gbc_handle* handle, Action action) noexcept
 
 gbc_handle* GBC_CALL create(const char* rom_name)
 {
-  if (!rom_name || !*rom_name) return nullptr;
+  creation_error.clear();
+  if (!rom_name || !*rom_name) {
+    creation_error = "ROM path is empty";
+    return nullptr;
+  }
   try
   {
+#if defined(__APPLE__) && TARGET_OS_IPHONE
+    // Flutter owns UIApplicationMain; SDL's usual entry point never runs.
+    // Mark UIKit's actual main thread before SDL audio initializes in Dart's
+    // worker isolate. Do this once, without taking over Flutter's lifecycle.
+    static std::once_flag platform_ready;
+    std::call_once(platform_ready, [] {
+      if (pthread_main_np()) {
+        SDL_SetMainReady();
+      } else {
+        dispatch_sync_f(dispatch_get_main_queue(), nullptr, [](void*) {
+          SDL_SetMainReady();
+        });
+      }
+    });
+#endif
     return new gbc_handle(rom_name);
+  }
+  catch (const std::exception& error)
+  {
+    creation_error = error.what();
+    return nullptr;
   }
   catch (...)
   {
+    creation_error = "Unknown native emulator initialization failure";
     return nullptr;
   }
+}
+
+const char* GBC_CALL gbc_last_error()
+{
+  return creation_error.c_str();
 }
 
 int32_t GBC_CALL set_frame_callback(gbc_handle* handle, gbc_frame_callback callback)
@@ -102,10 +158,16 @@ void GBC_CALL destroy(gbc_handle* handle)
   delete handle;
 }
 
+uint64_t GBC_CALL gbc_frame_count(gbc_handle* handle)
+{
+  return handle ? handle->produced_frames.load(std::memory_order_relaxed) : 0;
+}
+
 void apply_buttons(gbc_handle* handle)
 {
   const auto combined = handle->input_buttons.load();
   const auto changed = combined ^ handle->applied_buttons;
+  if (!changed) return;
   for (int i = 0; i < 8; ++i)
   {
     if (!(changed & (1u << i))) continue;
@@ -122,7 +184,7 @@ void _run(gbc_handle* handle)
     while (!handle->stopping)
     {
       apply_buttons(handle);
-      for (int i = 0; i < 2560 && !handle->stopping; ++i)
+      for (int i = 0; i < 25600 && !handle->stopping; ++i)
         handle->emulator.runNextInstruction();
     }
   }

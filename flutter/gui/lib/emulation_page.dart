@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'emulator_session.dart';
 import 'game_keyboard.dart';
@@ -12,6 +13,12 @@ import 'controller_focus.dart';
 import 'lcd_filter.dart';
 import 'boxart_catalog.dart';
 import 'boxart_image.dart';
+import 'mobile_controls.dart';
+import 'frame_timing_stats.dart';
+import 'video_frame_queue.dart';
+
+// Enable when troubleshooting native-to-Flutter frame delivery.
+const bool _showFrameDelivery = false;
 
 class EmulationPage extends StatefulWidget {
   const EmulationPage({
@@ -29,16 +36,54 @@ class EmulationPage extends StatefulWidget {
   State<EmulationPage> createState() => _EmulationPageState();
 }
 
-class _EmulationPageState extends State<EmulationPage> {
+class _EmulationPageState extends State<EmulationPage>
+    with SingleTickerProviderStateMixin {
   EmulatorSession? _session;
   late final PlaytimeTracker _playtime;
   late final AppLifecycleListener _lifecycle;
+  late final Ticker _videoTicker;
+
+  void _updateVideoTicker() {
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    final active =
+        _playing &&
+        !_leaving &&
+        (lifecycle == null || lifecycle == AppLifecycleState.resumed);
+    if (active && !_videoTicker.isActive) {
+      _videoTicker.start();
+    } else if (!active && _videoTicker.isActive) {
+      _videoTicker.stop();
+    }
+  }
+
   Timer? _saveTimer;
+  Timer? _fpsTimer;
+  final _fpsClock = Stopwatch();
+  int _receivedFrames = 0;
+  int _decodedFrames = 0;
+  int _presentedFrames = 0;
+  int _vsyncTicks = 0;
+  int _decodedBursts = 0;
+  int _decodedGaps = 0;
+  int? _lastDecodedAt;
+  String _fps = 'Collecting frame statistics…';
+  final _frameTimings = FrameTimingStats();
+  String _timingSummary = 'Flutter timings: collecting…';
+
+  void _recordTimings(List<ui.FrameTiming> timings) {
+    if (_playing && !_leaving) _frameTimings.add(timings);
+  }
+
   Future<void>? _stopped;
   ui.Image? _image;
+  final _video = ValueNotifier<ui.Image?>(null);
+  final _videoFrames = VideoFrameQueue<ui.Image>((image) => image.dispose());
+  ui.Image? _paintedImage;
+  bool _imagePresentationScheduled = false;
   bool _lcdEnabled = true;
   double _lcdBrightness = 0.93;
   String _status = 'Loading ROM...';
+  String? _startupError;
   bool _playing = false;
   bool _leaving = false;
   bool _canPop = false;
@@ -47,10 +92,19 @@ class _EmulationPageState extends State<EmulationPage> {
   ControllerFocus? _controllerFocus;
   bool get _desktop =>
       Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  bool get _mobile => Platform.isIOS || Platform.isAndroid;
 
   @override
   void initState() {
     super.initState();
+    // Keep vsync scheduling active during playback. Images still update only
+    // the video subtree; this does not rebuild the page or change native speed.
+    _videoTicker = createTicker((_) {
+      _vsyncTicks++;
+      final image = _videoFrames.take();
+      if (image != null) _presentFrame(image);
+    });
+    WidgetsBinding.instance.addTimingsCallback(_recordTimings);
     _playtime = PlaytimeTracker(
       widget.settings ?? FolderSettings(),
       widget.rom,
@@ -67,6 +121,7 @@ class _EmulationPageState extends State<EmulationPage> {
         }
       },
       onStateChange: (state) {
+        _updateVideoTicker();
         if (!_desktop) {
           _session?.controllersEnabled = state == AppLifecycleState.resumed;
         }
@@ -92,6 +147,7 @@ class _EmulationPageState extends State<EmulationPage> {
         if (mounted && !_leaving) {
           setState(() {
             _status = error;
+            _startupError = error;
             _playing = false;
           });
           unawaited(_shutdown());
@@ -130,6 +186,7 @@ class _EmulationPageState extends State<EmulationPage> {
           _status =
               'W A S D: Move   Z/X: A/B   M/N: Start/Select   Esc: Library';
         });
+        _updateVideoTicker();
         try {
           unawaited(_playtime.startAsync().catchError(_saveError));
         } catch (error) {
@@ -140,9 +197,50 @@ class _EmulationPageState extends State<EmulationPage> {
           (_) => _checkpoint(),
         );
         session.next();
+        var previous = (
+          session.nativeFrames,
+          _receivedFrames,
+          _decodedFrames,
+          _presentedFrames,
+          _vsyncTicks,
+          _decodedBursts,
+          _decodedGaps,
+        );
+        var previousTime = 0.0;
+        _fpsClock.start();
+        _fpsTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+          if (!mounted || _leaving) return;
+          final now = _fpsClock.elapsedMicroseconds / 1000000;
+          final seconds = now - previousTime;
+          final counts = (
+            session.nativeFrames,
+            _receivedFrames,
+            _decodedFrames,
+            _presentedFrames,
+            _vsyncTicks,
+            _decodedBursts,
+            _decodedGaps,
+          );
+          String rate(int count, int old) =>
+              ((count - old) / seconds).toStringAsFixed(1);
+          final native = session.nativeFps?.toStringAsFixed(1) ?? 'N/A';
+          setState(() {
+            _fps =
+                'Native: $native fps\nReceived: ${rate(counts.$2, previous.$2)} fps\nDecoded: ${rate(counts.$3, previous.$3)} fps\nPresented: ${rate(counts.$4, previous.$4)} fps\nObserved vsync: ${rate(counts.$5, previous.$5)} fps\nDecode intervals (${seconds.toStringAsFixed(1)} s sample):\n<8 ms: ${counts.$6 - previous.$6}, >25 ms: ${counts.$7 - previous.$7}';
+            _timingSummary =
+                '${_frameTimings.summary}\nReported display: ${View.of(context).display.refreshRate.toStringAsFixed(1)} Hz';
+          });
+          previous = counts;
+          previousTime = now;
+        });
       }
     } catch (error) {
-      if (mounted && !_leaving) setState(() => _status = error.toString());
+      if (mounted && !_leaving) {
+        setState(() {
+          _status = error.toString();
+          _startupError ??= _status;
+        });
+      }
       await _shutdown();
     }
   }
@@ -161,9 +259,13 @@ class _EmulationPageState extends State<EmulationPage> {
 
   Future<void> _shutdown() {
     if (_stopped != null) return _stopped!;
+    _videoTicker.stop();
+    _videoFrames.clear();
     _controllerFocus?.dispose();
     _controllerFocus = null;
     _saveTimer?.cancel();
+    _fpsTimer?.cancel();
+    _fpsClock.stop();
     final saved = _playtime.stopAsync().catchError(_saveError);
     final session = _session;
     _session = null;
@@ -191,28 +293,54 @@ class _EmulationPageState extends State<EmulationPage> {
 
   void _showFrame(EmulatorSession session, Uint8List bytes) {
     if (_leaving || !identical(_session, session)) return;
+    _receivedFrames++;
     ui.decodeImageFromPixels(bytes, 160, 144, ui.PixelFormat.rgba8888, (image) {
       if (!mounted || _leaving || !identical(_session, session)) {
         image.dispose();
         return;
       }
-      final previous = _image;
-      setState(() => _image = image);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        previous?.dispose();
-        // Keep at most one decoded image waiting for presentation. Native
-        // emulation continues independently while Flutter renders this frame.
-        if (mounted && !_leaving && identical(_session, session))
-          session.next();
-      });
+      _decodedFrames++;
+      final decodedAt = _fpsClock.elapsedMicroseconds;
+      if (_lastDecodedAt != null) {
+        final interval = decodedAt - _lastDecodedAt!;
+        if (interval < 8000) _decodedBursts++;
+        if (interval > 25000) _decodedGaps++;
+      }
+      _lastDecodedAt = decodedAt;
+      _videoFrames.add(image);
+      session.next();
     });
+  }
+
+  void _presentFrame(ui.Image image) {
+    final previous = _image;
+    // An image replaced before a Flutter paint can be discarded immediately.
+    // Keep the last painted image alive until its replacement is painted.
+    if (!identical(previous, _paintedImage)) previous?.dispose();
+    _image = image;
+    _video.value = image;
+    if (!_imagePresentationScheduled) {
+      _imagePresentationScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _imagePresentationScheduled = false;
+        if (!mounted) return;
+        final oldPainted = _paintedImage;
+        _paintedImage = _image;
+        if (!identical(oldPainted, _paintedImage)) _presentedFrames++;
+        if (!identical(oldPainted, _paintedImage)) oldPainted?.dispose();
+      });
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeTimingsCallback(_recordTimings);
     _lifecycle.dispose();
     unawaited(_shutdown());
+    _videoTicker.dispose();
     _image?.dispose();
+    if (!identical(_paintedImage, _image)) _paintedImage?.dispose();
+    _video.dispose();
     super.dispose();
   }
 
@@ -313,6 +441,14 @@ class _EmulationPageState extends State<EmulationPage> {
                         setState(() => _lcdBrightness = value),
                   ),
                   const Divider(),
+                  if (_showFrameDelivery)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Frame delivery'),
+                      subtitle: Text(
+                        '$_fps\n\n$_timingSummary\nPresented counts Flutter frame submissions, not physical display refreshes. Native N/A means the native library needs rebuilding.',
+                      ),
+                    ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.backspace),
@@ -332,7 +468,7 @@ class _EmulationPageState extends State<EmulationPage> {
             children: [
               Column(
                 children: [
-                  if (!_playing)
+                  if (!_playing && _startupError == null)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(60, 16, 16, 12),
                       child: Text(
@@ -346,18 +482,43 @@ class _EmulationPageState extends State<EmulationPage> {
                       enabled: _playing && !_drawerOpen,
                       onButton: (button, pressed) =>
                           _session?.button(button, pressed),
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 160 / 144,
-                          child: ColoredBox(
-                            color: Colors.black,
-                            child: _image == null
-                                ? const Center(child: Text('Waiting for video'))
-                                : LcdFilter(
-                                    image: _image!,
-                                    enabled: _lcdEnabled,
-                                    brightness: _lcdBrightness,
-                                  ),
+                      child: Padding(
+                        padding: !_mobile
+                            ? EdgeInsets.zero
+                            : MediaQuery.orientationOf(context) ==
+                                  Orientation.portrait
+                            ? EdgeInsets.only(
+                                bottom:
+                                    212 + MediaQuery.paddingOf(context).bottom,
+                              )
+                            : const EdgeInsets.fromLTRB(140, 0, 140, 64),
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: 160 / 144,
+                            child: ColoredBox(
+                              color: Colors.black,
+                              child: RepaintBoundary(
+                                child: ValueListenableBuilder<ui.Image?>(
+                                  valueListenable: _video,
+                                  builder: (context, image, _) => image == null
+                                      ? Center(
+                                          child: SingleChildScrollView(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Text(
+                                              _startupError ??
+                                                  'Waiting for video',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        )
+                                      : LcdFilter(
+                                          image: image,
+                                          enabled: _lcdEnabled,
+                                          brightness: _lcdBrightness,
+                                        ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -365,6 +526,17 @@ class _EmulationPageState extends State<EmulationPage> {
                   ),
                 ],
               ),
+              if (_mobile)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: MobileControls(
+                    enabled: _playing && !_drawerOpen && !_leaving,
+                    onButton: (button, pressed) =>
+                        _session?.touchButton(button, pressed),
+                  ),
+                ),
               Positioned(
                 top: 12,
                 left: 12,

@@ -1,0 +1,21 @@
+[settings]
+os=iOS
+os.version=15.0
+os.sdk=iphoneos
+arch=armv8
+compiler=apple-clang
+compiler.version=21
+compiler.libcxx=libc++
+compiler.cppstd=23
+build_type=Release
+
+[options]
+*:shared=False
+gbcemulator/*:lib_only=True
+gbcemulator/*:flutter_ffi=True
+gbcemulator/*:qt=False
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Xcode
+tools.apple:enable_bitcode=False
+tools.cmake.cmaketoolchain:extra_variables={"CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO"}

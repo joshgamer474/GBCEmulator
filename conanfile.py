@@ -16,6 +16,7 @@ class GBCEmulator(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False],
                 "lib_only": [True, False],
+                "flutter_ffi": [True, False],
                 "qt": [True, False]}
     requires = (
         #"sdl/2.30.9",
@@ -24,14 +25,14 @@ class GBCEmulator(ConanFile):
         "libpng/1.6.53",
         "libzip/1.11.4",
         )
-    exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "!*.gb",\
+    exports_sources = "src/*", "CMakeLists.txt", "test_package/*", "flutter/gbcemulator/src/*", "packaging/*", "!*.gb",\
       "!*.gitignore", "!*.log", "!*.sav", "!*.s"
-    default_options = {"shared": False, "lib_only": False, "qt": False}
+    default_options = {"shared": False, "lib_only": False, "qt": False, "flutter_ffi": False}
 
     def build_requirements(self):
         if self.settings.os == "Android":
             self.tool_requires("android-ndk/r24")
-        else:
+        elif self.settings.os != "iOS":
             self.test_requires("gtest/1.17.0")
 
         if self.options.qt:
@@ -40,9 +41,10 @@ class GBCEmulator(ConanFile):
 
     def configure(self):
         #self.options["sdl2"].shared = True
-        self.options["sdl3"].shared = True
-        self.options["gtest"].shared = True
-        self.options["spdlog"].use_std_fmt = True
+        self.options["sdl"].shared = self.settings.os != "iOS"
+        if self.settings.os not in ("iOS", "Android"):
+            self.options["gtest"].shared = True
+        self.options["spdlog"].use_std_fmt = self.settings.os != "iOS"
         if self.settings.os == "Linux":
             #self.options["sdl2"].iconv = False
             #self.options["sdl2"].nas = False
@@ -63,11 +65,15 @@ class GBCEmulator(ConanFile):
             #self.options["qt"].with_gssapi = False
             self.options["qt"].with_atspi = False
 
-        self.options["libzip"].shared = True
+        self.options["libzip"].shared = self.settings.os != "iOS"
         self.options["libzip"].with_bzip2 = False
         self.options["libzip"].with_lzma = False
         self.options["libzip"].with_zstd = False
         self.options["libzip"].crypto = False
+
+    def validate(self):
+        if self.settings.os == "iOS" and (self.options.shared or self.options.qt):
+            raise ConanInvalidConfiguration("iOS requires shared=False and qt=False")
 
     def imports(self):
         dest = os.getenv("CONAN_IMPORT_PATH", "bin")
@@ -90,6 +96,8 @@ class GBCEmulator(ConanFile):
     def generate(self):
         # This generates "conan_toolchain.cmake" in self.generators_folder
         tc = CMakeToolchain(self)
+        tc.variables["BUILD_SHARED_LIBS"] = bool(self.options.shared)
+        tc.variables["BUILD_FLUTTER_FFI"] = bool(self.options.flutter_ffi)
 
         # Don't build test_package as ndk doesn't have std::experimental::filesystem
         if self.settings.os == "Android":
@@ -98,7 +106,7 @@ class GBCEmulator(ConanFile):
             #tc.variables["BUILD_UNIT_TEST"] = True
             tc.variables["BUILD_UNIT_TEST"] = False
 
-        if self.options.lib_only == True or self.settings.os == "Android":
+        if self.options.lib_only == True or self.settings.os in ("Android", "iOS"):
             tc.variables["BUILD_LIB_ONLY"] = True
         else:
             tc.variables["BUILD_LIB_ONLY"] = False

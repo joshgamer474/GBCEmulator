@@ -20,6 +20,10 @@ extern "C" {
 #endif
 
 typedef struct gbc_handle gbc_handle;
+GBC_API uint64_t GBC_CALL gbc_frame_count(gbc_handle* handle);
+// Thread-local create() error. Borrowed string remains valid until the next
+// create() on this thread; copy it immediately after a failed create().
+GBC_API const char* GBC_CALL gbc_last_error(void);
 typedef struct gbc_controllers gbc_controllers;
 // One controller event consumer. Create/poll/destroy on the host main thread,
 // before creating an emulator. Poll returns a gbc_button bitmask or negative status.
@@ -56,5 +60,3 @@ GBC_API int32_t GBC_CALL get_frame(gbc_handle* handle, uint8_t* rgba, size_t len
 #ifdef __cplusplus
 }
 #endif
-
-

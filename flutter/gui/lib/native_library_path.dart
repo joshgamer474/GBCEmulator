@@ -4,6 +4,11 @@ String defaultNativeLibraryPath() {
   const override = String.fromEnvironment('GBC_LIBRARY');
   if (override.isNotEmpty) return override;
 
+  if (Platform.isIOS) {
+    final directory = File(Platform.resolvedExecutable).parent.path;
+    return '$directory/Frameworks/gbcemulator_ffi.framework/gbcemulator_ffi';
+  }
+
   final filename = Platform.isWindows
       ? 'gbcemulator_ffi.dll'
       : Platform.isMacOS

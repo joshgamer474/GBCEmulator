@@ -44,6 +44,18 @@ void main() {
     },
   );
 
+  test('iOS uses the native folder picker and restores saved access', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return call.method == 'pick' ? '/Documents/ROMs' : <String>[];
+        });
+    expect(await RomFolderAccess.restore(), isEmpty);
+    expect(await RomFolderAccess.pickIOSFolder(), '/Documents/ROMs');
+    expect(calls.map((call) => call.method), ['restore', 'pick']);
+  });
+
   test('bookmark failures are reported to the caller', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (_) async {
@@ -53,5 +65,21 @@ void main() {
       RomFolderAccess.remember('/Volumes/ROMs'),
       throwsA(isA<PlatformException>()),
     );
+  });
+
+  test('iOS settings use the native sandbox directory', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    const path = '/app/Library/Application Support/GBCEmulator/settings.json';
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return path;
+        });
+    expect(await RomFolderAccess.iosSettingsPath(), path);
+    expect(calls.single.method, 'settingsPath');
+  });
+
+  test('missing iOS settings path does not fall back outside the sandbox', () async {
+    await expectLater(RomFolderAccess.iosSettingsPath(), throwsStateError);
   });
 }

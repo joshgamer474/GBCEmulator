@@ -60,7 +60,26 @@ class GBCBindings {
           .lookupFunction<
             Int32 Function(Pointer<GBCHandle>, Pointer<Uint8>, Size),
             int Function(Pointer<GBCHandle>, Pointer<Uint8>, int)
-          >('get_frame');
+          >('get_frame') {
+    // Keep Dart compatible with native libraries built before diagnostics.
+    _frameCount = library.providesSymbol('gbc_frame_count')
+        ? library.lookupFunction<
+            Uint64 Function(Pointer<GBCHandle>),
+            int Function(Pointer<GBCHandle>)
+          >('gbc_frame_count')
+        : null;
+    last_error = library.providesSymbol('gbc_last_error')
+        ? library.lookupFunction<
+            Pointer<Char> Function(),
+            Pointer<Char> Function()
+          >('gbc_last_error')
+        : null;
+  }
+
+  late final Pointer<Char> Function()? last_error;
+
+  int? frameCount(Pointer<GBCHandle> handle) => _frameCount?.call(handle);
+  late final int Function(Pointer<GBCHandle>)? _frameCount;
 
   final Pointer<GBCHandle> Function(Pointer<Char>) create;
   final void Function(Pointer<GBCHandle>) destroy;

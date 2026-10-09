@@ -113,6 +113,16 @@ if(BUILD_FLUTTER_FFI)
   target_compile_definitions(gbcemulator_ffi PRIVATE GBC_FFI_BUILD)
   target_link_libraries(gbcemulator_ffi PRIVATE ${LIB_NAME})
 
+  if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set_target_properties(gbcemulator_ffi PROPERTIES
+      FRAMEWORK TRUE
+      MACOSX_FRAMEWORK_IDENTIFIER "com.childers.gbcemulator.ffi"
+      MACOSX_FRAMEWORK_BUNDLE_VERSION "${PROJECT_VERSION}"
+      MACOSX_FRAMEWORK_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+      PUBLIC_HEADER "flutter/gbcemulator/src/gbcemulator.h"
+      INSTALL_NAME_DIR "@rpath")
+  endif()
+
   # MacOS
   if(APPLE)
     target_link_options(gbcemulator_ffi PRIVATE "-Wl,-headerpad_max_install_names")
@@ -136,6 +146,7 @@ if(BUILD_FLUTTER_FFI)
 
   # Install options
   install(TARGETS gbcemulator_ffi
+    FRAMEWORK DESTINATION lib
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib)
@@ -301,4 +312,3 @@ endif()
 if(NOT BUILD_LIB_ONLY)
   include(${CMAKE_SOURCE_DIR}/packaging/CMakeLists.txt)
 endif()
-

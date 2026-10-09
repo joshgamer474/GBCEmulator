@@ -145,6 +145,9 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
   final _gridKey = GlobalKey();
 
   bool _loading = false;
+  Future<void>? _scanInProgress;
+  bool _choosing = false;
+  late final Future<void> _restored;
   bool _opening = false;
   String? _error;
 
@@ -156,8 +159,8 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
     if (_folder.text.isEmpty && rom.isNotEmpty) {
       _folder.text = File(rom).parent.path;
     }
-    _settings = FolderSettings(file: widget.settingsFile);
-    unawaited(_restore());
+    _restored = _restore();
+    unawaited(_restored);
   }
 
   Future<void> _loadCovers() async {
@@ -176,6 +179,12 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
 
   Future<void> _restore() async {
     try {
+      final settingsFile =
+          widget.settingsFile ??
+          (Platform.isIOS
+              ? File(await RomFolderAccess.iosSettingsPath())
+              : null);
+      _settings = FolderSettings(file: settingsFile);
       // Restore sandbox access before load(), which also synchronizes shared
       // folder settings, and before the first directory scan.
       final accessWarnings = await RomFolderAccess.restore();
@@ -191,13 +200,21 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
       }
     } catch (error) {
       if (mounted) setState(() => _error = 'Could not load settings: $error');
+      return;
     }
     if (!mounted) return;
     setState(() => _settingsReady = true);
     await _scan();
   }
 
-  Future<void> _scan() async {
+  Future<void> _scan() {
+    if (_scanInProgress != null) return _scanInProgress!;
+    final scan = _scanImpl().whenComplete(() => _scanInProgress = null);
+    _scanInProgress = scan;
+    return scan;
+  }
+
+  Future<void> _scanImpl() async {
     if (_loading || !_settingsReady) return;
     setState(() {
       _loading = true;
@@ -212,7 +229,7 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
           games.putIfAbsent(folderKey(game), () => game);
         }
       } catch (error) {
-        if (Platform.isMacOS &&
+        if ((Platform.isMacOS || Platform.isIOS) &&
             error is FileSystemException &&
             error.osError?.errorCode == 1) {
           errors.add(
@@ -272,11 +289,17 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
   }
 
   Future<void> _choose() async {
+    if (_choosing) return;
+    setState(() => _choosing = true);
     try {
-      final folder = await getDirectoryPath(
-        confirmButtonText: 'Add ROM folder',
-      );
+      await _restored;
+      if (!mounted) return;
+      final folder = Platform.isIOS
+          ? await RomFolderAccess.pickIOSFolder()
+          : await getDirectoryPath(confirmButtonText: 'Add ROM folder');
       if (mounted && folder != null) {
+        await _scanInProgress;
+        if (!mounted) return;
         await RomFolderAccess.remember(folder);
         await _addPath(folder);
       }
@@ -284,6 +307,8 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
       if (mounted) {
         setState(() => _error = 'Could not open folder picker: $error');
       }
+    } finally {
+      if (mounted) setState(() => _choosing = false);
     }
   }
 
@@ -296,6 +321,11 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           title: const Text('Manage ROM folders'),
           content: SizedBox(
             width: 600,
@@ -306,31 +336,43 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
                     itemCount: edited.length,
                     itemBuilder: (_, index) {
                       final folder = edited[index];
-                      return ListTile(
-                        leading: Checkbox(
-                          value: folder.enabled,
-                          onChanged: (value) =>
-                              update(() => folder.enabled = value!),
-                        ),
-                        title: Text(folder.path),
-                        subtitle: CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          title: const Text(
-                            'Share playtime through this ROM folder',
-                          ),
-                          subtitle: const Text(
-                            'Newest copy wins. Sync this folder between devices.',
-                          ),
-                          value: folder.shareSettings,
-                          onChanged: (value) =>
-                              update(() => folder.shareSettings = value!),
-                        ),
-                        trailing: IconButton(
-                          tooltip: 'Remove folder',
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => update(() => edited.removeAt(index)),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: folder.enabled,
+                                  onChanged: (value) =>
+                                      update(() => folder.enabled = value!),
+                                ),
+                                const Expanded(child: Text('Enabled')),
+                                IconButton(
+                                  tooltip: 'Remove folder',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () =>
+                                      update(() => edited.removeAt(index)),
+                                ),
+                              ],
+                            ),
+                            Text(folder.path, softWrap: true),
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              title: const Text(
+                                'Share playtime through this ROM folder',
+                              ),
+                              subtitle: const Text(
+                                'Newest copy wins. Sync this folder between devices.',
+                              ),
+                              value: folder.shareSettings,
+                              onChanged: (value) =>
+                                  update(() => folder.shareSettings = value!),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -462,7 +504,8 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
                   width: double.infinity,
                   child: BoxArtImage(
                     url: cover?.url,
-                    semanticLabel: '${cover?.shortName ?? shortRomName(rom)} box art',
+                    semanticLabel:
+                        '${cover?.shortName ?? shortRomName(rom)} box art',
                   ),
                 ),
               ),
@@ -621,7 +664,10 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
                 padding: const EdgeInsets.only(left: 7, top: 6),
                 child: Text(
                   'v$version',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               );
             },
@@ -639,7 +685,7 @@ class _GameLibraryPageState extends State<GameLibraryPage> {
             runSpacing: 8,
             children: [
               FilledButton.icon(
-                onPressed: _loading || !_settingsReady ? null : _choose,
+                onPressed: _choosing ? null : _choose,
                 icon: const Icon(Icons.folder_open),
                 label: const Text('Add ROM folder'),
               ),

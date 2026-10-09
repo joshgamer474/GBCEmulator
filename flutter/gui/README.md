@@ -40,3 +40,22 @@ cmake -S . -B build/flutter-ffi -DCMAKE_BUILD_TYPE=Release \
 ## Build with Flutter (Linux)
 
 TODO
+
+## Build the native emulator for iOS with Conan 2
+
+For iOS:
+
+```sh
+conan install . -pr:b=default -pr:h=profiles/ios --build=missing \
+  -of=build/ios
+conan build . -pr:b=default -pr:h=profiles/ios -of=build/ios
+```
+
+For iOS simulator:
+
+```sh
+conan install . -pr:b=default -pr:h=profiles/ios-simulator --build=missing \
+  -of=build/ios-simulator
+conan build . -pr:b=default -pr:h=profiles/ios-simulator \
+  -of=build/ios-simulator
+```

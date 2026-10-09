@@ -3,6 +3,22 @@ import 'package:gbcemulator/gbcemulator.dart';
 import 'package:gui/game_input.dart';
 
 void main() {
+  test('touch release preserves keyboard and controller holds', () {
+    final events = <(Button, bool)>[];
+    final input = GameInput((button, pressed) => events.add((button, pressed)));
+    input.touch(Button.a, true);
+    input.keyboard(Button.a, true);
+    input.touch(Button.a, false);
+    expect(events, [(Button.a, true)]);
+    input.keyboard(Button.a, false);
+    expect(events.last, (Button.a, false));
+    input.controllers(1 << Button.left.index);
+    input.touch(Button.left, true);
+    input.controllers(0);
+    expect(events.last, (Button.left, true));
+    input.release();
+    expect(events.last, (Button.left, false));
+  });
   test('keyboard and controller releases preserve the other source', () {
     final events = <(Button, bool)>[];
     final input = GameInput((button, pressed) => events.add((button, pressed)));

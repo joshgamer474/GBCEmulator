@@ -1,6 +1,8 @@
 #include <Util.h>
 
 #include <filesystem>
+#include <cstdlib>
+#include <stdexcept>
 
 std::string get_log_directory()
 {
@@ -9,12 +11,19 @@ std::string get_log_directory()
 #elif __APPLE__
     #include <TargetConditionals.h>
     #if TARGET_IPHONE_SIMULATOR
-         // iOS, tvOS, or watchOS Simulator
+        const char* home_dir = std::getenv("HOME");
+        if (!home_dir)
+        {
+            throw std::runtime_error("Missing iOS app home directory for logs");
+        }
+        return std::string(home_dir) + "/Library/Caches/GBCEmulator/Logs/";
     #elif TARGET_OS_IPHONE
-        // iOS, tvOS, or watchOS device
+        const char* home_dir = std::getenv("HOME");
+        if (!home_dir) throw std::runtime_error("Missing iOS app home directory for logs");
+        {
+            return std::string(home_dir) + "/Library/Caches/GBCEmulator/Logs/";
+        }
     #elif TARGET_OS_MAC
-        // Other kinds of Apple platforms
-        //return "~/Library/Logs/GBCEmulator/";
         const char* home_dir = std::getenv("HOME");
         return std::string(home_dir) + "/.gbcemulator/";
     #else

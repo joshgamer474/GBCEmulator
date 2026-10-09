@@ -5,7 +5,19 @@ import 'package:flutter/services.dart';
 class RomFolderAccess {
   static const _channel = MethodChannel('gbcemulator/rom_folder_access');
   static bool get _enabled =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+      !kIsWeb && (defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.iOS);
+
+  static Future<String?> pickIOSFolder() =>
+      _channel.invokeMethod<String>('pick');
+
+  static Future<String> iosSettingsPath() async {
+    final path = await _channel.invokeMethod<String>('settingsPath');
+    if (path == null || path.isEmpty) {
+      throw StateError('iOS did not provide a settings directory');
+    }
+    return path;
+  }
 
   static Future<List<String>> restore() async {
     if (!_enabled) return [];
